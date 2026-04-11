@@ -1,0 +1,81 @@
+{
+    "nav": {
+        "home": "Trang chủ",
+        "products": "Sản phẩm",
+        "introduction": "Giới thiệu",
+        "about": "Về chúng tôi",
+        "contact": "Liên hệ",
+        "account": "Tài khoản",
+        "cart": "Giỏ hàng",
+        "language": "Ngôn ngữ",
+        "myTickets": "Vé của tôi"
+    },
+    "hero": {
+        "badge": "🎢 Khu vui chơi hàng đầu Việt Nam",
+        "title1": "Khoảnh khắc",
+        "titleHighlight1": "Vui vẻ",
+        "title2": "Trải nghiệm",
+        "titleHighlight2": "Sang trọng",
+        "subtitle": "Khám phá thế giới giải trí cao cấp dành riêng cho bé yêu của bạn. Trò chơi hiện đại, an toàn tuyệt đối, niềm vui trọn vẹn.",
+        "ctaPrimary": "NHẬN VÉ MỞ NGAY",
+        "ctaSecondary": "Khám phá trò chơi →",
+        "statGames": "Trò chơi",
+        "statVisitors": "Khách hài lòng",
+        "statRating": "Đánh giá"
+    },
+    "attractions": {
+        "badge": "🎮 Trò chơi",
+        "title": "Khám phá Thế giới",
+        "titleHighlight": "Phiêu lưu",
+        "subtitle": "Hơn 20 trò chơi hiện đại, an toàn, được thiết kế riêng cho trẻ từ 2-12 tuổi",
+        "items": {
+            "ballPit": {
+                "title": "Bể bóng Vui nhộn",
+                "description": "Bể bóng khổng lồ với hàng ngàn quả bóng nhiều màu sắc, thỏa sức vui chơi.",
+                "age": "👶 2-8 tuổi",
+                "duration": "⏱️ 30 phút"
+            },
+            "rollerCoaster": {
+                "title": "Tàu lượn Siêu tốc",
+                "description": "Tàu lượn mini an toàn cho bé, trải nghiệm tốc độ và hồi hộp.",
+                "age": "🧒 5-12 tuổi",
+                "duration": "⏱️ 15 phút"
+            },
+            "carousel": {
+                "title": "Vòng quay Kỳ diệu",
+                "description": "Carousel cổ tích với những chú ngựa gỗ xinh xắn, nhạc vui.",
+                "age": "👶 2-10 tuổi",
+                "duration": "⏱️ 20 phút"
+            },
+            "waterSplash": {
+                "title": "Khu nước Splash",
+                "description": "Khu vui chơi nước trong nhà, mát lạnh và an toàn cho mọi lứa tuổi.",
+                "age": "👶 3-10 tuổi",
+                "duration": "⏱️ 45 phút"
+            },
+            "climbCastle": {
+                "title": "Lâu đài Leo trèo",
+                "description": "Lâu đài nhiều tầng với cầu trượt, ống chui, thử thách thú vị.",
+                "age": "🧒 4-12 tuổi",
+                "duration": "⏱️ 60 phút"
+            },
+            "bumperCar": {
+                "title": "Xe điện Bumper Car",
+                "description": "Xe điện đụng nhau vui nhộn, an toàn với tốc độ phù hợp trẻ em.",
+                "age": "🧒 5-12 tuổi",
+                "duration": "⏱️ 15 phút"
+            }
+        }
+    },
+    "footer": {
+        "copyright": "© 2026 B.Duck Cityfuns Vietnam. All rights reserved.",
+        "terms": "Điều khoản",
+        "privacy": "Bảo mật",
+        "contactUs": "Liên hệ"
+    },
+    "common": {
+        "popular": "Phổ biến",
+        "new": "Mới",
+        "hot": "Hot 🔥"
+    }
+}

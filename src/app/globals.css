@@ -1,26 +1,281 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* ── B.DUCK CITYFUNS DESIGN TOKENS ─────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+    /* Brand Colors */
+    --color-duck-yellow: #FFD100;
+    --color-duck-yellow-hover: #FFC000;
+    --color-duck-yellow-light: #FFF3B0;
+    --color-duck-orange: #FF7900;
+    --color-duck-orange-light: #FFB366;
+
+    /* Pastels */
+    --color-pastel-yellow: #FFF9DB;
+    --color-pastel-blue: #E8F4FD;
+    --color-pastel-green: #E8F8E8;
+    --color-pastel-pink: #FFF0F5;
+    --color-pastel-purple: #F3E8FF;
+
+    /* Neutrals */
+    --color-bg-warm: #FFFDF5;
+    --color-surface-100: #F7F8FA;
+    --color-surface-200: #EBEDF0;
+    --color-text-primary: #1A1A2E;
+    --color-text-secondary: #4A5568;
+    --color-text-muted: #9CA3AF;
+    --color-border-light: #E5E7EB;
+
+    /* Typography */
+    --font-heading: var(--font-plus-jakarta);
+    --font-body: var(--font-poppins);
+
+    /* Radii */
+    --radius-card: 28px;
+    --radius-button: 999px;
+
+    /* Shadows */
+    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.08);
+    --shadow-yellow: 0 8px 24px rgba(255, 209, 0, 0.3);
+    --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.06);
+    --shadow-card-hover: 0 16px 48px rgba(0, 0, 0, 0.12);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── BASE ─────────────────────────────────────────────────────── */
+html {
+    scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    font-family: var(--font-body), system-ui, sans-serif;
+    color: var(--color-text-primary);
+    background: #ffffff;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading), var(--font-body), system-ui, sans-serif;
+}
+
+/* ── GLASSMORPHISM UTILITY ────────────────────────────────────── */
+.glass {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.glass-heavy {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* ── KEYFRAME ANIMATIONS ──────────────────────────────────────── */
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-14px) rotate(8deg);
+    }
+}
+
+@keyframes blob-drift {
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    33% {
+        transform: translate(30px, -30px) scale(1.05);
+    }
+
+    66% {
+        transform: translate(-20px, 20px) scale(0.95);
+    }
+}
+
+@keyframes duck-bob {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    25% {
+        transform: translateY(-12px) rotate(-5deg);
+    }
+
+    75% {
+        transform: translateY(-12px) rotate(5deg);
+    }
+}
+
+@keyframes cart-wiggle {
+
+    0%,
+    100% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    15% {
+        transform: rotate(-12deg) scale(1.2);
+    }
+
+    30% {
+        transform: rotate(12deg) scale(1.2);
+    }
+
+    45% {
+        transform: rotate(-8deg) scale(1.1);
+    }
+
+    60% {
+        transform: rotate(8deg) scale(1.1);
+    }
+
+    75% {
+        transform: rotate(-3deg) scale(1);
+    }
+}
+
+@keyframes fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        opacity: 1;
+        box-shadow: 0 0 6px rgba(76, 175, 80, 0.5);
+    }
+
+    50% {
+        opacity: 0.6;
+        box-shadow: 0 0 12px rgba(76, 175, 80, 0.8);
+    }
+}
+
+/* ── ANIMATION UTILITIES ──────────────────────────────────────── */
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+    animation: float 3.5s ease-in-out infinite 0.5s;
+}
+
+.animate-float-slow {
+    animation: float 4s ease-in-out infinite 1s;
+}
+
+.animate-blob {
+    animation: blob-drift 8s ease-in-out infinite;
+}
+
+.animate-blob-delayed {
+    animation: blob-drift 10s ease-in-out infinite 2s;
+}
+
+.animate-blob-slow {
+    animation: blob-drift 12s ease-in-out infinite 4s;
+}
+
+.animate-duck-bob {
+    animation: duck-bob 1.2s ease-in-out infinite;
+}
+
+.animate-cart-wiggle {
+    animation: cart-wiggle 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-fade-up {
+    animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-down {
+    animation: slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Stagger delays */
+.delay-100 {
+    animation-delay: 0.1s;
+}
+
+.delay-200 {
+    animation-delay: 0.2s;
+}
+
+.delay-300 {
+    animation-delay: 0.3s;
+}
+
+.delay-400 {
+    animation-delay: 0.4s;
+}
+
+.delay-500 {
+    animation-delay: 0.5s;
+}
+
+/* ── TEXT GRADIENT ────────────────────────────────────────────── */
+.text-gradient-yellow {
+    background: linear-gradient(135deg, #FFD100, #FF7900);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.text-gradient-orange {
+    background: linear-gradient(135deg, #FF7900, #FF5252);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ── BOUNCE BUTTON ────────────────────────────────────────────── */
+.btn-bounce {
+    transition: all 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-bounce:hover {
+    transform: translateY(-2px) scale(1.03);
+}
+
+.btn-bounce:active {
+    transform: translateY(0) scale(0.97);
 }

@@ -1,0 +1,81 @@
+{
+    "nav": {
+        "home": "Home",
+        "products": "Products",
+        "introduction": "Introduction",
+        "about": "About Us",
+        "contact": "Contact",
+        "account": "Account",
+        "cart": "Cart",
+        "language": "Language",
+        "myTickets": "My Tickets"
+    },
+    "hero": {
+        "badge": "🎢 Vietnam's #1 Premium Playground",
+        "title1": "Moments of",
+        "titleHighlight1": "Joy",
+        "title2": "Experience",
+        "titleHighlight2": "Luxury",
+        "subtitle": "Discover a premium entertainment world designed exclusively for your little ones. Modern attractions, absolute safety, and endless fun.",
+        "ctaPrimary": "GET OPEN PASSES NOW",
+        "ctaSecondary": "Explore attractions →",
+        "statGames": "Attractions",
+        "statVisitors": "Happy visitors",
+        "statRating": "Rating"
+    },
+    "attractions": {
+        "badge": "🎮 Attractions",
+        "title": "Discover the World of",
+        "titleHighlight": "Adventure",
+        "subtitle": "Over 20 modern, safe attractions designed for children aged 2-12",
+        "items": {
+            "ballPit": {
+                "title": "Fun Ball Pit",
+                "description": "Giant ball pit with thousands of colorful balls for endless fun.",
+                "age": "👶 Ages 2-8",
+                "duration": "⏱️ 30 min"
+            },
+            "rollerCoaster": {
+                "title": "Super Roller Coaster",
+                "description": "Safe mini roller coaster for kids — experience speed and excitement.",
+                "age": "🧒 Ages 5-12",
+                "duration": "⏱️ 15 min"
+            },
+            "carousel": {
+                "title": "Magic Carousel",
+                "description": "A fairy-tale carousel with adorable wooden horses and cheerful music.",
+                "age": "👶 Ages 2-10",
+                "duration": "⏱️ 20 min"
+            },
+            "waterSplash": {
+                "title": "Splash Water Zone",
+                "description": "Indoor water play area, cool and safe for all ages.",
+                "age": "👶 Ages 3-10",
+                "duration": "⏱️ 45 min"
+            },
+            "climbCastle": {
+                "title": "Climbing Castle",
+                "description": "Multi-level castle with slides, tunnels, and exciting challenges.",
+                "age": "🧒 Ages 4-12",
+                "duration": "⏱️ 60 min"
+            },
+            "bumperCar": {
+                "title": "Bumper Cars",
+                "description": "Fun bumper cars with child-safe speeds for maximum enjoyment.",
+                "age": "🧒 Ages 5-12",
+                "duration": "⏱️ 15 min"
+            }
+        }
+    },
+    "footer": {
+        "copyright": "© 2026 B.Duck Cityfuns Vietnam. All rights reserved.",
+        "terms": "Terms",
+        "privacy": "Privacy",
+        "contactUs": "Contact"
+    },
+    "common": {
+        "popular": "Popular",
+        "new": "New",
+        "hot": "Hot 🔥"
+    }
+}
