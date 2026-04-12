@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { AuthProvider } from "@/lib/auth/provider";
 import "../globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -59,9 +60,11 @@ export default async function LocaleLayout({
         >
             <body className="min-h-screen flex flex-col bg-white text-text-primary">
                 <NextIntlClientProvider locale={locale} messages={messages}>
-                    <Navbar />
-                    <main className="flex-1">{children}</main>
-                    <Footer />
+                    <AuthProvider>
+                        <Navbar />
+                        <main className="flex-1">{children}</main>
+                        <Footer />
+                    </AuthProvider>
                 </NextIntlClientProvider>
             </body>
         </html>

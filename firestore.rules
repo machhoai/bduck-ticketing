@@ -1,0 +1,97 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper Functions ────────────────────────────────────────────────────
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isAuth() && request.auth.token.role == 'admin';
+    }
+
+    function isAffiliate() {
+      return isAuth() && request.auth.token.role == 'affiliate';
+    }
+
+    // ─── b_users ─────────────────────────────────────────────────────────────
+
+    match /b_users/{uid} {
+      // Owner can read/update their own profile; admin can read all
+      allow read: if isOwner(uid) || isAdmin();
+      // Only owner can update their own profile (not role field)
+      allow update: if isOwner(uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+      // Create is handled server-side via Admin SDK after Firebase Auth signup
+      allow create, delete: if false;
+    }
+
+    // ─── b_products ──────────────────────────────────────────────────────────
+
+    match /b_products/{productId} {
+      // Public can read active products
+      allow read: if resource.data.status == 'active' || isAdmin();
+      // Only admin can write
+      allow write: if isAdmin();
+    }
+
+    // ─── b_promotions ────────────────────────────────────────────────────────
+
+    match /b_promotions/{promoId} {
+      // Clients CANNOT read promotions directly (prevent code enumeration)
+      // Validation happens server-side via Server Actions
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ─── b_orders ────────────────────────────────────────────────────────────
+
+    match /b_orders/{orderId} {
+      // Owner can read their own orders; admin can read all
+      allow read: if isAdmin() || (isAuth() && resource.data.customerId == request.auth.uid);
+      // No client-side writes — all order creation/updates via Server Actions (Admin SDK)
+      allow write: if false;
+    }
+
+    // ─── b_passes ────────────────────────────────────────────────────────────
+
+    match /b_passes/{passId} {
+      // Owner can read their passes; admin can read all
+      allow read: if isAdmin() || (isAuth() && resource.data.customerId == request.auth.uid);
+      // No client-side writes — passes created/updated via Server Actions (Admin SDK)
+      allow write: if false;
+    }
+
+    // ─── b_affiliateProfiles ─────────────────────────────────────────────────
+
+    match /b_affiliateProfiles/{uid} {
+      // Owner can read/update their own profile; admin can read all
+      allow read: if isOwner(uid) || isAdmin();
+      // Owner can update only specific fields (not applicationStatus, commissionRate)
+      allow update: if isOwner(uid)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'applicationStatus', 'defaultCommissionRate', 'referralCode',
+          'trackingLink', 'walletBalance', 'totalPaidOut', 'totalCommissionEarned',
+          'totalClicks', 'totalConversions', 'bankInfoVerified'
+        ]);
+      // Applications created server-side
+      allow create: if false;
+      allow delete: if false;
+    }
+
+    // ─── b_payoutRequests ────────────────────────────────────────────────────
+
+    match /b_payoutRequests/{requestId} {
+      // Owner can read their own payout requests; admin can read all
+      allow read: if isAdmin() || (isAuth() && resource.data.affiliateId == request.auth.uid);
+      // No client-side writes — payout requests created via Server Actions
+      allow write: if false;
+    }
+  }
+}
