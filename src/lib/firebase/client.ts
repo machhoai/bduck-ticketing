@@ -20,16 +20,17 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 
 // ─── Collection Name Constants ────────────────────────────────────────────────
-// All B.Duck Cityfuns collections use 'b_' prefix to coexist with ERP
+// All B.Duck Cityfuns collections use 'bduck_' prefix to coexist with ERP
 // collections in the same Firebase project without collision.
 export const COLLECTIONS = {
-  USERS: "b_users",
-  PRODUCTS: "b_products",
-  PROMOTIONS: "b_promotions",
-  ORDERS: "b_orders",
-  PASSES: "b_passes",
-  AFFILIATE_PROFILES: "b_affiliateProfiles",
-  PAYOUT_REQUESTS: "b_payoutRequests",
+  USERS: "bduck_users",
+  PRODUCT_GROUPS: "bduck_productGroups",
+  PRODUCTS: "bduck_products",
+  PROMOTIONS: "bduck_promotions",
+  ORDERS: "bduck_orders",
+  PASSES: "bduck_passes",
+  AFFILIATE_PROFILES: "bduck_affiliateProfiles",
+  PAYOUT_REQUESTS: "bduck_payoutRequests",
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

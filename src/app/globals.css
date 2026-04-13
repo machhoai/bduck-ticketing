@@ -46,7 +46,7 @@ html {
 }
 
 body {
-    font-family: var(--font-body), system-ui, sans-serif;
+    font-family: 'Open Sans', -apple-system, Roboto, Oxygen, Ubuntu, Cantarell, ;
     color: var(--color-text-primary);
     background: #ffffff;
 }
@@ -278,4 +278,30 @@ h6 {
 
 .btn-bounce:active {
     transform: translateY(0) scale(0.97);
+}
+
+/* ── SCROLLBAR STYLING ────────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+    background: transparent;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }

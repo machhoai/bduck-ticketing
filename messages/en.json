@@ -10,14 +10,44 @@
         "language": "Language",
         "myTickets": "My Tickets"
     },
+    "admin": {
+        "sidebar": {
+            "dashboard": "Dashboard",
+            "products": "Products",
+            "productGroups": "Product Groups",
+            "orders": "Orders",
+            "promotions": "Promotions",
+            "gallery": "Gallery",
+            "scan": "Scan Ticket",
+            "affiliates": "Affiliates",
+            "payouts": "Payouts",
+            "viewWebsite": "View Website",
+            "logout": "Logout"
+        },
+        "gallery": {
+            "title": "Image List",
+            "subtitle": "Manage images displayed on the scrolling banner on the homepage.",
+            "saveButton": "Save Changes",
+            "inputPlaceholder": "Enter image URL (Web link)...",
+            "addUrlButton": "Add URL",
+            "uploadButton": "Upload from Computer",
+            "uploading": "Uploading...",
+            "emptyTitle": "No Images Yet",
+            "emptySubtitle": "Please upload images from your computer or paste a URL to get started.",
+            "designTipsTitle": "💡 Design Tips",
+            "designTip1": "You should add at least 6 different images so the scrolling banner displays smoothly in sequence.",
+            "designTip2": "Use images of various sizes (Square, Landscape, Portrait) for a natural and artistic Masonry layout.",
+            "designTip3": "Images uploaded directly from your computer have a maximum limit of 20MB."
+        }
+    },
     "hero": {
         "badge": "🎢 Vietnam's #1 Premium Playground",
         "title1": "Moments of",
         "titleHighlight1": "Joy",
         "title2": "Experience",
-        "titleHighlight2": "Luxury",
-        "subtitle": "Discover a premium entertainment world designed exclusively for your little ones. Modern attractions, absolute safety, and endless fun.",
-        "ctaPrimary": "GET OPEN PASSES NOW",
+        "titleHighlight2": "International",
+        "subtitle": "Discover a premium entertainment world designed for your little ones. Modern attractions, absolute safety, and endless fun.",
+        "ctaPrimary": "GET TICKETS NOW",
         "ctaSecondary": "Explore attractions →",
         "statGames": "Attractions",
         "statVisitors": "Happy visitors",
@@ -77,5 +107,29 @@
         "popular": "Popular",
         "new": "New",
         "hot": "Hot 🔥"
+    },
+    "tickets": {
+        "heroBadge": "🎫 OFFICIAL TICKETING",
+        "heroTitle1": "Find your",
+        "heroTitleHighlight": "perfect",
+        "heroTitle2": "ticket",
+        "heroSubtitle": "Secure checkout, instant QR e-tickets. Get ready for an unforgettable adventure at B.Duck Cityfuns.",
+        "searchPlaceholder": "Search attractions, combos...",
+        "filterAll": "All",
+        "sortNewest": "Newest",
+        "sortPriceAsc": "Price: Low to High",
+        "sortPriceDesc": "Price: High to Low",
+        "foundStats": "Found {count} tickets",
+        "availableStats": "{count} tickets available",
+        "inStock": "{count} left",
+        "emptyTitle": "No results found",
+        "emptySubtitle": "Try adjusting your search or clear filters.",
+        "clearFilters": "View all",
+        "notFoundHelp": "Can't find what you need?",
+        "contactDesc": "Contact our dedicated support team for direct assistance.",
+        "contactCta": "Get Support",
+        "soldOut": "Sold Out",
+        "combo": "COMBO",
+        "flashSale": "FLASH SALE"
     }
 }

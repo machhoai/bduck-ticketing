@@ -31,7 +31,23 @@ export interface BankInfo {
 }
 
 // ─────────────────────────────────────────────
-// b_users
+// bduck_productGroups
+// ─────────────────────────────────────────────
+
+/** Document ID = auto-generated Firestore ID */
+export interface ProductGroupDocument {
+  id: string;
+  name: string; // e.g. "Vé lẻ", "Combo gia đình"
+  slug: string; // e.g. "ve-le", "combo-gia-dinh" — for URL-safe tab keys
+  order: number; // ascending sort for tab display
+  isActive: boolean;
+  createdBy: string; // admin UID
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ─────────────────────────────────────────────
+// bduck_users
 // ─────────────────────────────────────────────
 
 export type UserRole = "customer" | "admin" | "affiliate";
@@ -60,7 +76,7 @@ export interface UserDocument {
 }
 
 // ─────────────────────────────────────────────
-// b_products
+// bduck_products
 // ─────────────────────────────────────────────
 
 export type ProductType = "ticket" | "combo";
@@ -105,6 +121,9 @@ export interface ProductDocument {
    */
   flashSale?: FlashSaleConfig;
 
+  /** Reference to bduck_productGroups — admin assigns at product creation */
+  groupId?: string;
+
   status: ProductStatus;
   tags?: string[]; // e.g. ['weekend', 'family', 'vip']
 
@@ -114,7 +133,7 @@ export interface ProductDocument {
 }
 
 // ─────────────────────────────────────────────
-// b_promotions
+// bduck_promotions
 // ─────────────────────────────────────────────
 
 export type PromotionType = "percentage" | "fixed";
@@ -155,7 +174,7 @@ export interface PromotionDocument {
 }
 
 // ─────────────────────────────────────────────
-// b_orders
+// bduck_orders
 // ─────────────────────────────────────────────
 
 /** Full snapshot of a cart item at purchase time — immutable history */
@@ -179,13 +198,24 @@ export interface VNPayData {
   vnpPayDate?: string; // "20240412153000"
 }
 
-/** Extensible for Phase 2 (Stripe, MoMo, etc.) */
+export interface MockPayData {
+  simulatedAt: string; // ISO timestamp of mock payment
+  simulateResult: "success" | "fail";
+}
+
 export interface PaymentDetails {
-  provider: "vnpay" | "stripe";
-  providerData: VNPayData; // union type — extend when adding gateways
+  provider: "vnpay" | "mock";
+  providerData: VNPayData | MockPayData;
 }
 
 export type OrderStatus = "pending" | "paid" | "cancelled";
+
+/** Cart item passed from client → createOrder Server Action.
+ *  Only productId + quantity — server re-fetches prices (D5: never trust client pricing). */
+export interface CartItemInput {
+  productId: string;
+  quantity: number;
+}
 
 /** Document ID = auto-generated Firestore ID */
 export interface OrderDocument {
@@ -194,8 +224,11 @@ export interface OrderDocument {
   orderNumber: string;
 
   // Customer snapshot (denormalized)
-  customerId: string; // Firebase Auth UID — indexed
-  customerEmail: string;
+  /** Firebase Auth UID when logged in. Empty string "" for guest orders. */
+  customerId: string; // indexed
+  /** True when purchased without Firebase Auth login */
+  isGuestOrder: boolean;
+  customerEmail: string; // indexed — used for guest order lookup
   customerName: string;
   customerPhone?: string;
 
@@ -232,7 +265,7 @@ export interface OrderDocument {
 }
 
 // ─────────────────────────────────────────────
-// b_passes
+// bduck_passes
 // ─────────────────────────────────────────────
 
 export type PassStatus = "active" | "used" | "expired" | "voided";
@@ -274,9 +307,11 @@ export interface PassDocument {
   validFrom?: Timestamp; // date-range: start
   validUntil?: Timestamp; // date-range & date-specific: deadline
 
-  // QR code image — Firebase Storage URL
-  qrCodeUrl: string;
-  // Apple Wallet PKPass download — Firebase Storage URL (populated after generation)
+  /**
+   * QR code is rendered client-side from Document ID: "BDUCK-PASS-{id}"
+   * using qrcode.react — no Firebase Storage needed (D2).
+   */
+  // Apple Wallet PKPass download — Firebase Storage URL (populated in Phase 5)
   walletPassUrl?: string;
 
   // Gate scan tracking
@@ -294,7 +329,7 @@ export interface PassDocument {
 }
 
 // ─────────────────────────────────────────────
-// b_affiliateProfiles
+// bduck_affiliateProfiles
 // ─────────────────────────────────────────────
 
 export type AffiliateApplicationStatus =
@@ -360,7 +395,7 @@ export interface AffiliateProfileDocument {
 }
 
 // ─────────────────────────────────────────────
-// b_payoutRequests
+// bduck_payoutRequests
 // ─────────────────────────────────────────────
 
 export type PayoutStatus =
@@ -399,3 +434,16 @@ export interface PayoutRequestDocument {
   createdAt: Timestamp; // indexed
   updatedAt: Timestamp;
 }
+
+// ─────────────────────────────────────────────
+// bduck_settings (Global App Settings)
+// ─────────────────────────────────────────────
+
+/** Document ID = "attractions" inside bduck_settings */
+export interface AttractionsSettingsDocument {
+  /** Array of Firebase Storage image URLs */
+  images: string[];
+  updatedAt: Timestamp;
+  updatedBy: string; // admin UID
+}
+

@@ -107,6 +107,7 @@ export function Hero() {
                                     backgroundClip: "text",
                                     display: "inline",
                                 }}
+                                className="truncate"
                             >
                                 {t("titleHighlight1")}
                             </span>
@@ -121,6 +122,7 @@ export function Hero() {
                                     backgroundClip: "text",
                                     display: "inline",
                                 }}
+                                className="truncate"
                             >
                                 {t("titleHighlight2")}
                             </span>
@@ -166,7 +168,7 @@ export function Hero() {
 
                         {/* Stats row */}
                         <div className="flex items-center gap-0 mt-2">
-                            <StatItem icon={<Zap className="w-4 h-4 text-duck-yellow" />} number="20+" label={t("statGames")} />
+                            <StatItem icon={<Zap className="w-4 h-4 text-duck-yellow" />} number="10+" label={t("statGames")} />
                             <div className="w-px self-stretch mx-6" style={{ background: "rgba(255,255,255,0.2)" }} />
                             <StatItem icon={<Users className="w-4 h-4 text-duck-yellow" />} number="50K+" label={t("statVisitors")} />
                             <div className="w-px self-stretch mx-6" style={{ background: "rgba(255,255,255,0.2)" }} />

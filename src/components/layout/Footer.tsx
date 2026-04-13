@@ -1,11 +1,15 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { usePathname } from "@/i18n/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
 export function Footer() {
     const t = useTranslations("footer");
+    const pathname = usePathname();
+
+    if (pathname.startsWith("/admin")) return null;
 
     const links = [
         { label: t("terms"), href: "#" },
@@ -14,7 +18,7 @@ export function Footer() {
     ];
 
     return (
-        <footer className="bg-text-primary text-white/70 py-10">
+        <footer className="bg-text-primary text-white/70 py-4">
             <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
                 {/* Brand */}
                 <div className="flex items-center gap-2.5">

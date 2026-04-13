@@ -15,19 +15,49 @@
         "title1": "Khoảnh khắc",
         "titleHighlight1": "Vui vẻ",
         "title2": "Trải nghiệm",
-        "titleHighlight2": "Sang trọng",
-        "subtitle": "Khám phá thế giới giải trí cao cấp dành riêng cho bé yêu của bạn. Trò chơi hiện đại, an toàn tuyệt đối, niềm vui trọn vẹn.",
-        "ctaPrimary": "NHẬN VÉ MỞ NGAY",
+        "titleHighlight2": "Quốc tế",
+        "subtitle": "Khám phá thế giới giải trí đẳng cấp quốc tế dành riêng cho bé yêu của bạn. Trò chơi hiện đại, an toàn, niềm vui trọn vẹn.",
+        "ctaPrimary": "MUA VÉ NGAY",
         "ctaSecondary": "Khám phá trò chơi →",
         "statGames": "Trò chơi",
         "statVisitors": "Khách hài lòng",
         "statRating": "Đánh giá"
     },
+    "admin": {
+        "sidebar": {
+            "dashboard": "Dashboard",
+            "products": "Sản phẩm",
+            "productGroups": "Nhóm sản phẩm",
+            "orders": "Đơn hàng",
+            "promotions": "Khuyến mãi",
+            "gallery": "Hình ảnh",
+            "scan": "Scan vé",
+            "affiliates": "Affiliate",
+            "payouts": "Payouts",
+            "viewWebsite": "Xem trang web",
+            "logout": "Đăng xuất"
+        },
+        "gallery": {
+            "title": "Danh sách hình ảnh",
+            "subtitle": "Quản lý hình ảnh hiển thị trên dải Banner cuộn ở trang chủ.",
+            "saveButton": "Lưu thay đổi",
+            "inputPlaceholder": "Nhập đường dẫn hình ảnh (URL mạng)...",
+            "addUrlButton": "Thêm URL",
+            "uploadButton": "Tải ảnh từ máy",
+            "uploading": "Đang tải...",
+            "emptyTitle": "Chưa có hình ảnh",
+            "emptySubtitle": "Hãy tải ảnh lên từ máy hoặc paste một URL để bắt đầu.",
+            "designTipsTitle": "💡 Gợi ý thiết kế",
+            "designTip1": "Bạn nên thêm ít nhất 6 hình ảnh khác nhau để dải banner cuộn hiển thị nối tiếp mượt mà.",
+            "designTip2": "Sử dụng hình ảnh có kích thước đa dạng (Tỉ lệ vuông, ngang, dọc) để giao diện Masonry sắp xếp trông tự nhiên và nghệ thuật nhất.",
+            "designTip3": "Ảnh tải lên trực tiếp từ máy được phép dung lượng tối đa 20MB."
+        }
+    },
     "attractions": {
         "badge": "🎮 Trò chơi",
         "title": "Khám phá Thế giới",
         "titleHighlight": "Phiêu lưu",
-        "subtitle": "Hơn 20 trò chơi hiện đại, an toàn, được thiết kế riêng cho trẻ từ 2-12 tuổi",
+        "subtitle": "Hơn 10 trò chơi hiện đại, an toàn, được thiết kế riêng cho trẻ từ 2-12 tuổi",
         "items": {
             "ballPit": {
                 "title": "Bể bóng Vui nhộn",
@@ -77,5 +107,29 @@
         "popular": "Phổ biến",
         "new": "Mới",
         "hot": "Hot 🔥"
+    },
+    "tickets": {
+        "heroBadge": "🎫 KHO VÉ CHÍNH THỨC",
+        "heroTitle1": "Chọn vé",
+        "heroTitleHighlight": "phù hợp",
+        "heroTitle2": "nhất",
+        "heroSubtitle": "Thanh toán an toàn, nhận mã vé điện tử QR Code ngay lập tức. Sẵn sàng cho chuyến phiêu lưu tuyệt vời tại B.Duck Cityfuns.",
+        "searchPlaceholder": "Tìm tên trò chơi, combo...",
+        "filterAll": "Tất cả",
+        "sortNewest": "Mới nhất",
+        "sortPriceAsc": "Giá tăng dần",
+        "sortPriceDesc": "Giá giảm dần",
+        "foundStats": "Tìm thấy {count} vé",
+        "availableStats": "Hiện có {count} vé sẵn sàng",
+        "inStock": "còn {count}",
+        "emptyTitle": "Không tìm thấy kết quả",
+        "emptySubtitle": "Hãy thử đổi từ khóa hoặc bộ lọc khác.",
+        "clearFilters": "Xem tất cả",
+        "notFoundHelp": "Không tìm thấy vé bạn cần?",
+        "contactDesc": "Liên hệ ngay với bộ phận chăm sóc khách hàng để được hỗ trợ chuyên sâu.",
+        "contactCta": "Trung tâm hỗ trợ",
+        "soldOut": "Hết vé",
+        "combo": "COMBO",
+        "flashSale": "FLASH SALE"
     }
 }

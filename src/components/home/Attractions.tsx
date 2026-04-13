@@ -1,325 +1,141 @@
-"use client";
-
-import React, { useState } from "react";
+import React from "react";
 import Image from "next/image";
-import { Clock, Users, Sparkles, ChevronRight } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { Sparkles, Image as ImageIcon } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { getAttractionsGallery } from "@/actions/gallery";
 
-/* ── Types ───────────────────────────────────────────────────── */
-interface Attraction {
-    key: string;
-    decor: string;
-    accentColor: string;
-    accentBg: string;
-    glowColor: string;
-    imagePosition: string;
-    badge?: "popular" | "new" | "hot";
-}
-
-/* ── Data ────────────────────────────────────────────────────── */
-const ATTRACTIONS: Attraction[] = [
-    {
-        key: "ballPit",
-        decor: "🌟",
-        accentColor: "#FF9800",
-        accentBg: "rgba(255,209,0,0.12)",
-        glowColor: "rgba(255,209,0,0.3)",
-        imagePosition: "object-[left_top]",
-        badge: "popular",
-    },
-    {
-        key: "rollerCoaster",
-        decor: "🎢",
-        accentColor: "#0288D1",
-        accentBg: "rgba(2,136,209,0.1)",
-        glowColor: "rgba(2,136,209,0.25)",
-        imagePosition: "object-center",
-        badge: "new",
-    },
-    {
-        key: "carousel",
-        decor: "🎠",
-        accentColor: "#D81B60",
-        accentBg: "rgba(216,27,96,0.08)",
-        glowColor: "rgba(216,27,96,0.2)",
-        imagePosition: "object-right",
-    },
-    {
-        key: "waterSplash",
-        decor: "💦",
-        accentColor: "#00897B",
-        accentBg: "rgba(0,137,123,0.1)",
-        glowColor: "rgba(0,137,123,0.25)",
-        imagePosition: "object-[left_center]",
-    },
-    {
-        key: "climbCastle",
-        decor: "🏰",
-        accentColor: "#FF5722",
-        accentBg: "rgba(255,87,34,0.1)",
-        glowColor: "rgba(255,87,34,0.3)",
-        imagePosition: "object-center",
-        badge: "hot",
-    },
-    {
-        key: "bumperCar",
-        decor: "🚗",
-        accentColor: "#7B1FA2",
-        accentBg: "rgba(123,31,162,0.1)",
-        glowColor: "rgba(123,31,162,0.25)",
-        imagePosition: "object-[right_center]",
-    },
+const PLACEHOLDER_IMAGES = [
+    "https://images.unsplash.com/photo-1513889961551-628c1e5e2ee9?q=80&w=800&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1549416878-b9ca95e26903?q=80&w=800&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1605335446059-4bbec242e20b?q=80&w=800&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1606041014876-1f6920f04c6e?q=80&w=800&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1579737194600-e9c12b772c72?q=80&w=800&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1596489389808-01ca4da973ae?q=80&w=800&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1628178121650-70fbf1e2e987?q=80&w=800&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1563857319340-9d0dce8382ba?q=80&w=800&auto=format&fit=crop"
 ];
 
-/* ── Badge config ────────────────────────────────────────────── */
-const BADGE_CONFIG = {
-    popular: { label: "Phổ biến", style: { background: "linear-gradient(135deg,#FFD100,#FF9800)", color: "#1A1A2E" } },
-    new:     { label: "Mới",      style: { background: "linear-gradient(135deg,#29B6F6,#0288D1)", color: "#fff" } },
-    hot:     { label: "Hot 🔥",   style: { background: "linear-gradient(135deg,#FF7043,#FF1744)", color: "#fff" } },
-};
+export async function Attractions() {
+    const t = await getTranslations("attractions");
+    const fetchedImages = await getAttractionsGallery();
 
-/* ── Attractions Section ─────────────────────────────────────── */
-export function Attractions() {
-    const t = useTranslations("attractions");
+    // Fallback to placeholders if admin hasn't added pictures
+    const rawImages = fetchedImages.length > 0 ? fetchedImages : PLACEHOLDER_IMAGES;
+
+    // Split into 2 rows for a deeper masonry effect
+    const row1Images = rawImages.filter((_, i) => i % 2 === 0);
+    const row2Images = rawImages.filter((_, i) => i % 2 !== 0);
+
+    // Duplicate sets enough times to ensure screen overflow for the marquee mathematical loop
+    const set1 = [...row1Images, ...row1Images, ...row1Images, ...row1Images];
+    const set2 = [...row2Images, ...row2Images, ...row2Images, ...row2Images];
 
     return (
         <section
             id="attractions"
-            className="relative py-24 lg:py-32 overflow-hidden"
-            style={{ background: "linear-gradient(180deg, #FFFDF5 0%, #F7F8FA 100%)" }}
+            className="relative py-20 overflow-hidden bg-white"
         >
+            {/* Inline keyframes for the marquee since it's zero-config */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @keyframes marquee {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .animate-marquee-slow {
+                    animation: marquee 60s linear infinite;
+                }
+                .animate-marquee-fast {
+                    animation: marquee 45s linear infinite;
+                }
+                .animate-marquee-slower-reverse {
+                    animation: marquee 70s linear infinite reverse;
+                }
+                .gallery-row:hover .marquee-content {
+                    animation-play-state: paused;
+                }
+            `}} />
+
             {/* Decorative background blobs */}
-            <div
-                className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none"
-                style={{
-                    background: "radial-gradient(circle, rgba(255,209,0,0.08) 0%, transparent 70%)",
-                    transform: "translate(30%, -30%)",
-                }}
-            />
-            <div
-                className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full pointer-events-none"
-                style={{
-                    background: "radial-gradient(circle, rgba(255,121,0,0.06) 0%, transparent 70%)",
-                    transform: "translate(-30%, 30%)",
-                }}
-            />
+            <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none opacity-50"
+                style={{ background: "radial-gradient(circle, rgba(255,209,0,0.08) 0%, transparent 70%)", transform: "translate(30%, -30%)" }} />
 
-            <div className="relative max-w-7xl mx-auto px-6">
+            <div className="relative max-w-7xl mx-auto px-6 mb-12">
                 {/* ── Section Header ─────────────────────────────── */}
-                <div className="text-center mb-16">
-                    {/* Badge pill */}
-                    <div className="inline-flex mb-5">
-                        <span
-                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold border"
-                            style={{
-                                background: "rgba(255,209,0,0.12)",
-                                borderColor: "rgba(255,209,0,0.35)",
-                                color: "#CC7A00",
-                                fontFamily: "var(--font-heading)",
-                            }}
-                        >
-                            <Sparkles className="w-4 h-4" />
-                            {t("badge")}
-                        </span>
-                    </div>
-
-                    <h2
-                        className="font-extrabold tracking-tight mb-4"
-                        style={{
-                            fontFamily: "var(--font-heading)",
-                            fontSize: "clamp(2rem, 4vw, 3.2rem)",
-                            color: "#1A1A2E",
-                            lineHeight: 1.1,
-                        }}
-                    >
-                        {t("title")}{" "}
-                        <span
-                            style={{
-                                background: "linear-gradient(135deg, #FFD100 0%, #FF7900 100%)",
-                                WebkitBackgroundClip: "text",
-                                WebkitTextFillColor: "transparent",
-                                backgroundClip: "text",
-                            }}
-                        >
-                            {t("titleHighlight")}
+                <div className="text-center">
+                    <h2 className="font-extrabold tracking-tight mb-4 text-[2rem] md:text-[3rem] text-[#1A1A2E] leading-[1.1]">
+                        Khám phá{" "}
+                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FFD100] to-[#FF7900]">
+                            B.Duck Funland
                         </span>
                     </h2>
 
-                    <p className="text-text-secondary text-base lg:text-lg max-w-lg mx-auto leading-relaxed">
-                        {t("subtitle")}
+                    <p className="text-gray-500 text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">
+                        Cùng chiêm ngưỡng những không gian rực rỡ và các góc vui chơi đầy sắc màu tại công viên B.Duck Cityfuns.
                     </p>
                 </div>
+            </div>
 
-                {/* ── Attractions Grid ────────────────────────────── */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
-                    {ATTRACTIONS.map((attraction, idx) => (
-                        <AttractionCard
-                            key={attraction.key}
-                            attraction={attraction}
-                            index={idx}
-                            t={t}
-                        />
-                    ))}
+            {/* ── Auto Scrolling Masonry Gallery ────────────────────────────── */}
+            <div className="relative w-full flex flex-col gap-4 md:gap-6 mt-10">
+                {/* Row 1 */}
+                <div className="gallery-row relative flex overflow-hidden w-full h-40 md:h-64 group">
+                    <div className="marquee-content flex gap-4 md:gap-6 w-max animate-marquee-fast">
+                        {/* Render twice for the 0% to -50% seamless loop */}
+                        <div className="flex gap-4 md:gap-6">
+                            {set1.map((url, idx) => (
+                                <GalleryImage key={idx} url={url} idx={idx} />
+                            ))}
+                        </div>
+                        <div className="flex gap-4 md:gap-6">
+                            {set1.map((url, idx) => (
+                                <GalleryImage key={`dup-${idx}`} url={url} idx={idx} />
+                            ))}
+                        </div>
+                    </div>
                 </div>
+
+                {/* Row 2 */}
+                <div className="gallery-row relative flex overflow-hidden w-full h-40 md:h-64 group mt-2 md:mt-0">
+                    {/* Starts shifted to create an offbeat masonry look */}
+                    <div className="marquee-content flex gap-4 md:gap-6 w-max animate-marquee-slower-reverse pl-12 lg:pl-32">
+                        <div className="flex gap-4 md:gap-6">
+                            {set2.map((url, idx) => (
+                                <GalleryImage key={idx} url={url} idx={idx} />
+                            ))}
+                        </div>
+                        <div className="flex gap-4 md:gap-6">
+                            {set2.map((url, idx) => (
+                                <GalleryImage key={`dup-${idx}`} url={url} idx={idx} />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Left/Right Overlays to create a fade out effect near edges */}
+                <div className="absolute inset-y-0 left-0 w-8 md:w-32 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
+                <div className="absolute inset-y-0 right-0 w-8 md:w-32 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
             </div>
         </section>
     );
 }
 
-/* ── AttractionCard ──────────────────────────────────────────── */
-interface AttractionCardProps {
-    attraction: Attraction;
-    index: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    t: any;
-}
-
-function AttractionCard({ attraction, index, t }: AttractionCardProps) {
-    const [hovered, setHovered] = useState(false);
-    const badge = attraction.badge ? BADGE_CONFIG[attraction.badge] : null;
-    const itemKey = `items.${attraction.key}`;
+function GalleryImage({ url, idx }: { url: string; idx: number }) {
+    // Generate organic aspect ratios for masonry feel
+    const aspectRatios = ["aspect-[4/3]", "aspect-[3/4]", "aspect-square", "aspect-[16/9]", "aspect-[4/5]"];
+    const aspect = aspectRatios[idx % aspectRatios.length];
 
     return (
-        <div
-            className="group relative flex flex-col rounded-[28px] overflow-hidden cursor-pointer"
-            style={{
-                background: "#fff",
-                border: "1px solid rgba(0,0,0,0.06)",
-                boxShadow: hovered
-                    ? `0 20px 60px ${attraction.glowColor}, 0 8px 24px rgba(0,0,0,0.08)`
-                    : "0 2px 16px rgba(0,0,0,0.05)",
-                transform: hovered ? "translateY(-6px)" : "translateY(0)",
-                transition: "all 380ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-                animationDelay: `${index * 80}ms`,
-            }}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-        >
-            {/* ── Image zone ─────────────────────────────────── */}
-            <div
-                className="relative overflow-hidden"
-                style={{ height: "210px", background: attraction.accentBg }}
-            >
-                <Image
-                    src="/images/attractions-grid.png"
-                    alt={t(`${itemKey}.title`)}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className={`object-cover ${attraction.imagePosition}`}
-                    style={{
-                        transform: hovered ? "scale(1.07)" : "scale(1)",
-                        transition: "transform 500ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-                    }}
-                    loading="lazy"
-                />
-
-                {/* Gradient overlay bottom of image */}
-                <div
-                    className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
-                    style={{
-                        background: "linear-gradient(to top, rgba(255,255,255,0.95) 0%, transparent 100%)",
-                    }}
-                />
-
-                {/* Badge */}
-                {badge && (
-                    <span
-                        className="absolute top-3.5 left-3.5 px-3 py-1.5 rounded-full font-bold text-[11px] tracking-wide"
-                        style={{
-                            ...badge.style,
-                            fontFamily: "var(--font-heading)",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                        }}
-                    >
-                        {badge.label}
-                    </span>
-                )}
-
-                {/* Decor emoji */}
-                <span
-                    className="absolute top-3 right-3 text-2xl pointer-events-none select-none"
-                    style={{
-                        transform: hovered ? "scale(1.25) rotate(10deg)" : "scale(1) rotate(0deg)",
-                        transition: "transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-                        filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.15))",
-                    }}
-                >
-                    {attraction.decor}
-                </span>
-            </div>
-
-            {/* ── Card body ──────────────────────────────────── */}
-            <div className="flex flex-col flex-1 p-6 pt-4">
-                {/* Title */}
-                <h3
-                    className="font-extrabold text-[#1A1A2E] text-lg mb-1.5 leading-snug"
-                    style={{ fontFamily: "var(--font-heading)" }}
-                >
-                    {t(`${itemKey}.title`)}
-                </h3>
-
-                {/* Description */}
-                <p className="text-text-secondary text-sm leading-relaxed mb-4 flex-1">
-                    {t(`${itemKey}.description`)}
-                </p>
-
-                {/* Meta row */}
-                <div
-                    className="flex items-center justify-between pt-4"
-                    style={{ borderTop: "1px solid rgba(0,0,0,0.06)" }}
-                >
-                    <div className="flex items-center gap-4">
-                        <MetaChip
-                            icon={<Users className="w-3.5 h-3.5" />}
-                            label={t(`${itemKey}.age`)}
-                            color={attraction.accentColor}
-                        />
-                        <MetaChip
-                            icon={<Clock className="w-3.5 h-3.5" />}
-                            label={t(`${itemKey}.duration`)}
-                            color={attraction.accentColor}
-                        />
-                    </div>
-
-                    {/* Explore arrow */}
-                    <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{
-                            background: hovered ? attraction.accentColor : "rgba(0,0,0,0.05)",
-                            color: hovered ? "#fff" : "#9CA3AF",
-                            transition: "all 300ms ease",
-                        }}
-                    >
-                        <ChevronRight className="w-4 h-4" />
-                    </div>
-                </div>
-            </div>
-
-            {/* ── Accent side bar ─────────────────────────────── */}
-            <div
-                className="absolute top-0 left-0 w-1 h-full rounded-l-[28px]"
-                style={{
-                    background: `linear-gradient(180deg, ${attraction.accentColor} 0%, transparent 100%)`,
-                    opacity: hovered ? 1 : 0,
-                    transition: "opacity 300ms ease",
-                }}
+        <div className={`relative h-full ${aspect} rounded-2xl md:rounded-3xl overflow-hidden shadow-sm flex-shrink-0 border border-gray-100 bg-gray-50 transform transition-transform duration-500 hover:scale-[1.03] hover:z-20 hover:shadow-2xl`}>
+            <Image
+                src={url}
+                alt="B.Duck Funland"
+                fill
+                className="object-cover cursor-pointer hover:brightness-110 transition-all duration-300"
+                unoptimized
             />
-        </div>
-    );
-}
-
-/* ── MetaChip ────────────────────────────────────────────────── */
-interface MetaChipProps {
-    icon: React.ReactNode;
-    label: string;
-    color: string;
-}
-
-function MetaChip({ icon, label, color }: MetaChipProps) {
-    return (
-        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-            <span style={{ color }}>{icon}</span>
-            <span>{label}</span>
+            {/* Soft inset shadow */}
+            <div className="absolute inset-0 ring-1 ring-inset ring-black/10 rounded-2xl md:rounded-3xl pointer-events-none" />
         </div>
     );
 }
