@@ -26,8 +26,8 @@
     --color-border-light: #E5E7EB;
 
     /* Typography */
-    --font-heading: var(--font-plus-jakarta);
-    --font-body: var(--font-poppins);
+    --font-heading: var(--font-montserrat);
+    --font-body: var(--font-montserrat);
 
     /* Radii */
     --radius-card: 28px;
@@ -46,7 +46,7 @@ html {
 }
 
 body {
-    font-family: 'Open Sans', -apple-system, Roboto, Oxygen, Ubuntu, Cantarell, ;
+    font-family: var(--font-montserrat), 'Montserrat', -apple-system, sans-serif;
     color: var(--color-text-primary);
     background: #ffffff;
 }
@@ -145,6 +145,22 @@ h6 {
 
     75% {
         transform: rotate(-3deg) scale(1);
+    }
+}
+
+@keyframes ripple-expand {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+
+    70% {
+        opacity: 0.4;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0;
     }
 }
 

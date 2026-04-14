@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Poppins } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -9,17 +9,10 @@ import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/lib/auth/provider";
 import "../globals.css";
 
-const plusJakarta = Plus_Jakarta_Sans({
-    variable: "--font-plus-jakarta",
+const montserrat = Montserrat({
+    variable: "--font-montserrat",
     subsets: ["latin", "vietnamese"],
-    weight: ["400", "500", "600", "700", "800"],
-    display: "swap",
-});
-
-const poppins = Poppins({
-    variable: "--font-poppins",
-    subsets: ["latin", "latin-ext"],
-    weight: ["300", "400", "500", "600", "700"],
+    weight: ["300", "400", "500", "600", "700", "800", "900"],
     display: "swap",
 });
 
@@ -56,7 +49,7 @@ export default async function LocaleLayout({
     return (
         <html
             lang={locale}
-            className={`${plusJakarta.variable} ${poppins.variable} antialiased`}
+            className={`${montserrat.variable} antialiased`}
         >
             <body className="min-h-screen flex flex-col bg-white text-text-primary">
                 <NextIntlClientProvider locale={locale} messages={messages}>

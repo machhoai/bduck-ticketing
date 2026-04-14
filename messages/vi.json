@@ -11,7 +11,7 @@
         "myTickets": "Vé của tôi"
     },
     "hero": {
-        "badge": "🎢 Khu vui chơi hàng đầu Việt Nam",
+        "badge": "Khu vui chơi quốc tế hàng đầu Việt Nam",
         "title1": "Khoảnh khắc",
         "titleHighlight1": "Vui vẻ",
         "title2": "Trải nghiệm",
@@ -22,6 +22,45 @@
         "statGames": "Trò chơi",
         "statVisitors": "Khách hài lòng",
         "statRating": "Đánh giá"
+    },
+    "auth": {
+        "loginTab": "Đăng nhập",
+        "registerTab": "Đăng ký",
+        "heroTitle": "Thế giới vui chơi",
+        "heroSubtitle": "Đỉnh cao trải nghiệm",
+        "heroTagline": "Mua vé ngay, nhận QR tức thì — an toàn, nhanh chóng, tiện lợi.",
+        "statTickets": "Vé đã bán",
+        "statGames": "Trò chơi",
+        "statRating": "Đánh giá",
+        "continueWithGoogle": "Tiếp tục với Google",
+        "orDivider": "hoặc",
+        "emailLabel": "Email",
+        "emailPlaceholder": "email@example.com",
+        "passwordLabel": "Mật khẩu",
+        "passwordPlaceholder": "Tối thiểu 6 ký tự",
+        "confirmPasswordLabel": "Xác nhận mật khẩu",
+        "confirmPasswordPlaceholder": "Nhập lại mật khẩu",
+        "displayNameLabel": "Họ và tên",
+        "displayNamePlaceholder": "Tên của bạn",
+        "loginButton": "Đăng nhập",
+        "registerButton": "Tạo tài khoản",
+        "loggingIn": "Đang đăng nhập...",
+        "registering": "Đang tạo tài khoản...",
+        "switchToRegister": "Chưa có tài khoản?",
+        "switchToLogin": "Đã có tài khoản?",
+        "forgotPassword": "Quên mật khẩu?",
+        "termsNote": "Bằng cách tạo tài khoản, bạn đồng ý với",
+        "termsLink": "Điều khoản sử dụng",
+        "andWord": "và",
+        "privacyLink": "Chính sách bảo mật",
+        "errorInvalidCredential": "Email hoặc mật khẩu không đúng",
+        "errorEmailInUse": "Email này đã được sử dụng",
+        "errorWeakPassword": "Mật khẩu quá yếu (tối thiểu 6 ký tự)",
+        "errorPasswordMismatch": "Mật khẩu xác nhận không khớp",
+        "errorTooManyRequests": "Quá nhiều lần thử. Vui lòng thử lại sau.",
+        "errorUserDisabled": "Tài khoản đã bị vô hiệu hóa",
+        "errorGeneric": "Đã xảy ra lỗi. Vui lòng thử lại.",
+        "errorUserNotFound": "Không tìm thấy tài khoản với email này"
     },
     "admin": {
         "sidebar": {
@@ -53,10 +92,20 @@
             "designTip3": "Ảnh tải lên trực tiếp từ máy được phép dung lượng tối đa 20MB."
         }
     },
+    "ticketSection": {
+        "title": "Mua vé",
+        "titleHighlight": "B.Duck Cityfuns",
+        "subtitle": "Chọn loại vé phù hợp, thanh toán an toàn, nhận vé điện tử ngay lập tức.",
+        "allTab": "Tất cả",
+        "emptyTitle": "Chưa có sản phẩm",
+        "emptySubtitle": "Chưa có sản phẩm trong nhóm này.",
+        "exploreCta": "Xem tất cả vé",
+        "exploreCtaSubtext": "Khám phá thêm nhiều loại vé và combo tại trang vé."
+    },
     "attractions": {
         "badge": "🎮 Trò chơi",
         "title": "Khám phá Thế giới",
-        "titleHighlight": "Phiêu lưu",
+        "titleHighlight": "B.Duck",
         "subtitle": "Hơn 10 trò chơi hiện đại, an toàn, được thiết kế riêng cho trẻ từ 2-12 tuổi",
         "items": {
             "ballPit": {

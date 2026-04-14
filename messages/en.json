@@ -10,6 +10,45 @@
         "language": "Language",
         "myTickets": "My Tickets"
     },
+    "auth": {
+        "loginTab": "Sign In",
+        "registerTab": "Sign Up",
+        "heroTitle": "Adventure World",
+        "heroSubtitle": "Peak Experience",
+        "heroTagline": "Buy tickets instantly, get your QR code — safe, fast, and convenient.",
+        "statTickets": "Tickets Sold",
+        "statGames": "Attractions",
+        "statRating": "Rating",
+        "continueWithGoogle": "Continue with Google",
+        "orDivider": "or",
+        "emailLabel": "Email",
+        "emailPlaceholder": "email@example.com",
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "At least 6 characters",
+        "confirmPasswordLabel": "Confirm Password",
+        "confirmPasswordPlaceholder": "Re-enter your password",
+        "displayNameLabel": "Full Name",
+        "displayNamePlaceholder": "Your name",
+        "loginButton": "Sign In",
+        "registerButton": "Create Account",
+        "loggingIn": "Signing in...",
+        "registering": "Creating account...",
+        "switchToRegister": "Don't have an account?",
+        "switchToLogin": "Already have an account?",
+        "forgotPassword": "Forgot password?",
+        "termsNote": "By creating an account, you agree to our",
+        "termsLink": "Terms of Use",
+        "andWord": "and",
+        "privacyLink": "Privacy Policy",
+        "errorInvalidCredential": "Invalid email or password",
+        "errorEmailInUse": "This email is already in use",
+        "errorWeakPassword": "Password too weak (min 6 characters)",
+        "errorPasswordMismatch": "Passwords do not match",
+        "errorTooManyRequests": "Too many attempts. Please try again later.",
+        "errorUserDisabled": "This account has been disabled",
+        "errorGeneric": "An error occurred. Please try again.",
+        "errorUserNotFound": "No account found with this email"
+    },
     "admin": {
         "sidebar": {
             "dashboard": "Dashboard",
@@ -41,7 +80,7 @@
         }
     },
     "hero": {
-        "badge": "🎢 Vietnam's #1 Premium Playground",
+        "badge": "Top international playground in Vietnam",
         "title1": "Moments of",
         "titleHighlight1": "Joy",
         "title2": "Experience",
@@ -53,11 +92,21 @@
         "statVisitors": "Happy visitors",
         "statRating": "Rating"
     },
+    "ticketSection": {
+        "title": "Buy Tickets",
+        "titleHighlight": "B.Duck Cityfuns",
+        "subtitle": "Choose the right ticket, pay securely, and receive your e-ticket instantly.",
+        "allTab": "All",
+        "emptyTitle": "No products yet",
+        "emptySubtitle": "No products found in this category.",
+        "exploreCta": "View All Tickets",
+        "exploreCtaSubtext": "Discover more tickets and combos on the tickets page."
+    },
     "attractions": {
         "badge": "🎮 Attractions",
         "title": "Discover the World of",
-        "titleHighlight": "Adventure",
-        "subtitle": "Over 20 modern, safe attractions designed for children aged 2-12",
+        "titleHighlight": "B.Duck",
+        "subtitle": "Over 10 modern, safe attractions designed for children aged 2-12",
         "items": {
             "ballPit": {
                 "title": "Fun Ball Pit",

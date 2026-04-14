@@ -92,7 +92,7 @@ export function Hero() {
 
                         {/* Headline */}
                         <h1
-                            className="font-extrabold text-white leading-[1.08] tracking-tight"
+                            className="font-[800] text-white leading-[1.08] tracking-tight"
                             style={{
                                 fontFamily: "var(--font-heading)",
                                 fontSize: "clamp(2.6rem, 5.5vw, 4.2rem)",
@@ -111,7 +111,7 @@ export function Hero() {
                             >
                                 {t("titleHighlight1")}
                             </span>
-                            ,
+
                             <br />
                             {t("title2")}{" "}
                             <span
