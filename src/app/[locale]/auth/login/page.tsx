@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -12,7 +13,7 @@ import {
 import { auth } from "@/lib/firebase/client";
 import { createSessionAndSyncUser } from "@/actions/auth";
 import { useTranslations } from "next-intl";
-import { Eye, EyeOff, Loader2, AlertCircle, Sparkles, Star, Ticket, Gamepad2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, ArrowRight, UserPlus } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Tab = "login" | "register";
@@ -20,7 +21,7 @@ type Tab = "login" | "register";
 // ─── Google Icon SVG ─────────────────────────────────────────────────────────
 function GoogleIcon() {
     return (
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
@@ -29,115 +30,25 @@ function GoogleIcon() {
     );
 }
 
-// ─── Hero Panel (Left Side) ───────────────────────────────────────────────────
-function HeroPanel({ t }: { t: ReturnType<typeof useTranslations> }) {
+// ─── Floating Particles ──────────────────────────────────────────────────────
+function FloatingParticles() {
     return (
-        <div
-            className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-12 overflow-hidden"
-            style={{
-                background: "linear-gradient(135deg, #1A1A2E 0%, #16213E 40%, #0F3460 100%)",
-            }}
-        >
-            {/* Background decorative blobs */}
-            <div
-                className="absolute top-[-80px] right-[-80px] w-[400px] h-[400px] rounded-full pointer-events-none"
-                style={{ background: "radial-gradient(circle, rgba(255,209,0,0.18) 0%, transparent 65%)" }}
-            />
-            <div
-                className="absolute bottom-[80px] left-[-60px] w-[300px] h-[300px] rounded-full pointer-events-none"
-                style={{ background: "radial-gradient(circle, rgba(255,121,0,0.14) 0%, transparent 65%)" }}
-            />
-            <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none opacity-30"
-                style={{ background: "radial-gradient(circle, rgba(255,209,0,0.08) 0%, transparent 70%)" }}
-            />
-
-            {/* Brand logo top */}
-            <div className="relative z-10 flex items-center gap-3">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+            {Array.from({ length: 12 }).map((_, i) => (
                 <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-[#1A1A2E] text-sm"
-                    style={{ background: "linear-gradient(135deg, #FFD100, #FF7900)" }}
-                >
-                    BD
-                </div>
-                <div>
-                    <p className="text-white font-bold text-base leading-tight">B.Duck Cityfuns</p>
-                    <p className="text-white/40 text-xs">Vietnam</p>
-                </div>
-            </div>
-
-            {/* Central content */}
-            <div className="relative z-10 flex-1 flex flex-col justify-center">
-                {/* Floating badge */}
-                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-6 w-fit">
-                    <Sparkles className="w-3.5 h-3.5 text-[#FFD100]" />
-                    <span className="text-white/80 text-xs font-medium">B.Duck Cityfuns Vietnam</span>
-                </div>
-
-                <h1
-                    className="text-white font-black leading-[1.05] mb-3"
-                    style={{ fontSize: "clamp(2.2rem, 3.5vw, 3rem)", fontFamily: "var(--font-montserrat)" }}
-                >
-                    {t("heroTitle")}{" "}
-                    <span
-                        className="block"
-                        style={{
-                            background: "linear-gradient(135deg, #FFD100, #FF7900)",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            backgroundClip: "text",
-                        }}
-                    >
-                        {t("heroSubtitle")}
-                    </span>
-                </h1>
-                <p className="text-white/55 text-sm leading-relaxed max-w-sm mb-10">
-                    {t("heroTagline")}
-                </p>
-
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-4">
-                    {[
-                        { icon: Ticket, value: "50K+", label: t("statTickets") },
-                        { icon: Gamepad2, value: "10+", label: t("statGames") },
-                        { icon: Star, value: "4.9★", label: t("statRating") },
-                    ].map(({ icon: Icon, value, label }) => (
-                        <div
-                            key={label}
-                            className="rounded-2xl p-4 flex flex-col gap-1"
-                            style={{
-                                background: "rgba(255,255,255,0.07)",
-                                border: "1px solid rgba(255,255,255,0.12)",
-                                backdropFilter: "blur(8px)",
-                            }}
-                        >
-                            <Icon className="w-4 h-4 text-[#FFD100] mb-1" />
-                            <p className="text-white font-black text-lg leading-none">{value}</p>
-                            <p className="text-white/45 text-xs leading-tight">{label}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Bottom testimonial */}
-            <div
-                className="relative z-10 rounded-2xl p-4 flex items-start gap-3"
-                style={{
-                    background: "rgba(255,255,255,0.07)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    backdropFilter: "blur(8px)",
-                }}
-            >
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#FFD100] to-[#FF7900] flex items-center justify-center text-[#1A1A2E] font-bold text-sm flex-shrink-0">
-                    M
-                </div>
-                <div>
-                    <p className="text-white/80 text-xs leading-relaxed italic">
-                        &ldquo;Mua vé cực nhanh, nhận QR ngay, vào cổng chỉ mất 5 giây. Con bé thích mê!&rdquo;
-                    </p>
-                    <p className="text-white/40 text-xs mt-1">Minh Châu · Khách hàng thân thiết</p>
-                </div>
-            </div>
+                    key={i}
+                    className="auth-particle"
+                    style={{
+                        left: `${8 + Math.random() * 84}%`,
+                        top: `${5 + Math.random() * 90}%`,
+                        width: `${3 + Math.random() * 5}px`,
+                        height: `${3 + Math.random() * 5}px`,
+                        animationDelay: `${Math.random() * 6}s`,
+                        animationDuration: `${4 + Math.random() * 4}s`,
+                        opacity: 0.3 + Math.random() * 0.5,
+                    }}
+                />
+            ))}
         </div>
     );
 }
@@ -171,6 +82,11 @@ export default function LoginPage() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // ── Smart Redirect ────────────────────────────────────────────────────────
     const doRedirect = useCallback(
@@ -229,7 +145,6 @@ export default function LoginPage() {
             setIsLoading(true);
             try {
                 const credential = await createUserWithEmailAndPassword(auth, email, password);
-                // Set displayName on Firebase Auth profile
                 if (displayName.trim()) {
                     await updateProfile(credential.user, { displayName: displayName.trim() });
                 }
@@ -255,7 +170,6 @@ export default function LoginPage() {
             await finalizeAuth(credential.user);
         } catch (err: unknown) {
             const code = (err as { code?: string })?.code;
-            // popup-closed-by-user is not an error
             if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
                 setError(t(getErrorKey(code) as Parameters<typeof t>[0]));
             }
@@ -264,64 +178,712 @@ export default function LoginPage() {
         }
     }, [finalizeAuth, t]);
 
-    // ── Input base class ──────────────────────────────────────────────────────
-    const inputCls =
-        "w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-[#1A1A2E] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#FFD100]/60 focus:border-[#FFD100] transition-all disabled:opacity-50";
-
     return (
-        <div className="min-h-screen flex">
-            {/* ── LEFT: Hero Panel (desktop only) ── */}
-            <HeroPanel t={t} />
+        <div className="auth-page">
+            {/* ── Inline Scoped Styles ── */}
+            <style>{`
+                .auth-page {
+                    --auth-navy: #0A0E1A;
+                    --auth-navy-light: #131829;
+                    --auth-gold: #FFD100;
+                    --auth-orange: #FF7900;
+                    --auth-cream: #FFF9EB;
+                    --auth-surface: rgba(255,255,255,0.04);
+                    --auth-border: rgba(255,255,255,0.08);
+                    --auth-text: #E8E6E1;
+                    --auth-text-muted: rgba(255,255,255,0.45);
+                    --auth-radius: 20px;
+                    --auth-input-radius: 14px;
 
-            {/* ── RIGHT: Auth Form ── */}
-            <div className="w-full lg:w-[45%] min-h-screen flex items-center justify-center bg-[#FAFAF8] px-6 py-12">
-                <div className="w-full max-w-[400px]">
-                    {/* Mobile-only brand header */}
-                    <div className="flex items-center gap-3 mb-8 lg:hidden">
-                        <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-[#1A1A2E] text-sm"
-                            style={{ background: "linear-gradient(135deg, #FFD100, #FF7900)" }}
-                        >
-                            BD
-                        </div>
+                    position: fixed;
+                    inset: 0;
+                    z-index: 50;
+                    display: flex;
+                    background: var(--auth-navy);
+                    overflow: hidden;
+                    font-family: var(--font-montserrat), 'Montserrat', system-ui, sans-serif;
+                }
+
+                /* ── HERO PANEL (Left) ── */
+                .auth-hero {
+                    display: none;
+                    position: relative;
+                    width: 52%;
+                    overflow: hidden;
+                }
+                @media (min-width: 1024px) {
+                    .auth-hero { display: flex; }
+                }
+
+                .auth-hero-image {
+                    position: absolute;
+                    inset: 0;
+                    z-index: 0;
+                }
+                .auth-hero-image img {
+                    object-fit: cover;
+                    object-position: center 35%;
+                }
+
+                /* Cinematic vignette overlay */
+                .auth-hero-vignette {
+                    position: absolute;
+                    inset: 0;
+                    z-index: 1;
+                    background:
+                        linear-gradient(180deg,
+                            rgba(10,14,26,0.55) 0%,
+                            rgba(10,14,26,0.1) 30%,
+                            rgba(10,14,26,0.05) 50%,
+                            rgba(10,14,26,0.3) 80%,
+                            rgba(10,14,26,0.85) 100%
+                        ),
+                        linear-gradient(90deg,
+                            transparent 60%,
+                            rgba(10,14,26,0.9) 100%
+                        );
+                }
+
+                /* Warm bokeh glow */
+                .auth-hero-bokeh {
+                    position: absolute;
+                    border-radius: 50%;
+                    filter: blur(80px);
+                    z-index: 2;
+                    pointer-events: none;
+                    animation: auth-bokeh-drift 12s ease-in-out infinite alternate;
+                }
+                .auth-hero-bokeh--gold {
+                    width: 300px; height: 300px;
+                    top: 15%; left: 10%;
+                    background: rgba(255,209,0,0.15);
+                }
+                .auth-hero-bokeh--orange {
+                    width: 250px; height: 250px;
+                    bottom: 20%; right: 15%;
+                    background: rgba(255,121,0,0.12);
+                    animation-delay: -4s;
+                    animation-duration: 14s;
+                }
+
+                /* Hero bottom content */
+                .auth-hero-content {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    z-index: 5;
+                    padding: 48px;
+                }
+                .auth-hero-logo {
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    margin-bottom: 20px;
+                }
+                .auth-hero-logo-mark {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 14px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: 900;
+                    font-size: 13px;
+                    color: var(--auth-navy);
+                    background: linear-gradient(135deg, var(--auth-gold), var(--auth-orange));
+                    box-shadow: 0 4px 20px rgba(255,209,0,0.35);
+                }
+                .auth-hero-logo-text {
+                    color: white;
+                    font-weight: 800;
+                    font-size: 18px;
+                    line-height: 1.15;
+                }
+                .auth-hero-logo-sub {
+                    color: rgba(255,255,255,0.4);
+                    font-size: 11px;
+                    font-weight: 500;
+                    letter-spacing: 0.5px;
+                }
+                .auth-hero-headline {
+                    font-size: clamp(1.6rem, 2.5vw, 2.4rem);
+                    font-weight: 900;
+                    line-height: 1.1;
+                    color: white;
+                    margin-bottom: 10px;
+                    max-width: 420px;
+                }
+                .auth-hero-headline span {
+                    background: linear-gradient(135deg, var(--auth-gold), var(--auth-orange));
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                }
+                .auth-hero-tagline {
+                    color: rgba(255,255,255,0.5);
+                    font-size: 13px;
+                    line-height: 1.6;
+                    max-width: 360px;
+                }
+
+                /* Stat pills */
+                .auth-hero-stats {
+                    display: flex;
+                    gap: 10px;
+                    margin-top: 24px;
+                }
+                .auth-stat-pill {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 8px 16px;
+                    border-radius: 999px;
+                    background: rgba(255,255,255,0.08);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px);
+                }
+                .auth-stat-pill strong {
+                    color: var(--auth-gold);
+                    font-weight: 800;
+                    font-size: 14px;
+                }
+                .auth-stat-pill span {
+                    color: rgba(255,255,255,0.55);
+                    font-size: 11px;
+                    font-weight: 500;
+                }
+
+                /* ── FORM PANEL (Right) ── */
+                .auth-form-panel {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
+                    padding: 32px 24px;
+                    overflow-y: auto;
+                    background:
+                        radial-gradient(ellipse at 30% 20%, rgba(255,209,0,0.03) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(255,121,0,0.02) 0%, transparent 50%),
+                        var(--auth-navy);
+                }
+
+                /* Mobile background image */
+                .auth-form-panel::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background: url('/images/hero-duck.png') center 30% / cover no-repeat;
+                    opacity: 0.06;
+                    pointer-events: none;
+                }
+                @media (min-width: 1024px) {
+                    .auth-form-panel::before { display: none; }
+                }
+
+                /* Form container */
+                .auth-form-container {
+                    width: 100%;
+                    max-width: 420px;
+                    position: relative;
+                    z-index: 2;
+                }
+
+                /* Mobile brand header */
+                .auth-mobile-brand {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    margin-bottom: 32px;
+                }
+                @media (min-width: 1024px) {
+                    .auth-mobile-brand { display: none; }
+                }
+                .auth-mobile-logo {
+                    height: 42px;
+                    width: auto;
+                }
+
+                /* Card */
+                .auth-card {
+                    background: rgba(255,255,255,0.03);
+                    border: 1px solid var(--auth-border);
+                    border-radius: var(--auth-radius);
+                    backdrop-filter: blur(20px);
+                    -webkit-backdrop-filter: blur(20px);
+                    overflow: hidden;
+                }
+
+                /* Greeting */
+                .auth-greeting {
+                    padding: 32px 32px 0;
+                }
+                .auth-greeting h1 {
+                    font-size: 24px;
+                    font-weight: 800;
+                    color: white;
+                    margin: 0 0 6px;
+                    line-height: 1.2;
+                }
+                .auth-greeting p {
+                    color: var(--auth-text-muted);
+                    font-size: 13px;
+                    margin: 0;
+                    line-height: 1.5;
+                }
+
+                /* Tab strip */
+                .auth-tabs {
+                    display: flex;
+                    margin: 20px 32px 0;
+                    background: rgba(255,255,255,0.04);
+                    border-radius: 12px;
+                    padding: 4px;
+                    gap: 4px;
+                }
+                .auth-tab-btn {
+                    flex: 1;
+                    padding: 10px 0;
+                    border-radius: 10px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    border: none;
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    background: transparent;
+                    color: var(--auth-text-muted);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                }
+                .auth-tab-btn:hover {
+                    color: rgba(255,255,255,0.7);
+                }
+                .auth-tab-btn--active {
+                    background: linear-gradient(135deg, var(--auth-gold), var(--auth-orange));
+                    color: var(--auth-navy);
+                    box-shadow: 0 4px 16px rgba(255,209,0,0.25);
+                }
+                .auth-tab-btn--active:hover {
+                    color: var(--auth-navy);
+                }
+
+                /* Form body */
+                .auth-form-body {
+                    padding: 24px 32px 32px;
+                }
+
+                /* Error */
+                .auth-error {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 10px;
+                    padding: 12px 16px;
+                    border-radius: 14px;
+                    background: rgba(239,68,68,0.08);
+                    border: 1px solid rgba(239,68,68,0.15);
+                    margin-bottom: 20px;
+                    animation: auth-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+                }
+                .auth-error svg {
+                    flex-shrink: 0;
+                    margin-top: 1px;
+                    color: #f87171;
+                }
+                .auth-error p {
+                    color: #fca5a5;
+                    font-size: 13px;
+                    margin: 0;
+                    line-height: 1.45;
+                }
+
+                /* Google button */
+                .auth-google-btn {
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    padding: 13px 20px;
+                    border-radius: var(--auth-input-radius);
+                    background: rgba(255,255,255,0.06);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    color: var(--auth-text);
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.25s ease;
+                    margin-bottom: 20px;
+                    font-family: inherit;
+                }
+                .auth-google-btn:hover:not(:disabled) {
+                    background: rgba(255,255,255,0.1);
+                    border-color: rgba(255,255,255,0.18);
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+                }
+                .auth-google-btn:active:not(:disabled) {
+                    transform: translateY(0) scale(0.98);
+                }
+                .auth-google-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+
+                /* Divider */
+                .auth-divider {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    margin-bottom: 20px;
+                }
+                .auth-divider-line {
+                    flex: 1;
+                    height: 1px;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+                }
+                .auth-divider span {
+                    color: var(--auth-text-muted);
+                    font-size: 11px;
+                    font-weight: 500;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    white-space: nowrap;
+                }
+
+                /* Input group */
+                .auth-field {
+                    margin-bottom: 16px;
+                }
+                .auth-label {
+                    display: block;
+                    font-size: 11px;
+                    font-weight: 600;
+                    color: rgba(255,255,255,0.4);
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    margin-bottom: 6px;
+                }
+                .auth-label-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 6px;
+                }
+                .auth-forgot {
+                    font-size: 11px;
+                    font-weight: 600;
+                    color: var(--auth-gold);
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    padding: 0;
+                    font-family: inherit;
+                    opacity: 0.8;
+                    transition: opacity 0.2s;
+                }
+                .auth-forgot:hover { opacity: 1; }
+
+                .auth-input-wrap {
+                    position: relative;
+                }
+                .auth-input {
+                    width: 100%;
+                    padding: 13px 16px;
+                    background: rgba(255,255,255,0.04);
+                    border: 1px solid rgba(255,255,255,0.08);
+                    border-radius: var(--auth-input-radius);
+                    color: white;
+                    font-size: 14px;
+                    font-family: inherit;
+                    transition: all 0.3s ease;
+                    outline: none;
+                }
+                .auth-input::placeholder {
+                    color: rgba(255,255,255,0.2);
+                }
+                .auth-input:focus {
+                    border-color: var(--auth-gold);
+                    background: rgba(255,209,0,0.04);
+                    box-shadow: 0 0 0 3px rgba(255,209,0,0.08), 0 0 20px rgba(255,209,0,0.05);
+                }
+                .auth-input:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+                .auth-input--has-toggle {
+                    padding-right: 48px;
+                }
+
+                .auth-toggle-pw {
+                    position: absolute;
+                    right: 4px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background: none;
+                    border: none;
+                    padding: 8px;
+                    cursor: pointer;
+                    color: rgba(255,255,255,0.3);
+                    transition: color 0.2s;
+                }
+                .auth-toggle-pw:hover {
+                    color: rgba(255,255,255,0.6);
+                }
+
+                /* Submit button */
+                .auth-submit {
+                    width: 100%;
+                    padding: 14px 24px;
+                    border: none;
+                    border-radius: var(--auth-input-radius);
+                    font-size: 14px;
+                    font-weight: 700;
+                    font-family: inherit;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    color: var(--auth-navy);
+                    background: linear-gradient(135deg, var(--auth-gold), var(--auth-orange));
+                    box-shadow: 0 4px 24px rgba(255,209,0,0.3);
+                    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    margin-top: 24px;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .auth-submit::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%);
+                    transform: translateX(-100%);
+                    transition: transform 0.5s ease;
+                }
+                .auth-submit:hover:not(:disabled)::before {
+                    transform: translateX(100%);
+                }
+                .auth-submit:hover:not(:disabled) {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 32px rgba(255,209,0,0.4);
+                }
+                .auth-submit:active:not(:disabled) {
+                    transform: translateY(0) scale(0.97);
+                }
+                .auth-submit:disabled {
+                    opacity: 0.45;
+                    cursor: not-allowed;
+                }
+
+                /* Switch text */
+                .auth-switch {
+                    text-align: center;
+                    margin-top: 20px;
+                    font-size: 13px;
+                    color: var(--auth-text-muted);
+                }
+                .auth-switch button {
+                    background: none;
+                    border: none;
+                    color: var(--auth-gold);
+                    font-weight: 700;
+                    cursor: pointer;
+                    font-family: inherit;
+                    font-size: 13px;
+                    padding: 0;
+                    transition: opacity 0.2s;
+                }
+                .auth-switch button:hover {
+                    opacity: 0.8;
+                    text-decoration: underline;
+                }
+
+                /* Terms */
+                .auth-terms {
+                    text-align: center;
+                    font-size: 11px;
+                    color: var(--auth-text-muted);
+                    margin-top: 16px;
+                    line-height: 1.6;
+                }
+                .auth-terms a {
+                    color: var(--auth-gold);
+                    text-decoration: none;
+                    font-weight: 600;
+                }
+                .auth-terms a:hover {
+                    text-decoration: underline;
+                }
+
+                /* Footer */
+                .auth-footer {
+                    text-align: center;
+                    margin-top: 28px;
+                    font-size: 11px;
+                    color: rgba(255,255,255,0.2);
+                    letter-spacing: 0.3px;
+                }
+
+                /* ── PARTICLES ── */
+                .auth-particle {
+                    position: absolute;
+                    border-radius: 50%;
+                    background: var(--auth-gold);
+                    animation: auth-particle-float 6s ease-in-out infinite;
+                }
+
+                /* ── ENTRANCE ANIMATION ── */
+                .auth-enter {
+                    opacity: 0;
+                    transform: translateY(24px);
+                    animation: auth-enter-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                }
+                .auth-enter--d1 { animation-delay: 0.1s; }
+                .auth-enter--d2 { animation-delay: 0.2s; }
+                .auth-enter--d3 { animation-delay: 0.3s; }
+                .auth-enter--d4 { animation-delay: 0.35s; }
+
+                /* ── KEYFRAMES ── */
+                @keyframes auth-particle-float {
+                    0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+                    50% { transform: translateY(-20px) scale(1.3); opacity: 0.7; }
+                }
+                @keyframes auth-bokeh-drift {
+                    0% { transform: translate(0, 0) scale(1); }
+                    100% { transform: translate(30px, -20px) scale(1.1); }
+                }
+                @keyframes auth-enter-up {
+                    from { opacity: 0; transform: translateY(24px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes auth-shake {
+                    0%, 100% { transform: translateX(0); }
+                    20% { transform: translateX(-6px); }
+                    40% { transform: translateX(6px); }
+                    60% { transform: translateX(-4px); }
+                    80% { transform: translateX(4px); }
+                }
+            `}</style>
+
+            {/* ══════════ LEFT: HERO PANEL ══════════ */}
+            <div className="auth-hero">
+                {/* Full-bleed mascot backdrop */}
+                <div className="auth-hero-image">
+                    <Image
+                        src="/images/hero-duck.png"
+                        alt="B.Duck Cityfuns Adventure"
+                        fill
+                        priority
+                        sizes="52vw"
+                        quality={85}
+                    />
+                </div>
+
+                {/* Cinematic overlay */}
+                <div className="auth-hero-vignette" />
+
+                {/* Warm bokeh lights */}
+                <div className="auth-hero-bokeh auth-hero-bokeh--gold" />
+                <div className="auth-hero-bokeh auth-hero-bokeh--orange" />
+
+                {/* Floating particles */}
+                <FloatingParticles />
+
+                {/* Bottom content */}
+                <div className="auth-hero-content">
+                    <div className="auth-hero-logo">
+                        <div className="auth-hero-logo-mark">BD</div>
                         <div>
-                            <p className="font-bold text-[#1A1A2E] text-base leading-tight">B.Duck Cityfuns</p>
-                            <p className="text-gray-400 text-xs">Vietnam</p>
+                            <div className="auth-hero-logo-text">B.Duck Cityfuns</div>
+                            <div className="auth-hero-logo-sub">Vietnam</div>
                         </div>
                     </div>
+                    <h2 className="auth-hero-headline">
+                        {t("heroTitle")}{" "}
+                        <span>{t("heroSubtitle")}</span>
+                    </h2>
+                    <p className="auth-hero-tagline">{t("heroTagline")}</p>
+                    <div className="auth-hero-stats">
+                        <div className="auth-stat-pill">
+                            <strong>50K+</strong>
+                            <span>{t("statTickets")}</span>
+                        </div>
+                        <div className="auth-stat-pill">
+                            <strong>10+</strong>
+                            <span>{t("statGames")}</span>
+                        </div>
+                        <div className="auth-stat-pill">
+                            <strong>4.9★</strong>
+                            <span>{t("statRating")}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    {/* Card */}
-                    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-                        {/* Tab switcher */}
-                        <div className="flex border-b border-gray-100">
-                            {(["login", "register"] as Tab[]).map((t_tab) => (
-                                <button
-                                    key={t_tab}
-                                    id={`auth-tab-${t_tab}`}
-                                    onClick={() => { setTab(t_tab); setError(null); }}
-                                    className={`flex-1 py-4 text-sm font-semibold transition-all relative ${
-                                        tab === t_tab
-                                            ? "text-[#1A1A2E]"
-                                            : "text-gray-400 hover:text-gray-600"
-                                    }`}
-                                >
-                                    {t_tab === "login" ? t("loginTab") : t("registerTab")}
-                                    {tab === t_tab && (
-                                        <span
-                                            className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-10 rounded-full"
-                                            style={{ background: "linear-gradient(90deg, #FFD100, #FF7900)" }}
-                                        />
-                                    )}
-                                </button>
-                            ))}
+            {/* ══════════ RIGHT: FORM PANEL ══════════ */}
+            <div className="auth-form-panel">
+                <FloatingParticles />
+
+                <div className="auth-form-container">
+                    {/* Mobile brand */}
+                    <div className={`auth-mobile-brand ${mounted ? "auth-enter auth-enter--d1" : ""}`}>
+                        <Image
+                            src="/images/logo-bduck-cityfuns.png"
+                            alt="B.Duck Cityfuns"
+                            width={160}
+                            height={42}
+                            className="auth-mobile-logo"
+                        />
+                    </div>
+
+                    {/* Auth card */}
+                    <div className={`auth-card ${mounted ? "auth-enter auth-enter--d2" : ""}`}>
+                        {/* Greeting */}
+                        <div className="auth-greeting">
+                            <h1>
+                                {tab === "login" ? t("loginTab") : t("registerTab")} 👋
+                            </h1>
+                            <p>
+                                {tab === "login"
+                                    ? t("heroTagline")
+                                    : t("heroTagline")}
+                            </p>
                         </div>
 
-                        <div className="px-7 py-7 space-y-5">
+                        {/* Tab strip */}
+                        <div className="auth-tabs">
+                            <button
+                                id="auth-tab-login"
+                                type="button"
+                                onClick={() => { setTab("login"); setError(null); }}
+                                className={`auth-tab-btn ${tab === "login" ? "auth-tab-btn--active" : ""}`}
+                            >
+                                <ArrowRight size={14} />
+                                {t("loginTab")}
+                            </button>
+                            <button
+                                id="auth-tab-register"
+                                type="button"
+                                onClick={() => { setTab("register"); setError(null); }}
+                                className={`auth-tab-btn ${tab === "register" ? "auth-tab-btn--active" : ""}`}
+                            >
+                                <UserPlus size={14} />
+                                {t("registerTab")}
+                            </button>
+                        </div>
+
+                        {/* Form body */}
+                        <div className="auth-form-body">
                             {/* Error banner */}
                             {error && (
-                                <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 animate-fade-up">
-                                    <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                                    <p className="text-sm text-red-600">{error}</p>
+                                <div className="auth-error">
+                                    <AlertCircle size={16} />
+                                    <p>{error}</p>
                                 </div>
                             )}
 
@@ -331,24 +893,24 @@ export default function LoginPage() {
                                 type="button"
                                 onClick={handleGoogle}
                                 disabled={isLoading}
-                                className="w-full flex items-center justify-center gap-3 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-[#1A1A2E] hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all disabled:opacity-50 shadow-sm"
+                                className="auth-google-btn"
                             >
                                 <GoogleIcon />
                                 {t("continueWithGoogle")}
                             </button>
 
                             {/* Divider */}
-                            <div className="flex items-center gap-3">
-                                <div className="flex-1 h-px bg-gray-100" />
-                                <span className="text-xs text-gray-400">{t("orDivider")}</span>
-                                <div className="flex-1 h-px bg-gray-100" />
+                            <div className="auth-divider">
+                                <div className="auth-divider-line" />
+                                <span>{t("orDivider")}</span>
+                                <div className="auth-divider-line" />
                             </div>
 
                             {/* ── LOGIN FORM ── */}
                             {tab === "login" && (
-                                <form onSubmit={handleEmailLogin} className="space-y-4" noValidate>
-                                    <div className="space-y-1.5">
-                                        <label htmlFor="login-email" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <form onSubmit={handleEmailLogin} noValidate>
+                                    <div className="auth-field">
+                                        <label htmlFor="login-email" className="auth-label">
                                             {t("emailLabel")}
                                         </label>
                                         <input
@@ -360,24 +922,20 @@ export default function LoginPage() {
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder={t("emailPlaceholder")}
                                             disabled={isLoading}
-                                            className={inputCls}
+                                            className="auth-input"
                                         />
                                     </div>
 
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center justify-between">
-                                            <label htmlFor="login-password" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    <div className="auth-field">
+                                        <div className="auth-label-row">
+                                            <label htmlFor="login-password" className="auth-label" style={{ marginBottom: 0 }}>
                                                 {t("passwordLabel")}
                                             </label>
-                                            <button
-                                                type="button"
-                                                className="text-xs text-[#FF7900] hover:underline"
-                                                tabIndex={-1}
-                                            >
+                                            <button type="button" className="auth-forgot" tabIndex={-1}>
                                                 {t("forgotPassword")}
                                             </button>
                                         </div>
-                                        <div className="relative">
+                                        <div className="auth-input-wrap">
                                             <input
                                                 id="login-password"
                                                 type={showPassword ? "text" : "password"}
@@ -387,15 +945,15 @@ export default function LoginPage() {
                                                 onChange={(e) => setPassword(e.target.value)}
                                                 placeholder={t("passwordPlaceholder")}
                                                 disabled={isLoading}
-                                                className={`${inputCls} pr-12`}
+                                                className="auth-input auth-input--has-toggle"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword((v) => !v)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                                                className="auth-toggle-pw"
                                                 tabIndex={-1}
                                             >
-                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                             </button>
                                         </div>
                                     </div>
@@ -404,28 +962,26 @@ export default function LoginPage() {
                                         id="login-submit-btn"
                                         type="submit"
                                         disabled={isLoading || !email || !password}
-                                        className="w-full py-3.5 font-bold rounded-xl text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 text-[#1A1A2E]"
-                                        style={{
-                                            background: "linear-gradient(135deg, #FFD100, #FF7900)",
-                                            boxShadow: "0 4px 20px rgba(255,209,0,0.35)",
-                                        }}
+                                        className="auth-submit"
                                     >
                                         {isLoading ? (
                                             <>
-                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <Loader2 size={16} className="animate-spin" />
                                                 {t("loggingIn")}
                                             </>
                                         ) : (
-                                            t("loginButton")
+                                            <>
+                                                {t("loginButton")}
+                                                <ArrowRight size={16} />
+                                            </>
                                         )}
                                     </button>
 
-                                    <p className="text-center text-xs text-gray-400">
+                                    <p className="auth-switch">
                                         {t("switchToRegister")}{" "}
                                         <button
                                             type="button"
                                             onClick={() => { setTab("register"); setError(null); }}
-                                            className="text-[#FF7900] font-semibold hover:underline"
                                         >
                                             {t("registerTab")}
                                         </button>
@@ -435,9 +991,9 @@ export default function LoginPage() {
 
                             {/* ── REGISTER FORM ── */}
                             {tab === "register" && (
-                                <form onSubmit={handleEmailRegister} className="space-y-4" noValidate>
-                                    <div className="space-y-1.5">
-                                        <label htmlFor="reg-name" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <form onSubmit={handleEmailRegister} noValidate>
+                                    <div className="auth-field">
+                                        <label htmlFor="reg-name" className="auth-label">
                                             {t("displayNameLabel")}
                                         </label>
                                         <input
@@ -449,12 +1005,12 @@ export default function LoginPage() {
                                             onChange={(e) => setDisplayName(e.target.value)}
                                             placeholder={t("displayNamePlaceholder")}
                                             disabled={isLoading}
-                                            className={inputCls}
+                                            className="auth-input"
                                         />
                                     </div>
 
-                                    <div className="space-y-1.5">
-                                        <label htmlFor="reg-email" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    <div className="auth-field">
+                                        <label htmlFor="reg-email" className="auth-label">
                                             {t("emailLabel")}
                                         </label>
                                         <input
@@ -466,15 +1022,15 @@ export default function LoginPage() {
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder={t("emailPlaceholder")}
                                             disabled={isLoading}
-                                            className={inputCls}
+                                            className="auth-input"
                                         />
                                     </div>
 
-                                    <div className="space-y-1.5">
-                                        <label htmlFor="reg-password" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    <div className="auth-field">
+                                        <label htmlFor="reg-password" className="auth-label">
                                             {t("passwordLabel")}
                                         </label>
-                                        <div className="relative">
+                                        <div className="auth-input-wrap">
                                             <input
                                                 id="reg-password"
                                                 type={showPassword ? "text" : "password"}
@@ -484,24 +1040,24 @@ export default function LoginPage() {
                                                 onChange={(e) => setPassword(e.target.value)}
                                                 placeholder={t("passwordPlaceholder")}
                                                 disabled={isLoading}
-                                                className={`${inputCls} pr-12`}
+                                                className="auth-input auth-input--has-toggle"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword((v) => !v)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                                                className="auth-toggle-pw"
                                                 tabIndex={-1}
                                             >
-                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                             </button>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-1.5">
-                                        <label htmlFor="reg-confirm-password" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    <div className="auth-field">
+                                        <label htmlFor="reg-confirm-password" className="auth-label">
                                             {t("confirmPasswordLabel")}
                                         </label>
-                                        <div className="relative">
+                                        <div className="auth-input-wrap">
                                             <input
                                                 id="reg-confirm-password"
                                                 type={showConfirmPassword ? "text" : "password"}
@@ -511,15 +1067,15 @@ export default function LoginPage() {
                                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                                 placeholder={t("confirmPasswordPlaceholder")}
                                                 disabled={isLoading}
-                                                className={`${inputCls} pr-12`}
+                                                className="auth-input auth-input--has-toggle"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowConfirmPassword((v) => !v)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                                                className="auth-toggle-pw"
                                                 tabIndex={-1}
                                             >
-                                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                             </button>
                                         </div>
                                     </div>
@@ -528,36 +1084,34 @@ export default function LoginPage() {
                                         id="register-submit-btn"
                                         type="submit"
                                         disabled={isLoading || !email || !password || !displayName}
-                                        className="w-full py-3.5 font-bold rounded-xl text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 text-[#1A1A2E]"
-                                        style={{
-                                            background: "linear-gradient(135deg, #FFD100, #FF7900)",
-                                            boxShadow: "0 4px 20px rgba(255,209,0,0.35)",
-                                        }}
+                                        className="auth-submit"
                                     >
                                         {isLoading ? (
                                             <>
-                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <Loader2 size={16} className="animate-spin" />
                                                 {t("registering")}
                                             </>
                                         ) : (
-                                            t("registerButton")
+                                            <>
+                                                {t("registerButton")}
+                                                <UserPlus size={16} />
+                                            </>
                                         )}
                                     </button>
 
                                     {/* Terms */}
-                                    <p className="text-center text-[11px] text-gray-400 leading-relaxed">
+                                    <p className="auth-terms">
                                         {t("termsNote")}{" "}
-                                        <a href="/terms" className="text-[#FF7900] hover:underline">{t("termsLink")}</a>
+                                        <a href="/terms">{t("termsLink")}</a>
                                         {" "}{t("andWord")}{" "}
-                                        <a href="/privacy" className="text-[#FF7900] hover:underline">{t("privacyLink")}</a>.
+                                        <a href="/privacy">{t("privacyLink")}</a>.
                                     </p>
 
-                                    <p className="text-center text-xs text-gray-400">
+                                    <p className="auth-switch">
                                         {t("switchToLogin")}{" "}
                                         <button
                                             type="button"
                                             onClick={() => { setTab("login"); setError(null); }}
-                                            className="text-[#FF7900] font-semibold hover:underline"
                                         >
                                             {t("loginTab")}
                                         </button>
@@ -568,7 +1122,7 @@ export default function LoginPage() {
                     </div>
 
                     {/* Footer */}
-                    <p className="text-center text-xs text-gray-400 mt-5">
+                    <p className={`auth-footer ${mounted ? "auth-enter auth-enter--d4" : ""}`}>
                         © 2026 B.Duck Cityfuns Vietnam
                     </p>
                 </div>

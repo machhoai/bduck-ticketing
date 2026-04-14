@@ -8,6 +8,6 @@ export const metadata: Metadata = {
 };
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
-  // No sidebar or topbar — pure centered layout
+  // Full-screen immersive auth — hides navbar/footer at the page level
   return <>{children}</>;
 }
