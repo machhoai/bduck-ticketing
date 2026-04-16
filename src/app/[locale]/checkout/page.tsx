@@ -1,34 +1,47 @@
 "use client";
 
-// Checkout page — CheckoutForm + createOrder Server Action (D7: ONLY here)
-import { useEffect, useState, useActionState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
+import { useTranslations } from "next-intl";
 import { useCartStore, rehydrateCart } from "@/stores/cart";
-import { createOrder } from "@/actions/checkout";
-import { validatePromoCode } from "@/actions/checkout";
+import { createOrder, validatePromoCode } from "@/actions/checkout";
+import { useNavbar } from "@/stores/navbar";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui";
-import { Tag, ShieldCheck } from "lucide-react";
+import { CheckoutProgressBar } from "@/components/customer/CheckoutProgressBar";
+import {
+  Tag,
+  ShieldCheck,
+  ArrowLeft,
+  ArrowRight,
+  CreditCard,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Zap,
+  Clock,
+  Lock,
+} from "lucide-react";
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
-
 const checkoutSchema = z.object({
   customerName: z.string().min(2, "Họ tên ít nhất 2 ký tự"),
   customerEmail: z.email("Email không hợp lệ"),
-  customerPhone: z.string().regex(/^(0|\+84)[0-9]{8,10}$/, "Số điện thoại không hợp lệ").optional().or(z.literal("")),
+  customerPhone: z
+    .string()
+    .regex(/^(0|\+84)[0-9]{8,10}$/, "Số điện thoại không hợp lệ")
+    .optional()
+    .or(z.literal("")),
   promoCode: z.string().optional(),
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
 function formatVND(amount: number) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(amount);
+  return new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
 }
 
 // ─── Promo Error Map ──────────────────────────────────────────────────────────
@@ -42,20 +55,79 @@ const PROMO_ERRORS: Record<string, string> = {
   "promo.min_order": "Đơn hàng chưa đạt giá trị tối thiểu",
 };
 
+// ─── Test Payment Cards ───────────────────────────────────────────────────────
+type SimulateType = "success" | "fail" | "timeout";
+
+interface TestCard {
+  id: SimulateType;
+  labelKey: string;
+  descKey: string;
+  icon: typeof CheckCircle2;
+  gradient: string;
+  iconColor: string;
+  borderColor: string;
+}
+
+const TEST_CARDS: TestCard[] = [
+  {
+    id: "success",
+    labelKey: "testCardSuccess",
+    descKey: "testCardSuccessDesc",
+    icon: CheckCircle2,
+    gradient: "from-emerald-50 to-green-50",
+    iconColor: "text-emerald-500",
+    borderColor: "border-emerald-200 hover:border-emerald-400",
+  },
+  {
+    id: "fail",
+    labelKey: "testCardFail",
+    descKey: "testCardFailDesc",
+    icon: XCircle,
+    gradient: "from-rose-50 to-red-50",
+    iconColor: "text-rose-500",
+    borderColor: "border-rose-200 hover:border-rose-400",
+  },
+  {
+    id: "timeout",
+    labelKey: "testCardTimeout",
+    descKey: "testCardTimeoutDesc",
+    icon: Clock,
+    gradient: "from-amber-50 to-orange-50",
+    iconColor: "text-amber-500",
+    borderColor: "border-amber-200 hover:border-amber-400",
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHECKOUT PAGE COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export default function CheckoutPage() {
   const params = useParams<{ locale: string }>();
   const locale = params.locale;
   const router = useRouter();
+  const t = useTranslations("checkout");
 
+  // ── Navbar config ──
+  useNavbar({ darkText: true, shadow: false, solidBg: true });
+
+  // ── Cart state ──
   const items = useCartStore((s) => s.items);
   const totalAmount = useCartStore((s) => s.totalAmount);
   const hasHydrated = useCartStore((s) => s._hasHydrated);
   const clearCart = useCartStore((s) => s.clearCart);
 
+  // ── Step state ──
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [selectedCard, setSelectedCard] = useState<SimulateType>("success");
+
+  // ── Promo state ──
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoCode, setPromoCode] = useState("");
   const [promoError, setPromoError] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
+
+  // ── Submit state ──
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
 
@@ -66,6 +138,7 @@ export default function CheckoutPage() {
   const {
     register,
     handleSubmit,
+    trigger,
     getValues,
     formState: { errors },
   } = useForm<CheckoutFormData>({
@@ -80,7 +153,7 @@ export default function CheckoutPage() {
   }, [hasHydrated, items.length, locale, router]);
 
   // ── Apply promo code ──
-  async function handleApplyPromo() {
+  const handleApplyPromo = useCallback(async () => {
     if (!promoCode.trim()) return;
     setPromoLoading(true);
     setPromoError("");
@@ -99,16 +172,31 @@ export default function CheckoutPage() {
       setPromoError(PROMO_ERRORS[result.errorKey ?? ""] ?? "Mã không hợp lệ");
     }
     setPromoLoading(false);
-  }
+  }, [promoCode, items, getValues]);
 
-  // ── Submit checkout ──
-  async function onSubmit(data: CheckoutFormData) {
-    if (!hasHydrated || items.length === 0) return;
+  // ── Step 1 → Step 2 with validation gate ──
+  const handleContinueToPayment = useCallback(async () => {
+    // trigger() validates all fields defined in the schema
+    const isValid = await trigger(["customerName", "customerEmail", "customerPhone"]);
+    if (isValid) {
+      setCurrentStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [trigger]);
+
+  // ── Submit checkout (Step 2) ──
+  const onSubmitPayment = useCallback(async () => {
+    if (!hasHydrated || items.length === 0 || submitting) return;
     setSubmitting(true);
     setServerError("");
 
+    const data = getValues();
+
     const result = await createOrder({
-      items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      items: items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+      })),
       customerName: data.customerName,
       customerEmail: data.customerEmail,
       customerPhone: data.customerPhone || undefined,
@@ -122,154 +210,382 @@ export default function CheckoutPage() {
         "order.product_unavailable": "Sản phẩm đã ngừng bán",
         "order.stock_exhausted": "Vé đã hết",
       };
-      setServerError(errorMessages[result.errorKey] ?? "Có lỗi xảy ra. Vui lòng thử lại.");
+      setServerError(
+        errorMessages[result.errorKey] ?? "Có lỗi xảy ra. Vui lòng thử lại."
+      );
       setSubmitting(false);
       return;
     }
 
-    // Clear cart and redirect to payment
+    // For timeout card, we redirect to result but without simulate param
+    // so the order stays pending to test polling
     clearCart();
-    window.location.href = result.data.paymentUrl;
-  }
+
+    if (selectedCard === "timeout") {
+      // Don't hit mock-pay, go straight to result page (order stays pending)
+      window.location.href = `/${locale}/checkout/result?orderId=${result.data.orderId}`;
+    } else {
+      // Normal flow — hit mock-pay which handles success/fail
+      const paymentUrl = result.data.paymentUrl.replace(
+        "simulate=success",
+        `simulate=${selectedCard}`
+      );
+      window.location.href = paymentUrl;
+    }
+  }, [
+    hasHydrated,
+    items,
+    submitting,
+    getValues,
+    promoCode,
+    clearCart,
+    selectedCard,
+    locale,
+  ]);
 
   const finalAmount = totalAmount() - promoDiscount;
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
-      <h1 className="text-2xl font-extrabold text-[#1A1A2E] mb-8">
-        💳 Thanh toán
-      </h1>
-
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Left: form */}
-          <div className="lg:col-span-3 space-y-5">
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-4">
-              <h2 className="font-bold text-[#1A1A2E]">Thông tin người mua</h2>
-              <Input
-                id="customerName"
-                label="Họ và tên"
-                placeholder="Nguyễn Văn A"
-                required
-                error={errors.customerName?.message}
-                {...register("customerName")}
-              />
-              <Input
-                id="customerEmail"
-                label="Email"
-                type="email"
-                placeholder="email@example.com"
-                required
-                hint="Vé điện tử sẽ được gửi về email này"
-                error={errors.customerEmail?.message}
-                {...register("customerEmail")}
-              />
-              <Input
-                id="customerPhone"
-                label="Số điện thoại"
-                type="tel"
-                placeholder="0912345678"
-                error={errors.customerPhone?.message}
-                {...register("customerPhone")}
-              />
+    <>
+      {/* ── Full-screen processing overlay (anti-double-submit) ──────── */}
+      {submitting && (
+        <div className="fixed inset-0 z-[100] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center gap-4 animate-[fadeIn_0.2s_ease-out]">
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#F5C842] to-[#E5B832] flex items-center justify-center shadow-xl shadow-[#F5C842]/30 animate-pulse">
+              <Loader2 className="h-8 w-8 text-[#1A1A2E] animate-spin" />
             </div>
-
-            {/* Promo code */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-3">
-              <h2 className="font-bold text-[#1A1A2E] flex items-center gap-2">
-                <Tag className="h-4 w-4 text-[#F5C842]" /> Mã giảm giá
-              </h2>
-              <div className="flex gap-2">
-                <input
-                  id="promoCodeInput"
-                  type="text"
-                  value={promoCode}
-                  onChange={(e) => {
-                    setPromoCode(e.target.value.toUpperCase());
-                    setPromoError("");
-                    setPromoDiscount(0);
-                  }}
-                  placeholder="NHẬP MÃ"
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-[#F5C842]/60 focus:border-[#F5C842]"
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleApplyPromo}
-                  loading={promoLoading}
-                >
-                  Áp dụng
-                </Button>
-              </div>
-              {promoError && (
-                <p className="text-xs text-red-600">{promoError}</p>
-              )}
-              {promoDiscount > 0 && (
-                <p className="text-xs text-emerald-600 font-semibold">
-                  ✓ Giảm {formatVND(promoDiscount)}
-                </p>
-              )}
-            </div>
+            <div className="absolute -inset-3 rounded-full border-2 border-[#F5C842]/30 animate-ping" />
           </div>
-
-          {/* Right: summary */}
-          <div className="lg:col-span-2">
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4 lg:sticky lg:top-24">
-              <h2 className="font-bold text-[#1A1A2E]">Tóm tắt đơn hàng</h2>
-
-              <div className="space-y-2 text-sm text-gray-600">
-                {items.map((item) => (
-                  <div key={item.productId} className="flex justify-between">
-                    <span className="line-clamp-1 flex-1 mr-2">
-                      {item.name} × {item.quantity}
-                    </span>
-                    <span className="flex-shrink-0 font-medium">
-                      {formatVND(item.price * item.quantity)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {promoDiscount > 0 && (
-                <div className="flex justify-between text-sm text-emerald-600">
-                  <span>Giảm giá</span>
-                  <span>-{formatVND(promoDiscount)}</span>
-                </div>
-              )}
-
-              <div className="border-t border-dashed border-gray-200 pt-3 flex items-center justify-between">
-                <span className="font-bold text-[#1A1A2E]">Tổng thanh toán</span>
-                <span className="text-xl font-extrabold text-[#1A1A2E]">
-                  {formatVND(finalAmount)}
-                </span>
-              </div>
-
-              {serverError && (
-                <p className="text-sm text-red-600 bg-red-50 rounded-xl p-3">
-                  {serverError}
-                </p>
-              )}
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                loading={submitting}
-                className="w-full"
-                id="submit-checkout-btn"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                {submitting ? "Đang xử lý..." : "Thanh toán ngay"}
-              </Button>
-
-              <p className="text-xs text-gray-400 text-center">
-                🔒 Thanh toán được bảo mật. Giá thực tế xác nhận bởi server.
-              </p>
-            </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-[#1A1A2E]">{t("processing")}</p>
+            <p className="text-sm text-gray-500 mt-1">{t("processingSubtext")}</p>
           </div>
         </div>
-      </form>
-    </main>
+      )}
+
+      {/* ── Decorative Background ──────────────────────────────────────── */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-yellow-100/40 via-orange-50/30 to-transparent blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-blue-50/40 via-purple-50/20 to-transparent blur-3xl" />
+      </div>
+
+      <main className="min-h-screen pt-[100px] pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          {/* ── Progress Bar ──────────────────────────────────────────── */}
+          <div className="mb-10 animate-[fadeIn_0.4s_ease-out]">
+            <CheckoutProgressBar
+              currentStep={currentStep}
+              labels={[t("step1"), t("step2"), t("step3")]}
+            />
+          </div>
+
+          <form
+            onSubmit={handleSubmit(() => {})}
+            noValidate
+            className="animate-[fadeSlideUp_0.5s_ease-out]"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* ═══════════════════════════════════════════════════════ */}
+              {/* LEFT COLUMN: Step content                              */}
+              {/* ═══════════════════════════════════════════════════════ */}
+              <div className="lg:col-span-7 space-y-6">
+                {/* ── STEP 1: Customer Info ──────────────────────────── */}
+                {currentStep === 1 && (
+                  <div className="space-y-6 animate-[fadeSlideUp_0.4s_ease-out]">
+                    {/* Buyer info card */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.06)] p-6 space-y-5">
+                      <h2 className="text-lg font-bold text-[#1A1A2E] flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-[#F5C842]/15 flex items-center justify-center">
+                          <ShieldCheck className="h-4 w-4 text-[#E5B832]" />
+                        </div>
+                        {t("buyerInfo")}
+                      </h2>
+
+                      <Input
+                        id="customerName"
+                        label={t("nameLabel")}
+                        placeholder={t("namePlaceholder")}
+                        required
+                        error={errors.customerName?.message}
+                        {...register("customerName")}
+                      />
+                      <Input
+                        id="customerEmail"
+                        label={t("emailLabel")}
+                        type="email"
+                        placeholder={t("emailPlaceholder")}
+                        required
+                        hint={t("emailHint")}
+                        error={errors.customerEmail?.message}
+                        {...register("customerEmail")}
+                      />
+                      <Input
+                        id="customerPhone"
+                        label={t("phoneLabel")}
+                        type="tel"
+                        placeholder={t("phonePlaceholder")}
+                        error={errors.customerPhone?.message}
+                        {...register("customerPhone")}
+                      />
+                    </div>
+
+                    {/* Promo code card */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.06)] p-6 space-y-4">
+                      <h2 className="font-bold text-[#1A1A2E] flex items-center gap-2 text-sm">
+                        <Tag className="h-4 w-4 text-[#F5C842]" />
+                        {t("promoTitle")}
+                      </h2>
+                      <div className="flex gap-2">
+                        <input
+                          id="promoCodeInput"
+                          type="text"
+                          value={promoCode}
+                          onChange={(e) => {
+                            setPromoCode(e.target.value.toUpperCase());
+                            setPromoError("");
+                            setPromoDiscount(0);
+                          }}
+                          placeholder={t("promoPlaceholder")}
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-[#F5C842]/60 focus:border-[#F5C842] bg-gray-50/50 transition-all"
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleApplyPromo}
+                          loading={promoLoading}
+                        >
+                          {t("promoApply")}
+                        </Button>
+                      </div>
+                      {promoError && (
+                        <p className="text-xs text-red-600 flex items-center gap-1">
+                          <XCircle className="h-3 w-3" /> {promoError}
+                        </p>
+                      )}
+                      {promoDiscount > 0 && (
+                        <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          {t("promoSuccess", { amount: formatVND(promoDiscount) })}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Continue button */}
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                      onClick={handleContinueToPayment}
+                      id="continue-to-payment-btn"
+                    >
+                      {t("continueToPayment")}
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* ── STEP 2: Payment Method ────────────────────────── */}
+                {currentStep === 2 && (
+                  <div className="space-y-6 animate-[fadeSlideUp_0.4s_ease-out]">
+                    {/* Back link */}
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(1)}
+                      className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      {t("backToInfo")}
+                    </button>
+
+                    {/* Payment method selection */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.06)] p-6 space-y-5">
+                      <h2 className="text-lg font-bold text-[#1A1A2E] flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-[#F5C842]/15 flex items-center justify-center">
+                          <CreditCard className="h-4 w-4 text-[#E5B832]" />
+                        </div>
+                        {t("paymentMethod")}
+                      </h2>
+
+                      <p className="text-xs text-gray-500 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5 flex items-start gap-2">
+                        <Zap className="h-3.5 w-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
+                        {t("paymentTestNote")}
+                      </p>
+
+                      {/* Test cards */}
+                      <div className="space-y-3">
+                        {TEST_CARDS.map((card) => {
+                          const CardIcon = card.icon;
+                          const isSelected = selectedCard === card.id;
+                          return (
+                            <button
+                              key={card.id}
+                              type="button"
+                              disabled={submitting}
+                              onClick={() => setSelectedCard(card.id)}
+                              className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 text-left ${
+                                isSelected
+                                  ? `bg-gradient-to-r ${card.gradient} ${card.borderColor.split(" ")[0]} shadow-md scale-[1.01]`
+                                  : `bg-white border-gray-100 hover:border-gray-200 hover:shadow-sm`
+                              } ${submitting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                            >
+                              <div
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                  isSelected
+                                    ? `bg-white shadow-sm`
+                                    : "bg-gray-50"
+                                }`}
+                              >
+                                <CardIcon
+                                  className={`h-5 w-5 ${
+                                    isSelected ? card.iconColor : "text-gray-400"
+                                  }`}
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className={`text-sm font-semibold ${
+                                    isSelected ? "text-[#1A1A2E]" : "text-gray-700"
+                                  }`}
+                                >
+                                  {t(card.labelKey)}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {t(card.descKey)}
+                                </p>
+                              </div>
+                              {/* Radio indicator */}
+                              <div
+                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                                  isSelected
+                                    ? `${card.borderColor.split(" ")[0]} bg-white`
+                                    : "border-gray-300"
+                                }`}
+                              >
+                                {isSelected && (
+                                  <div
+                                    className={`w-2.5 h-2.5 rounded-full ${card.iconColor.replace(
+                                      "text-",
+                                      "bg-"
+                                    )}`}
+                                  />
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Pay button */}
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                      onClick={onSubmitPayment}
+                      disabled={submitting}
+                      loading={submitting}
+                      id="submit-checkout-btn"
+                    >
+                      <Lock className="h-4 w-4" />
+                      {submitting ? t("processing") : t("payNow")}
+                    </Button>
+
+                    {serverError && (
+                      <p className="text-sm text-red-600 bg-red-50 rounded-xl p-3 flex items-center gap-2">
+                        <XCircle className="h-4 w-4 flex-shrink-0" />
+                        {serverError}
+                      </p>
+                    )}
+
+                    <p className="text-xs text-gray-400 text-center flex items-center justify-center gap-1.5">
+                      <Lock className="h-3 w-3" />
+                      {t("securePayment")}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* ═══════════════════════════════════════════════════════ */}
+              {/* RIGHT COLUMN: Order summary (always visible)          */}
+              {/* ═══════════════════════════════════════════════════════ */}
+              <div className="lg:col-span-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.06)] p-6 space-y-5 lg:sticky lg:top-[100px]">
+                  <h2 className="font-bold text-[#1A1A2E] text-sm uppercase tracking-wider">
+                    {t("orderSummary")}
+                  </h2>
+
+                  {/* Items */}
+                  <div className="space-y-3 max-h-[240px] overflow-y-auto pr-1">
+                    {items.map((item) => (
+                      <div
+                        key={item.productId}
+                        className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50/80"
+                      >
+                        {item.thumbnailUrl && (
+                          <img
+                            src={item.thumbnailUrl}
+                            alt={item.name}
+                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#1A1A2E] line-clamp-1">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            × {item.quantity}
+                          </p>
+                        </div>
+                        <span className="text-sm font-semibold text-[#1A1A2E] flex-shrink-0">
+                          {formatVND(item.price * item.quantity)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-dashed border-gray-200" />
+
+                  {/* Discount */}
+                  {promoDiscount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-emerald-600">{t("discount")}</span>
+                      <span className="text-emerald-600 font-semibold">
+                        -{formatVND(promoDiscount)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Total */}
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#1A1A2E] text-sm">
+                      {t("totalPayment")}
+                    </span>
+                    <span className="text-2xl font-black text-[#1A1A2E]">
+                      {formatVND(finalAmount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </main>
+
+      {/* ── Animations ─────────────────────────────────────────────────── */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </>
   );
 }

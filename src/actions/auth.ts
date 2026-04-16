@@ -5,6 +5,7 @@ import { createSession } from "@/lib/auth/session";
 import { FieldValue } from "firebase-admin/firestore";
 import { COLLECTIONS } from "@/lib/firebase/client";
 import type { UserRole } from "@/types/firestore";
+import { sendWelcomeEmail } from "@/lib/email/welcome";
 
 /**
  * Single auth server action. Called after ANY client-side Firebase Auth
@@ -51,6 +52,15 @@ export async function createSessionAndSyncUser(
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
         });
+
+        // Fire-and-forget welcome email — never block the auth response
+        if (email) {
+            sendWelcomeEmail({
+                to: email,
+                displayName: name ?? email.split("@")[0] ?? "User",
+            }).catch(() => {}); // swallow — logged inside sendWelcomeEmail
+        }
+
         return { role: "customer" };
     }
 

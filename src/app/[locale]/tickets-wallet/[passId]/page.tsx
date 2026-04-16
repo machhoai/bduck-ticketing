@@ -1,69 +1,128 @@
-// E-ticket page — RSC fetch pass, Client QR render (D2: no Storage)
+// E-ticket wallet page — RSC fetch + serialize, Client QR render
 import { notFound } from "next/navigation";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/client";
 import { PassCard } from "@/components/customer/PassCard";
-import type { PassDocument } from "@/types/firestore";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Smartphone, Eye } from "lucide-react";
 
 export const dynamic = "force-dynamic"; // always fresh — no cache for tickets
 
 interface PageProps {
-  params: Promise<{ locale: string; passId: string }>;
+    params: Promise<{ locale: string; passId: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { passId } = await params;
-  return {
-    title: `Vé điện tử #${passId.slice(-8).toUpperCase()} — B.Duck Cityfuns`,
-    robots: "noindex", // Private page — don't index
-  };
+    const { passId } = await params;
+    return {
+        title: `E-Ticket #${passId.slice(-8).toUpperCase()} — B.Duck Cityfuns`,
+        robots: "noindex",
+    };
 }
 
 export default async function ETicketPage({ params }: PageProps) {
-  const { locale, passId } = await params;
-  setRequestLocale(locale);
+    const { locale, passId } = await params;
+    setRequestLocale(locale);
 
-  const doc = await adminDb.collection(COLLECTIONS.PASSES).doc(passId).get();
+    const t = await getTranslations({ locale, namespace: "ticketWallet" });
 
-  if (!doc.exists) notFound();
+    const doc = await adminDb.collection(COLLECTIONS.PASSES).doc(passId).get();
+    if (!doc.exists) notFound();
 
-  const pass = { id: doc.id, ...doc.data() } as PassDocument;
+    const raw = doc.data()!;
 
-  return (
-    <main className="max-w-md mx-auto px-4 sm:px-6 py-10 space-y-6">
-      {/* Back link */}
-      <Link
-        href={`/${locale}/orders`}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1A1A2E] transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" /> Đơn hàng của tôi
-      </Link>
+    // Serialize Firestore Timestamps → ISO strings for client component
+    const toISO = (ts: { toDate?: () => Date } | undefined) =>
+        ts?.toDate ? ts.toDate().toISOString() : undefined;
 
-      <div>
-        <h1 className="text-2xl font-extrabold text-[#1A1A2E]">
-          🎟️ Vé điện tử
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Xuất trình QR code này tại cổng vào B.Duck Cityfuns.
-        </p>
-      </div>
+    const pass = {
+        id: doc.id,
+        orderId: raw.orderId,
+        orderNumber: raw.orderNumber,
+        customerId: raw.customerId,
+        customerName: raw.customerName,
+        customerEmail: raw.customerEmail,
+        productId: raw.productId,
+        productName: raw.productName,
+        productType: raw.productType,
+        thumbnailUrl: raw.thumbnailUrl,
+        validityType: raw.validityType,
+        status: raw.status,
+        comboItems: raw.comboItems ?? null,
+        walletPassUrl: raw.walletPassUrl ?? null,
+        affiliateId: raw.affiliateId ?? null,
+        visitDate: toISO(raw.visitDate),
+        validFrom: toISO(raw.validFrom),
+        validUntil: toISO(raw.validUntil),
+        createdAt: toISO(raw.createdAt),
+        usedAt: toISO(raw.usedAt),
+    };
 
-      {/* PassCard — Client Component for QR rendering (D2) */}
-      <PassCard pass={pass} />
+    return (
+        <main className="min-h-screen bg-gradient-to-b pt-20 from-[#F8F6F0] to-[#F0EDE6]">
+            {/* ── Top bar ───────────────────────────────────────────────── */}
+            <div className="sticky top-0 z-10 px-4 py-3">
+                <div className="max-w-md mx-auto flex items-center gap-3">
+                    <Link
+                        href={`/${locale}/orders`}
+                        className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-[#1A1A2E] transition-colors"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        {t("backToOrders")}
+                    </Link>
+                </div>
+            </div>
 
-      {/* Help text */}
-      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-sm text-blue-700 space-y-1">
-        <p className="font-semibold">💡 Lưu ý sử dụng vé</p>
-        <ul className="space-y-1 list-disc list-inside text-xs">
-          <li>Chụp màn hình hoặc lưu URL này để dùng offline.</li>
-          <li>Một vé chỉ sử dụng được một lần.</li>
-          <li>Không chia sẻ QR code với người khác.</li>
-        </ul>
-      </div>
-    </main>
-  );
+            <div className="max-w-md mx-auto px-4 py-8 space-y-6">
+                {/* ── Hero header ──────────────────────────────────────── */}
+                <div className="text-center space-y-2 pb-2">
+                    <div className="flex items-center gap-2 justify-center">
+                        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#1A1A2E] shadow-lg mb-3">
+                            <span className="text-2xl">🎟️</span>
+                        </div>
+                        <h1 className="text-2xl font-extrabold text-[#1A1A2E] tracking-tight">
+                            {t("pageTitle")}
+                        </h1>
+                    </div>
+                    <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">
+                        {t("pageSubtitle")}
+                    </p>
+                </div>
+
+                {/* ── Pass card ─────────────────────────────────────────── */}
+                <PassCard pass={pass} locale={locale} />
+
+                {/* ── Usage tips ───────────────────────────────────────── */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-50 bg-gray-50/50">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <ShieldCheck className="h-3.5 w-3.5 text-[#F5C842]" />
+                            {t("usageTitle")}
+                        </p>
+                    </div>
+                    <ul className="divide-y divide-gray-50">
+                        <li className="flex items-start gap-3 px-4 py-3 text-sm text-gray-600">
+                            <Smartphone className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                            {t("usageTip1")}
+                        </li>
+                        <li className="flex items-start gap-3 px-4 py-3 text-sm text-gray-600">
+                            <ShieldCheck className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                            {t("usageTip2")}
+                        </li>
+                        <li className="flex items-start gap-3 px-4 py-3 text-sm text-gray-600">
+                            <Eye className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                            {t("usageTip3")}
+                        </li>
+                    </ul>
+                </div>
+
+                {/* ── Footer branding ───────────────────────────────────── */}
+                <p className="text-center text-xs text-gray-400 pb-4">
+                    B.Duck Cityfuns — Powered by Joy World Entertainment
+                </p>
+            </div>
+        </main>
+    );
 }

@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/client";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { OrderDocument, PassDocument } from "@/types/firestore";
+import { sendTicketEmail } from "@/lib/email/tickets";
 
 /**
  * Mock Payment Webhook — simulates VNPay IPN behavior.
@@ -91,11 +92,16 @@ export async function GET(request: NextRequest) {
           if (validity.type === "date-specific" && validity.specificDate) {
             visitDate = validity.specificDate;
             validUntil = validity.specificDate;
-          } else if (validity.type === "date-range" && validity.validDaysFromPurchase) {
+          } else if (validity.type === "open-dated" && validity.validDaysFromPurchase) {
+            // Open-dated: valid for N days from purchase
             validFrom = now;
             const expiryMs =
               now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
             validUntil = Timestamp.fromMillis(expiryMs);
+          } else if (validity.type === "date-range") {
+            // Date-range: explicit start/end from config
+            if (validity.validFrom) validFrom = validity.validFrom;
+            if (validity.overallExpiresAt) validUntil = validity.overallExpiresAt;
           }
 
           // Override with hard deadline if set
@@ -105,24 +111,27 @@ export async function GET(request: NextRequest) {
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const passData: Record<string, any> = {
-            orderId: freshOrder.id ?? orderId,
+            orderId: orderId,
             orderNumber: freshOrder.orderNumber,
-            customerId: freshOrder.customerId,
+            customerId: freshOrder.customerId ?? "",
             customerName: freshOrder.customerName,
             customerEmail: freshOrder.customerEmail,
             productId: item.productId,
             productName: item.productName,
             productType: item.productType,
-            thumbnailUrl: item.thumbnailUrl,
-            comboItems: item.comboItems,
+            thumbnailUrl: item.thumbnailUrl ?? "",
             validityType: validity.type,
-            visitDate,
-            validFrom,
-            validUntil,
             status: "active",
-            affiliateId: freshOrder.affiliateId,
             createdAt: now,
           };
+
+          // Only set optional fields if they have values
+          // (Firestore rejects undefined)
+          if (item.comboItems) passData.comboItems = item.comboItems;
+          if (visitDate) passData.visitDate = visitDate;
+          if (validFrom) passData.validFrom = validFrom;
+          if (validUntil) passData.validUntil = validUntil;
+          if (freshOrder.affiliateId) passData.affiliateId = freshOrder.affiliateId;
 
           tx.set(passRef, passData);
           passIds.push(passRef.id);
@@ -161,9 +170,28 @@ export async function GET(request: NextRequest) {
       });
     });
 
+    // Fire-and-forget ticket email — don't block the redirect
+    sendTicketEmail({
+      to: order.customerEmail,
+      customerName: order.customerName,
+      orderId: orderId,
+      orderNumber: order.orderNumber,
+      items: order.items.map((item) => ({
+        productName: item.productName,
+        productType: item.productType,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        subtotal: item.subtotal,
+      })),
+      finalAmount: order.finalAmount,
+      discountAmount: order.discountAmount,
+      passIds,
+    }).catch(() => {}); // logged inside sendTicketEmail
+
     return NextResponse.redirect(`${resultUrl}&status=success`);
   } catch (error) {
-    console.error("[mock-pay] Transaction failed:", error);
+    console.error("[mock-pay] Transaction failed:", error instanceof Error ? error.message : error);
+    console.error("[mock-pay] Stack:", error instanceof Error ? error.stack : "no stack");
     return NextResponse.redirect(`${resultUrl}&error=server_error`);
   }
 }

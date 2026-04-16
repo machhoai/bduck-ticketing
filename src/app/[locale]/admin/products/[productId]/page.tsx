@@ -31,10 +31,14 @@ export default async function EditProductPage({ params }: PageProps) {
 
   if (!productSnap.exists) notFound();
 
-  const product = {
+  const raw = {
     id: productSnap.id,
     ...(productSnap.data() as Omit<ProductDocument, "id">),
   };
+
+  // Strip Firestore Timestamps (non-serializable) via JSON round-trip
+  // so the object is safe to pass across the RSC → Client Component boundary.
+  const product = JSON.parse(JSON.stringify(raw)) as typeof raw;
 
   const groupList = groups.map((g) => ({ id: g.id, name: g.name }));
 

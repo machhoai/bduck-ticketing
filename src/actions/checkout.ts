@@ -12,6 +12,7 @@ import type {
   PromotionDocument,
 } from "@/types/firestore";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { verifySession } from "@/lib/auth/session";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -155,10 +156,18 @@ export async function createOrder(
     customerName,
     customerEmail,
     customerPhone,
-    customerId = "",
+    customerId: clientCustomerId = "",
     promoCode,
     affiliateCode,
   } = input;
+
+  // D8: If no customerId sent by client, try to read from verified session cookie.
+  // This links the order to the logged-in user for /orders page display.
+  let customerId = clientCustomerId;
+  if (!customerId) {
+    const session = await verifySession();
+    if (session?.uid) customerId = session.uid;
+  }
 
   if (!items.length) {
     return { success: false, errorKey: "order.empty_cart" };

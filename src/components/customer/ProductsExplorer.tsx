@@ -221,7 +221,7 @@ export const ProductsExplorer: React.FC<Props> = ({ allProducts, groups, locale 
             </div>
 
             {/* ── Sticky Command Bar ────────────────────────────────────────────────── */}
-            <div className="sticky top-[64px] z-30 bg-white/85 backdrop-blur-xl shadow-[0_4px_32px_-12px_rgba(0,0,0,0.06)] transition-all duration-300">
+            <div className="sticky top-[64px] z-30 bg-white/85 backdrop-blur-2xl transition-all duration-300">
                 <div className="max-w-7xl mx-auto px-6 sm:px-8">
                     <div className="flex items-center gap-4">
                         {/* Group tabs — scrollable */}

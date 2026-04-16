@@ -5,13 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
-import { User, ShoppingCart, Menu, X, LogOut, Ticket, ShieldCheck, Image as ImageIcon } from "lucide-react";
+import { User, ShoppingCart, Menu, X, LogOut, Ticket, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Locale, routing } from "@/i18n/routing";
 import { useCartStore, rehydrateCart } from "@/stores/cart";
-import { CartDrawer } from "@/components/customer/CartDrawer";
+import { useNavbarConfig } from "@/stores/navbar";
 import { useAuth, useIsAdmin } from "@/lib/auth/hooks";
-import { log } from "console";
 
 /* ── Flag data ────────────────────────────────────────────── */
 const LOCALE_FLAGS: Record<Locale, { flag: string; label: string }> = {
@@ -20,6 +19,7 @@ const LOCALE_FLAGS: Record<Locale, { flag: string; label: string }> = {
 };
 
 export function Navbar() {
+    const { darkText, shadow, solidBg, hidden, transparent } = useNavbarConfig();
     const t = useTranslations("nav");
     const locale = useLocale() as Locale;
     const pathname = usePathname();
@@ -33,7 +33,7 @@ export function Navbar() {
     const cartItems = useCartStore((s) => s.items);
     const hasHydrated = useCartStore((s) => s._hasHydrated);
     const cartCount = hasHydrated ? cartItems.reduce((sum, item) => sum + item.quantity, 0) : 0;
-    const [cartOpen, setCartOpen] = useState(false);
+
 
     useEffect(() => {
         rehydrateCart();
@@ -62,10 +62,10 @@ export function Navbar() {
     // links: href = hash anchor (#id) | route = locale-free path (/tickets)
     const NAV_LINKS = [
         { label: t("home"), href: "/" },
-        { label: t("products"), route: "/tickets" },
-        { label: t("introduction"), href: "#attractions" },
-        { label: t("about"), href: "#about" },
-        { label: t("contact"), href: "#contact" },
+        { label: t("tickets"), route: "/tickets" },
+        // { label: t("introduction"), href: "#attractions" },
+        // { label: t("about"), href: "#about" },
+        // { label: t("contact"), href: "#contact" },
     ];
 
     // ── Scroll to section (works on homepage; navigate there if on other page) ─
@@ -100,25 +100,34 @@ export function Navbar() {
         router.push("/auth/login");
     };
 
-    if (pathname.startsWith("/admin")) {
+    if (pathname.startsWith("/admin") || hidden) {
         return null;
     }
+
+    // Derive visual states
+    const showDarkText = darkText || isScrolled;
+    // const solidBg = solidBg || isScrolled;
+    // const showShadow = shadow || isScrolled;
 
     return (
         <>
             <header
                 className={cn(
-                    "fixed top-0 left-0 right-0 z-50 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] border-b",
-                    isScrolled
-                        ? "bg-white/85 backdrop-blur-2xl border-gray-200/50 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] h-[64px]"
-                        : "border-transparent h-[84px]"
+                    "fixed top-0 left-0 right-0 z-50 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                    (solidBg || isScrolled) && !transparent
+                        ? "bg-white/85 backdrop-blur-2xl  h-[64px]"
+                        : "border-transparent h-[84px]",
+                    transparent && !isScrolled && "bg-transparent",
+                    shadow && "shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)]"
                 )}
             >
                 {/* ── Elegant Container ───────────────────────── */}
                 <div className="mx-auto max-w-[1400px] w-full h-full flex items-center justify-between px-4 lg:px-8">
 
                     {/* Left: Dual Logos */}
-                    <div className="flex items-center gap-3 shrink-0">
+                    <Link
+                        href={`/${locale}`}
+                        className="flex items-center gap-3 shrink-0 cursor-pointer">
                         <Image
                             src="/images/logo-bduck-cityfuns.png"
                             alt="B.Duck Funland"
@@ -136,7 +145,7 @@ export function Navbar() {
                             className="h-[40px] w-auto object-contain"
                             priority
                         />
-                    </div>
+                    </Link>
 
                     {/* Center + Right */}
                     <div className="flex items-center gap-2">
@@ -156,8 +165,8 @@ export function Navbar() {
                                         <span className={cn(
                                             "relative z-10 transition-colors duration-500 ease-out",
                                             isActive
-                                                ? (isScrolled ? "text-text-primary font-bold" : "text-white font-bold")
-                                                : (isScrolled ? "text-text-secondary group-hover:text-text-primary" : "text-white/80 group-hover:text-white")
+                                                ? (showDarkText ? "text-text-primary font-bold" : "text-white font-bold")
+                                                : (showDarkText ? "text-text-secondary group-hover:text-text-primary" : "text-white/80 group-hover:text-white")
                                         )}>
                                             {link.label}
                                         </span>
@@ -189,17 +198,17 @@ export function Navbar() {
                                         }}
                                         className={cn(
                                             user ? "ring-2 ring-duck-yellow" : "",
-                                            !isScrolled && "hover:bg-white/10"
+                                            !showDarkText && "hover:bg-white/10"
                                         )}
                                     >
                                         {user?.photoURL ? (
                                             <img
                                                 src={user.photoURL}
                                                 alt="avatar"
-                                                className="w-full h-full rounded-full object-cover"
+                                                className="absolute inset-0 w-4/5 h-4/5 m-auto rounded-full object-cover"
                                             />
                                         ) : (
-                                            <User className="w-full h-full" color={!isScrolled ? "white" : "currentColor"} fill={!isScrolled ? "white" : "currentColor"} />
+                                            <User className="w-full h-full" color={!showDarkText ? "white" : "currentColor"} fill={!showDarkText ? "white" : "currentColor"} />
                                         )}
                                     </NavIconButton>
 
@@ -256,10 +265,10 @@ export function Navbar() {
                             {/* ── Cart ────────────────────────────────── */}
                             <NavIconButton
                                 aria-label={t("cart")}
-                                onClick={() => setCartOpen(true)}
-                                className={cn(!isScrolled && "hover:bg-white/10")}
+                                onClick={() => router.push("/cart")}
+                                className={cn(!showDarkText && "hover:bg-white/10")}
                             >
-                                <ShoppingCart className="w-full h-full" strokeWidth={1.5} color={!isScrolled ? "white" : "currentColor"} fill={!isScrolled ? "white" : "currentColor"} />
+                                <ShoppingCart className="w-full h-full" strokeWidth={1.5} color={!showDarkText ? "white" : "currentColor"} fill={!showDarkText ? "white" : "currentColor"} />
                                 {cartCount > 0 && (
                                     <span className="absolute top-[0px] right-[0px] min-w-[18px] h-[18px] aspect-square px-[3px] rounded-full bg-duck-yellow text-text-primary text-[11px] font-semibold flex items-center justify-center">
                                         {cartCount > 9 ? "9+" : cartCount}
@@ -275,7 +284,7 @@ export function Navbar() {
                                         e.stopPropagation();
                                         setIsLangOpen(!isLangOpen);
                                     }}
-                                    className={cn(!isScrolled && "hover:bg-white/10")}
+                                    className={cn(!showDarkText && "hover:bg-white/10")}
                                 >
                                     <span className="text-base leading-none">
                                         <Image
@@ -371,7 +380,7 @@ export function Navbar() {
                                 {/* Mobile: Cart */}
                                 <li>
                                     <button
-                                        onClick={() => { setIsMobileMenuOpen(false); setCartOpen(true); }}
+                                        onClick={() => { setIsMobileMenuOpen(false); router.push("/cart"); }}
                                         className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-text-secondary hover:bg-pastel-yellow hover:text-text-primary transition-all flex items-center gap-2"
                                     >
                                         <ShoppingCart className="h-4 w-4" />
@@ -421,12 +430,7 @@ export function Navbar() {
                 )}
             </header>
 
-            {/* ── Cart Drawer ───────────────────────────────── */}
-            <CartDrawer
-                isOpen={cartOpen}
-                onClose={() => setCartOpen(false)}
-                locale={locale}
-            />
+
         </>
     );
 }

@@ -7,6 +7,7 @@ import { routing } from "@/i18n/routing";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/lib/auth/provider";
+import { NavbarProvider } from "@/stores/navbar";
 import "../globals.css";
 
 const montserrat = Montserrat({
@@ -54,9 +55,11 @@ export default async function LocaleLayout({
             <body className="min-h-screen flex flex-col bg-white text-text-primary">
                 <NextIntlClientProvider locale={locale} messages={messages}>
                     <AuthProvider>
-                        <Navbar />
-                        <main className="flex-1">{children}</main>
-                        <Footer />
+                        <NavbarProvider>
+                            <Navbar />
+                            <main className="flex-1">{children}</main>
+                            <Footer />
+                        </NavbarProvider>
                     </AuthProvider>
                 </NextIntlClientProvider>
             </body>

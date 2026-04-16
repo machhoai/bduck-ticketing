@@ -100,11 +100,38 @@ export async function getMyOrders(): Promise<OrderDocument[]> {
 /**
  * Lightweight status-only fetch for the result page polling mechanism.
  * No auth required — orderId is enough for polling (result page already knows it).
- * Returns only the status + passIds to avoid over-fetching.
  */
+
+export interface PassValidity {
+  passId: string;
+  validityType: string; // "date-specific" | "date-range" | "open-dated"
+  visitDate?: string;   // ISO string — date-specific
+  validFrom?: string;   // ISO string — date-range start
+  validUntil?: string;  // ISO string — date-range / date-specific deadline
+}
+
+export interface OrderStatusResult {
+  status: string;
+  passIds: string[];
+  orderNumber: string;
+  customerEmail: string;
+  customerName: string;
+  items: {
+    productName: string;
+    productType: string;
+    thumbnailUrl: string;
+    quantity: number;
+    unitPrice: number;
+    subtotal: number;
+  }[];
+  finalAmount: number;
+  discountAmount: number;
+  passes: PassValidity[];
+}
+
 export async function getOrderStatus(
   orderId: string
-): Promise<{ status: string; passIds: string[] } | null> {
+): Promise<OrderStatusResult | null> {
   const doc = await adminDb
     .collection(COLLECTIONS.ORDERS)
     .doc(orderId)
@@ -112,5 +139,51 @@ export async function getOrderStatus(
 
   if (!doc.exists) return null;
   const data = doc.data()!;
-  return { status: data.status, passIds: data.passIds ?? [] };
+
+  const passIds: string[] = data.passIds ?? [];
+
+  // Fetch pass documents for validity info (batch)
+  let passes: PassValidity[] = [];
+  if (passIds.length > 0) {
+    const passRefs = passIds.map((id) =>
+      adminDb.collection(COLLECTIONS.PASSES).doc(id)
+    );
+    const passDocs = await adminDb.getAll(...passRefs);
+    passes = passDocs
+      .filter((d) => d.exists)
+      .map((d) => {
+        const p = d.data()!;
+        // Convert Firestore Timestamps to ISO strings for client serialization
+        const toISO = (ts: { toDate?: () => Date } | undefined) =>
+          ts?.toDate ? ts.toDate().toISOString() : undefined;
+        return {
+          passId: d.id,
+          validityType: p.validityType ?? "open-dated",
+          visitDate: toISO(p.visitDate),
+          validFrom: toISO(p.validFrom),
+          validUntil: toISO(p.validUntil),
+        };
+      });
+  }
+
+  return {
+    status: data.status,
+    passIds,
+    orderNumber: data.orderNumber ?? "",
+    customerEmail: data.customerEmail ?? "",
+    customerName: data.customerName ?? "",
+    items: (data.items ?? []).map(
+      (item: { productName: string; productType: string; thumbnailUrl: string; quantity: number; unitPrice: number; subtotal: number }) => ({
+        productName: item.productName,
+        productType: item.productType,
+        thumbnailUrl: item.thumbnailUrl,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        subtotal: item.subtotal,
+      })
+    ),
+    finalAmount: data.finalAmount ?? 0,
+    discountAmount: data.discountAmount ?? 0,
+    passes,
+  };
 }
