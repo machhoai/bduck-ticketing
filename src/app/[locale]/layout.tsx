@@ -22,6 +22,30 @@ export const metadata: Metadata = {
     description:
         "B.Duck Cityfuns — Khu vui chơi giải trí cao cấp dành cho trẻ em. Mua vé trực tuyến, các trò chơi hiện đại, an toàn tuyệt đối.",
     keywords: ["B.Duck", "Cityfuns", "khu vui chơi", "trẻ em", "amusement park", "Việt Nam"],
+    openGraph: {
+        title: "B.Duck Cityfuns — Khoảnh khắc Vui vẻ, Trải nghiệm Quốc tế",
+        description:
+            "B.Duck Cityfuns — Khu vui chơi giải trí cao cấp dành cho trẻ em. Mua vé trực tuyến, các trò chơi hiện đại, an toàn tuyệt đối.",
+        url: process.env.NEXT_PUBLIC_APP_URL ?? "https://bduck-ticketing.vercel.app",
+        siteName: "B.Duck Cityfuns",
+        images: [
+            {
+                url: "/images/bduck_summer_backdrop.png",
+                width: 1200,
+                height: 630,
+                alt: "B.Duck Cityfuns — Summer Fun",
+            },
+        ],
+        locale: "vi_VN",
+        type: "website",
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "B.Duck Cityfuns — Khoảnh khắc Vui vẻ, Trải nghiệm Quốc tế",
+        description:
+            "B.Duck Cityfuns — Khu vui chơi giải trí cao cấp dành cho trẻ em. Mua vé trực tuyến, các trò chơi hiện đại, an toàn tuyệt đối.",
+        images: ["/images/bduck_summer_backdrop.png"],
+    },
 };
 
 export function generateStaticParams() {
