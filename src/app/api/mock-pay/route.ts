@@ -99,8 +99,13 @@ export async function GET(request: NextRequest) {
               now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
             validUntil = Timestamp.fromMillis(expiryMs);
           } else if (validity.type === "date-range") {
-            // Date-range: explicit start/end from config
-            if (validity.validFrom) validFrom = validity.validFrom;
+            // Date-range: valid from purchase date for N days
+            validFrom = now;
+            if (validity.validDaysFromPurchase) {
+              const expiryMs =
+                now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
+              validUntil = Timestamp.fromMillis(expiryMs);
+            }
             if (validity.overallExpiresAt) validUntil = validity.overallExpiresAt;
           }
 
