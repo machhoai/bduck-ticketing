@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
@@ -67,8 +67,8 @@ function getErrorKey(code?: string): string {
     return map[code ?? ""] ?? "errorGeneric";
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-export default function LoginPage() {
+// ─── Inner content (needs Suspense because of useSearchParams) ───────────────
+function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const t = useTranslations("auth");
@@ -1128,5 +1128,14 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+// ─── Page export — wraps in Suspense for useSearchParams() ───────────────────
+export default function LoginPage() {
+    return (
+        <Suspense>
+            <LoginContent />
+        </Suspense>
     );
 }
