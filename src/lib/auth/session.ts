@@ -78,3 +78,18 @@ export async function requireAdmin(): Promise<DecodedIdToken> {
   }
   return session;
 }
+
+/**
+ * Gets the current user from session, throws if not an approved affiliate.
+ * Use in Server Actions and layouts that require affiliate role.
+ */
+export async function requireAffiliate(): Promise<DecodedIdToken> {
+  const session = await requireAuth();
+  const user = await adminAuth.getUser(session.uid);
+  const claims = user.customClaims as { role?: string } | undefined;
+
+  if (claims?.role !== "affiliate") {
+    throw new Error("UNAUTHORIZED");
+  }
+  return session;
+}
