@@ -72,7 +72,7 @@ export function Hero() {
                     {/* ── Left: Text content ──────────────────────── */}
                     <div className="lg:col-span-7 flex flex-col gap-6 animate-fade-up">
 
-                        {/* Badge */}
+                        {/* Badge
                         <div className="inline-flex w-fit">
                             <span
                                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold border"
@@ -88,14 +88,14 @@ export function Hero() {
                                 <span className="w-2 h-2 rounded-full bg-duck-yellow animate-pulse" style={{ boxShadow: "0 0 8px rgba(255,209,0,0.9)" }} />
                                 {t("badge")}
                             </span>
-                        </div>
+                        </div> */}
 
                         {/* Headline */}
                         <h1
                             className="font-[800] text-white leading-[1.08] tracking-tight"
                             style={{
                                 fontFamily: "var(--font-heading)",
-                                fontSize: "clamp(2.6rem, 5.5vw, 4.2rem)",
+                                fontSize: "clamp(1.8rem, 5.5vw, 4.2rem)",
                             }}
                         >
                             {t("title1")}{" "}
@@ -167,7 +167,7 @@ export function Hero() {
                         </div>
 
                         {/* Stats row */}
-                        <div className="flex items-center gap-0 mt-2">
+                        <div className="flex items-center gap-0 mt-2 justify-center sm:justify-start">
                             <StatItem icon={<Zap className="w-4 h-4 text-duck-yellow" />} number="10+" label={t("statGames")} />
                             <div className="w-px self-stretch mx-6" style={{ background: "rgba(255,255,255,0.2)" }} />
                             <StatItem icon={<Users className="w-4 h-4 text-duck-yellow" />} number="50K+" label={t("statVisitors")} />

@@ -6,6 +6,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const nextConfig: NextConfig = {
     images: {
         formats: ["image/avif", "image/webp"],
+        qualities: [75, 85],
         remotePatterns: [
             // Firebase Storage (Admin SDK upload)
             {
@@ -17,6 +18,12 @@ const nextConfig: NextConfig = {
             {
                 protocol: "https",
                 hostname: "*.firebasestorage.app",
+                pathname: "/**",
+            },
+            // Firebase Storage (token-based client SDK URLs)
+            {
+                protocol: "https",
+                hostname: "firebasestorage.googleapis.com",
                 pathname: "/**",
             },
             // ImgBB (fallback for when Storage isn't set up)

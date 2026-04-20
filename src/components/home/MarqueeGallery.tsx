@@ -1,37 +1,80 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 
 interface MarqueeGalleryProps {
     row1: string[];
     row2: string[];
 }
 
-const ASPECT_RATIOS = [
-    "aspect-[4/3]",
-    "aspect-[3/4]",
-    "aspect-square",
-    "aspect-[16/9]",
-    "aspect-[4/5]",
-] as const;
+// Fixed card widths — avoids aspect-ratio class issues in Safari/WebKit
+const CARD_WIDTHS = [192, 144, 160, 224, 152] as const;
 
-function ImageRow({ images, rowKey }: { images: string[]; rowKey: string }) {
+// Static CSS string — avoids dangerouslySetInnerHTML and runtime style injection
+const MARQUEE_CSS = `
+@keyframes bduck-marquee-ltr {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+@keyframes bduck-marquee-rtl {
+    from { transform: translateX(-50%); }
+    to   { transform: translateX(0); }
+}
+.bduck-marquee-track {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    width: max-content;
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+}
+.bduck-marquee-fwd {
+    animation: bduck-marquee-ltr 40s linear infinite;
+}
+.bduck-marquee-rev {
+    animation: bduck-marquee-rtl 55s linear infinite;
+}
+.bduck-marquee-track:hover,
+.bduck-marquee-track:focus-within {
+    animation-play-state: paused;
+}
+`;
+
+interface ImageRowProps {
+    images: string[];
+    rowKey: string;
+    heightClass: string;
+}
+
+function ImageRow({ images, rowKey, heightClass }: ImageRowProps) {
     return (
-        <div className="flex gap-4 md:gap-6 flex-shrink-0">
+        <div className={`flex flex-row flex-nowrap items-stretch gap-3 md:gap-5 flex-shrink-0 ${heightClass}`}>
             {images.map((url, idx) => {
-                const aspect = ASPECT_RATIOS[idx % ASPECT_RATIOS.length];
+                const w = CARD_WIDTHS[idx % CARD_WIDTHS.length];
                 return (
                     <div
                         key={`${rowKey}-${idx}`}
-                        className={`relative h-full ${aspect} rounded-2xl md:rounded-3xl overflow-hidden flex-shrink-0 border border-gray-100 bg-gray-50`}
+                        className="relative flex-shrink-0 rounded-2xl overflow-hidden bg-gray-100 border border-gray-100"
+                        style={{ width: w }}
                     >
                         <Image
                             src={url}
-                            alt="B.Duck Funland"
+                            alt="B.Duck Funland attraction"
                             fill
                             className="object-cover"
-                            sizes="(max-width: 768px) 160px, 256px"
-                            unoptimized
+                            sizes="(max-width: 768px) 160px, 224px"
+                            loading="lazy"
+                            quality={75}
                         />
-                        <div className="absolute inset-0 ring-1 ring-inset ring-black/10 rounded-2xl md:rounded-3xl pointer-events-none" />
+                        {/* subtle inset ring */}
+                        <div
+                            className="absolute inset-0 rounded-2xl pointer-events-none"
+                            style={{ boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.08)" }}
+                        />
                     </div>
                 );
             })}
@@ -40,58 +83,60 @@ function ImageRow({ images, rowKey }: { images: string[]; rowKey: string }) {
 }
 
 export function MarqueeGallery({ row1, row2 }: MarqueeGalleryProps) {
+    const [paused, setPaused] = useState(false);
+
     return (
         <>
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                @keyframes marquee-ltr {
-                    0%   { transform: translate3d(0, 0, 0); }
-                    100% { transform: translate3d(-50%, 0, 0); }
-                }
-                @keyframes marquee-rtl {
-                    0%   { transform: translate3d(-50%, 0, 0); }
-                    100% { transform: translate3d(0, 0, 0); }
-                }
-                .marquee-track {
-                    display: flex;
-                    width: max-content;
-                    transform: translateZ(0);
-                    backface-visibility: hidden;
-                }
-                .marquee-track--fwd {
-                    animation: marquee-ltr 40s linear infinite;
-                }
-                .marquee-track--rev {
-                    animation: marquee-rtl 55s linear infinite;
-                }
-            `}} />
+            {/* Static stylesheet — no dangerouslySetInnerHTML at runtime */}
+            <style>{MARQUEE_CSS}</style>
 
-            <div className="relative w-full flex flex-col gap-4 md:gap-6 mt-10">
-                {/* Row 1 — LTR */}
+            <div className="relative w-full flex flex-col gap-3 md:gap-5 mt-10" style={{ contain: "layout style paint" }}>
+                {/* Row 1 — left-to-right */}
                 <div
-                    className="relative flex overflow-hidden w-full h-40 md:h-64"
-                    style={{ contain: "layout style" }}
+                    className="w-full overflow-hidden"
+                    style={{ height: 160 }}
+                    onMouseEnter={() => setPaused(true)}
+                    onMouseLeave={() => setPaused(false)}
+                    onTouchStart={() => setPaused(true)}
+                    onTouchEnd={() => setPaused(false)}
                 >
-                    <div className="marquee-track marquee-track--fwd">
-                        <ImageRow images={row1} rowKey="r1a" />
-                        <ImageRow images={row1} rowKey="r1b" />
+                    <div
+                        className={`bduck-marquee-track bduck-marquee-fwd`}
+                        style={{ animationPlayState: paused ? "paused" : "running", height: "100%" }}
+                    >
+                        <ImageRow images={row1} rowKey="r1a" heightClass="h-full" />
+                        <ImageRow images={row1} rowKey="r1b" heightClass="h-full" />
                     </div>
                 </div>
 
-                {/* Row 2 — RTL */}
+                {/* Row 2 — right-to-left */}
                 <div
-                    className="relative flex overflow-hidden w-full h-40 md:h-64"
-                    style={{ contain: "layout style" }}
+                    className="w-full overflow-hidden"
+                    style={{ height: 160 }}
+                    onMouseEnter={() => setPaused(true)}
+                    onMouseLeave={() => setPaused(false)}
+                    onTouchStart={() => setPaused(true)}
+                    onTouchEnd={() => setPaused(false)}
                 >
-                    <div className="marquee-track marquee-track--rev">
-                        <ImageRow images={row2} rowKey="r2a" />
-                        <ImageRow images={row2} rowKey="r2b" />
+                    <div
+                        className={`bduck-marquee-track bduck-marquee-rev`}
+                        style={{ animationPlayState: paused ? "paused" : "running", height: "100%" }}
+                    >
+                        <ImageRow images={row2} rowKey="r2a" heightClass="h-full" />
+                        <ImageRow images={row2} rowKey="r2b" heightClass="h-full" />
                     </div>
                 </div>
 
-                {/* Edge fade overlays */}
-                <div className="absolute inset-y-0 left-0 w-8 md:w-32 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
-                <div className="absolute inset-y-0 right-0 w-8 md:w-32 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
+                {/* Edge fade — left */}
+                <div
+                    className="absolute inset-y-0 left-0 z-10 pointer-events-none"
+                    style={{ width: 48, background: "linear-gradient(to right, #fff 0%, transparent 100%)" }}
+                />
+                {/* Edge fade — right */}
+                <div
+                    className="absolute inset-y-0 right-0 z-10 pointer-events-none"
+                    style={{ width: 48, background: "linear-gradient(to left, #fff 0%, transparent 100%)" }}
+                />
             </div>
         </>
     );

@@ -58,29 +58,27 @@ export async function uploadThumbnail(
   const file = formData.get("thumbnail") as File | null;
   if (!file) return { success: false, error: "Không có file được chọn" };
 
-  // Validate type
-  const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
-  if (!ALLOWED.includes(file.type)) {
-    return { success: false, error: "Chỉ chấp nhận JPG, PNG, hoặc WebP" };
+  // Client always converts to WebP before calling this action
+  if (file.type !== "image/webp") {
+    return { success: false, error: "Chỉ chấp nhận ảnh WebP (đã được chuyển đổi tự động)" };
   }
 
-  // Validate size (5MB)
-  const MAX_BYTES = 5 * 1024 * 1024;
+  // 20 MB ceiling (post-compression WebP is always much smaller)
+  const MAX_BYTES = 20 * 1024 * 1024;
   if (file.size > MAX_BYTES) {
-    return { success: false, error: "Ảnh không được vượt quá 5MB" };
+    return { success: false, error: "Ảnh không được vượt quá 20MB" };
   }
 
   try {
-    const ext = file.type.split("/")[1].replace("jpeg", "jpg");
     const filename = `products/${Date.now()}-${Math.random()
       .toString(36)
-      .slice(2)}.${ext}`;
+      .slice(2)}.webp`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const bucket = adminStorage.bucket();
     const fileRef = bucket.file(filename);
 
-    await fileRef.save(buffer, { contentType: file.type });
+    await fileRef.save(buffer, { contentType: "image/webp" });
     await fileRef.makePublic();
 
     const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;

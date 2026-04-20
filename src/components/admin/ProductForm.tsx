@@ -7,7 +7,62 @@ import { useRouter } from "next/navigation";
 import { useState, useRef, useTransition } from "react";
 import { createProduct, updateProduct, uploadThumbnail } from "@/actions/admin/products";
 import type { ProductGroupDocument, ProductDocument } from "@/types/firestore";
-import { Upload, Loader2, ImageIcon, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, Loader2, ImageIcon, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
+
+// ─── Client-side WebP conversion ─────────────────────────────────────────────
+/**
+ * Converts any image File to WebP using the Canvas API.
+ * Resizes down to maxDim (1200px) if either side exceeds it.
+ * Returns a new File with .webp extension.
+ */
+async function convertToWebP(
+  file: File,
+  quality = 0.85,
+  maxDim = 1200
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width >= height) {
+          height = Math.round((height / width) * maxDim);
+          width = maxDim;
+        } else {
+          width = Math.round((width / height) * maxDim);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas not supported")); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { reject(new Error("Conversion failed")); return; }
+          const webpFile = new File(
+            [blob],
+            file.name.replace(/\.[^.]+$/, ".webp"),
+            { type: "image/webp" }
+          );
+          resolve(webpFile);
+        },
+        "image/webp",
+        quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Failed to load image")); };
+    img.src = objectUrl;
+  });
+}
 
 // ─── Zod Schema (client-side — matches server schema) ────────────────────────
 const formSchema = z.object({
@@ -41,6 +96,7 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
   const [thumbnailPreview, setThumbnailPreview] = useState(initialData?.thumbnailUrl ?? "");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [compressionInfo, setCompressionInfo] = useState<{ before: number; after: number } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [uploadMode, setUploadMode] = useState<"file" | "url">("file");
@@ -68,28 +124,56 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
 
   const validityType = watch("validityType");
 
-  // ─── Thumbnail Upload ─────────────────────────────────────────────────────
+  // ─── Thumbnail Upload with WebP conversion ────────────────────────────────
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadError(null);
-    setIsUploading(true);
+    setCompressionInfo(null);
 
-    // Local preview
+    // 20 MB raw limit (before compression)
+    const MAX_RAW_BYTES = 20 * 1024 * 1024;
+    if (file.size > MAX_RAW_BYTES) {
+      setUploadError("Ảnh không được vượt quá 20MB");
+      // reset input so the same file can be re-selected after user trims it
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
+    if (!ALLOWED.includes(file.type)) {
+      setUploadError("Chỉ chấp nhận JPG, PNG, WebP, GIF, AVIF");
+      return;
+    }
+
+    setIsUploading(true);
+    // Show original file as preview immediately
     setThumbnailPreview(URL.createObjectURL(file));
 
-    const formData = new FormData();
-    formData.append("thumbnail", file);
+    try {
+      // Convert → WebP on the client before upload
+      const webpFile = await convertToWebP(file);
+      setCompressionInfo({ before: file.size, after: webpFile.size });
 
-    const result = await uploadThumbnail(formData);
-    if (result.success && result.data) {
-      setThumbnailUrl(result.data.url);
-    } else if (!result.success) {
-      setUploadError(result.error ?? "Upload thất bại");
+      const formData = new FormData();
+      formData.append("thumbnail", webpFile);
+
+      const result = await uploadThumbnail(formData);
+      if (result.success && result.data) {
+        setThumbnailUrl(result.data.url);
+      } else if (!result.success) {
+        setUploadError(result.error ?? "Upload thất bại");
+        setThumbnailPreview(thumbnailUrl);
+        setCompressionInfo(null);
+      }
+    } catch {
+      setUploadError("Không thể xử lý ảnh — vui lòng thử file khác");
       setThumbnailPreview(thumbnailUrl);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
-    setIsUploading(false);
   }
 
   // ─── Form Submit ──────────────────────────────────────────────────────────
@@ -195,7 +279,7 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
                   className="hidden"
                   onChange={handleFileChange}
                 />
@@ -206,13 +290,19 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
                   className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
                 >
                   {isUploading ? (
-                    <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang upload...</>
+                    <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang xử lý...</>
                   ) : (
                     <><Upload className="h-3.5 w-3.5" /> Chọn ảnh</>
                   )}
                 </button>
-                <p className="text-xs text-gray-400">JPG, PNG, WebP · tối đa 5MB</p>
-                <p className="text-xs text-amber-500">⚠ Yêu cầu Firebase Storage đã được kích hoạt</p>
+                <p className="text-xs text-gray-400">JPG, PNG, WebP, GIF · tối đa 20MB · tự động nén sang WebP</p>
+                {compressionInfo && (
+                  <p className="text-xs text-emerald-600 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    Nén: {(compressionInfo.before / 1024).toFixed(0)}KB → {(compressionInfo.after / 1024).toFixed(0)}KB
+                    {" "}(-{Math.round((1 - compressionInfo.after / compressionInfo.before) * 100)}%)
+                  </p>
+                )}
               </>
             ) : (
               <>
