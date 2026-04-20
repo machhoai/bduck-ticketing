@@ -122,7 +122,7 @@ export function Navbar() {
                 )}
             >
                 {/* ── Elegant Container ───────────────────────── */}
-                <div className="mx-auto max-w-[1400px] w-full h-full flex items-center justify-between px-4 lg:px-8">
+                <div className="mx-auto max-w-[1400px] w-full h-full flex items-center justify-between px-3 sm:px-4 lg:px-8">
 
                     {/* Left: Dual Logos */}
                     <Link
@@ -133,16 +133,16 @@ export function Navbar() {
                             alt="B.Duck Funland"
                             width={120}
                             height={60}
-                            className="h-[60px] w-auto object-contain"
+                            className="h-8 sm:h-[50px] lg:h-[60px] w-auto object-contain"
                             priority
                         />
-                        <div className="w-px h-6 bg-border-light" />
+                        <div className="hidden sm:block w-px h-6 bg-border-light" />
                         <Image
                             src="/images/logo-bduck-official.png"
                             alt="B.Duck™"
                             width={90}
                             height={30}
-                            className="h-[40px] w-auto object-contain"
+                            className="hidden sm:block h-[32px] lg:h-[40px] w-auto object-contain"
                             priority
                         />
                     </Link>
@@ -181,7 +181,7 @@ export function Navbar() {
                         </nav>
 
                         {/* Right: Icons */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-0.5 sm:gap-2">
 
                             {/* ── Account ─────────────────────────────── */}
                             {!authLoading && (
@@ -327,7 +327,9 @@ export function Navbar() {
                             {/* ── Hamburger (mobile) ─────────────────── */}
                             <button
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                className="lg:hidden relative w-10 h-10 flex items-center justify-center rounded-full transition-colors active:bg-gray-100/50 ml-1 text-text-secondary"
+                                className={cn("lg:hidden relative w-10 h-10 flex items-center justify-center rounded-full transition-colors active:bg-gray-100/50 ml-1",
+                                    !showDarkText ? "text-white" : "text-text-secondary"
+                                )}
                                 aria-label="Toggle menu"
                             >
                                 <div className="w-[20px] h-[20px] transition-transform duration-300">
