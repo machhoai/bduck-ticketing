@@ -146,6 +146,13 @@ export function CheckoutResultClient({
         "idle" | "sending" | "success"
     >("idle");
 
+    // ─── Clear in-flight payment flag ────────────────────────────────────────────
+    // Set in checkout page before navigating to payment gateway. Clear it here
+    // so the checkout page's cart-empty guard works correctly for future orders.
+    useEffect(() => {
+        sessionStorage.removeItem("checkout_pending_order");
+    }, []);
+
     // ─── Live countdown for counter orders ───────────────────────────────────────
     const [timeLeft, setTimeLeft] = useState<string>("");
     const [expired, setExpired] = useState(false);

@@ -153,9 +153,28 @@ export default function CheckoutPage() {
     resolver: zodResolver(checkoutSchema),
   });
 
-  // Redirect if cart is empty after hydration
+  // ── BFCache guard (Safari / Zalo WebView) ──────────────────────────────────
+  // When user navigates to payment gateway and comes back, Safari restores the
+  // checkout page from BFCache with an already-empty cart. The pageshow event
+  // fires with e.persisted=true in this case. We redirect to the result page
+  // using the orderId saved in sessionStorage before the navigation.
   useEffect(() => {
-    if (hasHydrated && items.length === 0) {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        const pendingOrderId = sessionStorage.getItem("checkout_pending_order");
+        if (pendingOrderId) {
+          window.location.replace(`/${locale}/checkout/result?orderId=${pendingOrderId}`);
+        }
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [locale]);
+
+  // Redirect to cart if empty — but skip if a payment is in-flight
+  useEffect(() => {
+    const pendingOrderId = sessionStorage.getItem("checkout_pending_order");
+    if (hasHydrated && items.length === 0 && !pendingOrderId) {
       router.replace(`/${locale}/cart`);
     }
   }, [hasHydrated, items.length, locale, router]);
@@ -215,7 +234,7 @@ export default function CheckoutPage() {
       const errorMessages: Record<string, string> = {
         "order.empty_cart": "Giỏ hàng trống",
         "order.product_not_found": "Sản phẩm không tồn tại",
-        "order.product_unavailable": "Sản phẩm đã ngừng bán",
+        "order.product_unavailable": "Sản phẩm đã ngưng bán",
         "order.stock_exhausted": "Vé đã hết",
         "order.code_generation_failed": "Không thể tạo mã, vui lòng thử lại",
       };
@@ -224,6 +243,9 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Mark payment as in-flight BEFORE clearing cart — prevents BFCache
+    // from triggering the cart-empty guard on Safari/Zalo WebView
+    sessionStorage.setItem("checkout_pending_order", result.data.orderId);
     clearCart();
     window.location.href = `/${locale}/checkout/result?orderId=${result.data.orderId}`;
   }, [hasHydrated, items, submitting, getValues, promoCode, clearCart, locale]);
@@ -261,6 +283,9 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Mark payment as in-flight BEFORE clearing cart — prevents BFCache
+    // from triggering the cart-empty guard on Safari/Zalo WebView
+    sessionStorage.setItem("checkout_pending_order", result.data.orderId);
     clearCart();
 
     if (selectedCard === "timeout") {
