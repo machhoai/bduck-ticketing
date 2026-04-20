@@ -83,15 +83,15 @@ export async function GET(request: NextRequest) {
           const passRef = adminDb.collection(COLLECTIONS.PASSES).doc();
 
           // Resolve validity dates from config
-          let validFrom: Timestamp | undefined;
-          let validUntil: Timestamp | undefined;
-          let visitDate: Timestamp | undefined;
+          let validFrom: FirebaseFirestore.Timestamp | undefined;
+          let validUntil: FirebaseFirestore.Timestamp | undefined;
+          let visitDate: FirebaseFirestore.Timestamp | undefined;
 
           const validity = item.validityConfig;
 
           if (validity.type === "date-specific" && validity.specificDate) {
-            visitDate = validity.specificDate;
-            validUntil = validity.specificDate;
+            visitDate = validity.specificDate as unknown as FirebaseFirestore.Timestamp;
+            validUntil = validity.specificDate as unknown as FirebaseFirestore.Timestamp;
           } else if (validity.type === "open-dated" && validity.validDaysFromPurchase) {
             // Open-dated: valid for N days from purchase
             validFrom = now;
@@ -106,12 +106,12 @@ export async function GET(request: NextRequest) {
                 now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
               validUntil = Timestamp.fromMillis(expiryMs);
             }
-            if (validity.overallExpiresAt) validUntil = validity.overallExpiresAt;
+            if (validity.overallExpiresAt) validUntil = validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
           }
 
           // Override with hard deadline if set
           if (validity.overallExpiresAt) {
-            validUntil = validity.overallExpiresAt;
+            validUntil = validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
           }
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

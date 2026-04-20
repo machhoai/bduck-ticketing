@@ -1,4 +1,21 @@
-import type { Timestamp } from "firebase/firestore";
+/**
+ * Shared Firestore Timestamp interface.
+ *
+ * Both `firebase-admin/firestore` and `firebase/firestore` expose a Timestamp
+ * class with these methods, but they are defined in separate packages and
+ * TypeScript treats them as incompatible nominal types when cross-referencing.
+ *
+ * Using this structural interface instead of importing from either SDK keeps
+ * Server Actions (firebase-admin) and Client Components (firebase) compatible
+ * with the same shared type definitions.
+ */
+export interface Timestamp {
+  seconds: number;
+  nanoseconds: number;
+  toDate(): Date;
+  toMillis(): number;
+  isEqual(other: Timestamp): boolean;
+}
 
 // ─────────────────────────────────────────────
 // Shared Types

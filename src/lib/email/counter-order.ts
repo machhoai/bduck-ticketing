@@ -2,19 +2,18 @@
  * Counter Order Confirmation Email
  * Sent immediately after a customer places an order with "Pay at Counter" method.
  *
- * QR Code strategy:
- *  - Generated server-side via `qrcode` npm package → PNG Buffer → base64 data URI.
- *  - Embedded inline as <img src="data:image/png;base64,..."> — no external request needed.
- *  - Works in ALL email clients (Gmail, Outlook, Apple Mail) regardless of image-blocking settings.
+ * QR Code strategy — CID (Content-ID) inline attachment:
+ *  - QR PNG is generated server-side via `qrcode` npm package → Buffer.
+ *  - Attached as a MIME inline attachment with cid="counter_qr".
+ *  - Referenced in HTML as <img src="cid:counter_qr">.
+ *  - Works with Brevo, SendGrid, Mailgun, and all major email clients
+ *    because it travels as part of the MIME message (no external request,
+ *    no base64-stripping by SMTP relays).
  *
- * Key differences from ticket email:
- *  - Header is amber/dark (not green) — payment NOT yet received
- *  - Shows inline QR Code (base64 PNG, universally compatible)
- *  - Shows the short orderCode in large monospace font (text fallback)
- *  - Shows total amount due (not "amount paid")
- *  - CTA links back to the checkout result page (full-screen QR view)
- *  - Clear 24-hour expiry warning
- *  - No passIds / ticket links — passes are generated only AFTER counter confirmation
+ * Why NOT base64 data URI:
+ *  - Brevo and many other SMTP relays strip data: URIs for security reasons.
+ * Why NOT Google Charts API:
+ *  - Images are blocked by default in Gmail / Outlook.
  */
 import QRCode from "qrcode";
 import transporter, { FROM_ADDRESS } from "./transporter";
@@ -43,7 +42,7 @@ export interface CounterOrderEmailParams {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatVND(amount: number): string {
-    return new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
+    return new Intl.NumberFormat("vi-VN").format(amount) + " &#x20AB;";
 }
 
 function formatExpiry(date: Date, locale: string): string {
@@ -58,29 +57,27 @@ function formatExpiry(date: Date, locale: string): string {
     });
 }
 
+// ─── QR Buffer ────────────────────────────────────────────────────────────────
+
 /**
- * Generates a QR code as a base64 PNG data URI.
- * The result can be used directly as <img src="..."> in email HTML.
- * Inline images do NOT require external requests → immune to image-blocking.
+ * Generates a QR code PNG buffer.
+ * Attached as a CID inline attachment — not embedded as a data URI.
  */
-async function buildQrDataUri(data: string): Promise<string> {
-    // toDataURL returns "data:image/png;base64,..." string
-    return QRCode.toDataURL(data, {
-        errorCorrectionLevel: "H", // 30% redundancy — most reliable
-        width: 240,
+async function buildQrBuffer(data: string): Promise<Buffer> {
+    return QRCode.toBuffer(data, {
+        errorCorrectionLevel: "H",
+        width: 260,
         margin: 2,
         color: {
-            dark: "#1A1A2E", // QR modules — dark navy
-            light: "#FFFFFF",  // Background — white
+            dark: "#1A1A2E",
+            light: "#FFFFFF",
         },
     });
 }
 
-// ─── HTML Builder (async — awaits QR generation) ──────────────────────────────
+// ─── HTML Builder ─────────────────────────────────────────────────────────────
 
-async function buildCounterOrderHTML(
-    params: CounterOrderEmailParams
-): Promise<string> {
+function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
     const {
         customerName,
         orderNumber,
@@ -96,9 +93,7 @@ async function buildCounterOrderHTML(
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://bduck.vn";
     const resultLink = `${appUrl}/${locale}/checkout/result?orderId=${orderId}`;
     const ordersLink = `${appUrl}/${locale}/orders`;
-
-    // Generate inline QR — no external URL needed
-    const qrDataUri = await buildQrDataUri(orderCode);
+    const expiryFormatted = formatExpiry(expiresAt, locale);
 
     const itemRows = items
         .map(
@@ -106,7 +101,7 @@ async function buildCounterOrderHTML(
       <tr>
         <td style="padding:10px 0;border-bottom:1px solid #F0F0F0;font-size:14px;color:#333;">
           ${item.productName}
-          <br /><span style="font-size:12px;color:#999;">${item.productType === "combo" ? "Combo" : "Vé"} × ${item.quantity}</span>
+          <br /><span style="font-size:12px;color:#999;">${item.productType === "combo" ? "Combo" : "Ve"} x ${item.quantity}</span>
         </td>
         <td style="padding:10px 0;border-bottom:1px solid #F0F0F0;font-size:14px;color:#333;text-align:right;font-weight:600;">
           ${formatVND(item.subtotal)}
@@ -115,20 +110,18 @@ async function buildCounterOrderHTML(
         )
         .join("");
 
-    const expiryFormatted = formatExpiry(expiresAt, locale);
-
     const stepsHtml = [
         {
             n: "1",
-            text: `Mang mã QR (hoặc mã số <strong>${orderCode}</strong>) đến quầy thu ngân B.Duck Cityfuns`,
+            text: `Mang ma QR (hoac ma so <strong>${orderCode}</strong>) den quay thu ngan B.Duck Cityfuns`,
         },
         {
             n: "2",
-            text: "Nhân viên sẽ quét mã và hiển thị thông tin đơn hàng",
+            text: "Nhan vien se quet ma va hien thi thong tin don hang",
         },
         {
             n: "3",
-            text: "Thanh toán trực tiếp — vé điện tử sẽ được gửi qua email ngay sau đó",
+            text: "Thanh toan truc tiep &mdash; ve dien tu se duoc gui qua email ngay sau do",
         },
     ]
         .map(
@@ -156,67 +149,61 @@ async function buildCounterOrderHTML(
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
 
-        <!-- ── Header ────────────────────────────────────────────── -->
+        <!-- Header -->
         <tr>
-          <td style="background:linear-gradient(135deg,#1A1A2E 0%,#16213E 100%);padding:36px 32px;text-align:center;">
-            <h1 style="margin:0;font-size:22px;color:#F5C842;font-weight:800;">Đặt hàng thành công!</h1>
+          <td style="background:#1A1A2E;padding:36px 32px;text-align:center;">
+            <h1 style="margin:0;font-size:22px;color:#F5C842;font-weight:800;">Dat hang thanh cong!</h1>
             <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.75);">
-              Vui lòng mang mã QR đến quầy thu ngân để thanh toán &amp; nhận vé
+              Vui long mang ma QR den quay thu ngan de thanh toan &amp; nhan ve
             </p>
           </td>
         </tr>
 
-        <!-- ── Greeting + Order number ─────────────────────────── -->
+        <!-- Greeting -->
         <tr>
           <td style="padding:28px 32px 0;">
-            <p style="margin:0 0 4px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Mã đơn hàng</p>
+            <p style="margin:0 0 4px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Ma don hang</p>
             <p style="margin:0 0 16px;font-size:16px;color:#1A1A2E;font-weight:700;font-family:monospace;">${orderNumber}</p>
             <p style="margin:0 0 20px;font-size:15px;color:#555;line-height:1.6;">
-              Xin chào <strong>${customerName}</strong>,<br />
-              Đơn hàng của bạn đã được ghi nhận. Vé sẽ được phát hành ngay sau khi nhân viên xác nhận thanh toán tại quầy.
+              Xin chao <strong>${customerName}</strong>,<br />
+              Don hang cua ban da duoc ghi nhan. Ve se duoc phat hanh ngay sau khi nhan vien xac nhan thanh toan tai quay.
             </p>
           </td>
         </tr>
 
-        <!-- ── QR Code block ─────────────────────────────────────── -->
+        <!-- QR Code block (CID inline image) -->
         <tr>
           <td style="padding:0 32px 24px;">
             <table width="100%" cellpadding="0" cellspacing="0"
-                   style="background:linear-gradient(135deg,#1A1A2E,#16213E);border-radius:16px;overflow:hidden;">
+                   style="background:#1A1A2E;border-radius:16px;overflow:hidden;">
               <tr>
                 <td style="padding:28px 24px;text-align:center;">
-
-                  <!-- Label -->
-                  <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;">
-                    Mã thanh toán tại quầy
+                  <p style="margin:0 0 16px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;">
+                    Ma thanh toan tai quay
                   </p>
 
-                  <!-- QR inline image (base64 data URI — no external request) -->
-                  <div style="display:inline-block;background:#FFFFFF;border-radius:12px;padding:12px;margin:16px 0;">
-                    <img
-                      src="${qrDataUri}"
-                      alt="QR Code: ${orderCode}"
-                      width="240"
-                      height="240"
-                      style="display:block;border-radius:4px;"
-                    />
+                  <!-- CID reference — nodemailer resolves this to the attached PNG -->
+                  <div style="display:inline-block;background:#FFFFFF;border-radius:12px;padding:12px;margin-bottom:16px;">
+                    <img src="cid:counter_qr"
+                         alt="QR Code ${orderCode}"
+                         width="260"
+                         height="260"
+                         style="display:block;" />
                   </div>
 
-                  <!-- Short code (large, monospace) -->
-                  <p style="margin:0;font-size:26px;color:#F5C842;font-weight:900;letter-spacing:0.25em;font-family:'Courier New',Courier,monospace;">
+                  <p style="margin:0;font-size:24px;color:#F5C842;font-weight:900;letter-spacing:0.2em;font-family:'Courier New',Courier,monospace;">
                     ${orderCode}
                   </p>
                   <p style="margin:8px 0 0;font-size:12px;color:rgba(255,255,255,0.5);">
-                    Quét mã QR hoặc đọc mã số tại quầy thu ngân
+                    Quet ma QR hoac doc ma so tai quay thu ngan
                   </p>
-
                 </td>
               </tr>
             </table>
           </td>
         </tr>
 
-        <!-- ── Amount due highlight ──────────────────────────────── -->
+        <!-- Amount due -->
         <tr>
           <td style="padding:0 32px 24px;">
             <table width="100%" cellpadding="0" cellspacing="0"
@@ -236,7 +223,7 @@ async function buildCounterOrderHTML(
           </td>
         </tr>
 
-        <!-- ── Order items ────────────────────────────────────────── -->
+        <!-- Order items -->
         <tr>
           <td style="padding:0 32px 24px;">
             <p style="margin:0 0 12px;font-size:12px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.5px;">
@@ -248,7 +235,8 @@ async function buildCounterOrderHTML(
                 <td style="padding:10px 0;border-bottom:2px solid #1A1A2E;font-size:12px;color:#999;text-transform:uppercase;text-align:right;">Thanh tien</td>
               </tr>
               ${itemRows}
-              ${discountAmount > 0 ? `<tr>
+              ${discountAmount > 0 ? `
+              <tr>
                 <td style="padding:10px 0;font-size:14px;color:#059669;">Giam gia</td>
                 <td style="padding:10px 0;font-size:14px;color:#059669;text-align:right;">-${formatVND(discountAmount)}</td>
               </tr>` : ""}
@@ -260,11 +248,11 @@ async function buildCounterOrderHTML(
           </td>
         </tr>
 
-        <!-- ── Steps ──────────────────────────────────────────────── -->
+        <!-- Steps -->
         <tr>
           <td style="padding:0 32px 24px;">
             <table width="100%" cellpadding="0" cellspacing="0"
-                   style="background:#F8F6F0;border-radius:12px;overflow:hidden;">
+                   style="background:#F8F6F0;border-radius:12px;">
               <tr>
                 <td style="padding:20px 24px;">
                   <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#1A1A2E;text-transform:uppercase;letter-spacing:0.5px;">
@@ -277,7 +265,7 @@ async function buildCounterOrderHTML(
           </td>
         </tr>
 
-        <!-- ── Expiry warning ─────────────────────────────────────── -->
+        <!-- Expiry warning -->
         <tr>
           <td style="padding:0 32px 24px;">
             <table width="100%" cellpadding="0" cellspacing="0"
@@ -292,11 +280,11 @@ async function buildCounterOrderHTML(
           </td>
         </tr>
 
-        <!-- ── CTA ────────────────────────────────────────────────── -->
+        <!-- CTA -->
         <tr>
           <td style="padding:0 32px 32px;text-align:center;">
             <a href="${resultLink}"
-               style="display:inline-block;background:linear-gradient(135deg,#F5C842 0%,#E5B832 100%);color:#1A1A2E;font-size:14px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:12px;margin-bottom:12px;">
+               style="display:inline-block;background:#F5C842;color:#1A1A2E;font-size:14px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:12px;margin-bottom:12px;">
               Mo trang QR day du &rarr;
             </a>
             <br />
@@ -307,7 +295,7 @@ async function buildCounterOrderHTML(
           </td>
         </tr>
 
-        <!-- ── Footer ─────────────────────────────────────────────── -->
+        <!-- Footer -->
         <tr>
           <td style="padding:20px 32px;background:#FAFAFA;border-top:1px solid #F0F0F0;text-align:center;">
             <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">
@@ -330,13 +318,25 @@ export async function sendCounterOrderEmail(
     params: CounterOrderEmailParams
 ): Promise<boolean> {
     try {
-        const html = await buildCounterOrderHTML(params);
+        // Generate QR as PNG buffer — attached as CID inline, not data URI
+        const qrBuffer = await buildQrBuffer(params.orderCode);
+
         await transporter.sendMail({
             from: FROM_ADDRESS,
             to: params.to,
-            subject: `B.Duck Cityfuns — Dat cho thanh cong, vui long thanh toan tai quay (${params.orderCode})`,
-            html,
+            subject: `B.Duck Cityfuns - Dat cho thanh cong, vui long thanh toan tai quay (${params.orderCode})`,
+            html: buildCounterOrderHTML(params),
+            attachments: [
+                {
+                    filename: "qr-code.png",
+                    content: qrBuffer,
+                    cid: "counter_qr",          // <-- matches src="cid:counter_qr" in HTML
+                    contentType: "image/png",
+                    contentDisposition: "inline",
+                },
+            ],
         });
+
         console.log(
             `[email] Counter order email sent to ${params.to} — orderCode: ${params.orderCode}`
         );
