@@ -31,6 +31,7 @@ export async function getProductGroupsAdmin(): Promise<ProductGroupDocument[]> {
 // ─── Create ───────────────────────────────────────────────────────────────────
 export async function createProductGroup(data: {
   name: string;
+  nameLocales?: Record<string, string>;
   slug: string;
   order: number;
 }): Promise<AdminActionResult<{ id: string }>> {
@@ -49,6 +50,7 @@ export async function createProductGroup(data: {
   const now = Timestamp.now();
   const ref = await adminDb.collection(COLLECTIONS.PRODUCT_GROUPS).add({
     name: data.name,
+    ...(data.nameLocales ? { nameLocales: data.nameLocales } : {}),
     slug: data.slug,
     order: data.order,
     isActive: true,
@@ -64,7 +66,7 @@ export async function createProductGroup(data: {
 // ─── Update ───────────────────────────────────────────────────────────────────
 export async function updateProductGroup(
   id: string,
-  data: Partial<Pick<ProductGroupDocument, "name" | "slug" | "order">>
+  data: Partial<Pick<ProductGroupDocument, "name" | "nameLocales" | "slug" | "order">>
 ): Promise<AdminActionResult> {
   await requireAdmin();
 

@@ -26,7 +26,9 @@ export interface ClientFlashSale {
 export interface ClientProduct {
   id: string;
   name: string;
+  nameLocales?: Record<string, string>;
   description: string;
+  descriptionLocales?: Record<string, string>;
   type: ProductType;
   price: number;
   thumbnailUrl: string;
@@ -34,7 +36,9 @@ export interface ClientProduct {
   groupId?: string;
   soldCount: number;
   totalStock?: number;
+  stockResetPeriod?: "none" | "daily" | "monthly";
   commissionRate?: number;
+  tags?: string[];
   flashSale?: ClientFlashSale;
 }
 
@@ -48,7 +52,9 @@ export function serializeProduct(p: ProductDocument): ClientProduct {
   return {
     id: p.id,
     name: p.name,
+    nameLocales: p.nameLocales,
     description: p.description,
+    descriptionLocales: p.descriptionLocales,
     type: p.type,
     price: p.price,
     thumbnailUrl: p.thumbnailUrl,
@@ -56,7 +62,9 @@ export function serializeProduct(p: ProductDocument): ClientProduct {
     groupId: p.groupId,
     soldCount: p.soldCount,
     totalStock: p.totalStock,
+    stockResetPeriod: p.stockResetPeriod,
     commissionRate: p.commissionRate,
+    tags: p.tags,
     flashSale: p.flashSale
       ? {
           salePrice: p.flashSale.salePrice,

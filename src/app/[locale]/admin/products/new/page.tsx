@@ -13,7 +13,9 @@ interface PageProps {
 export default async function NewProductPage({ params }: PageProps) {
   const { locale } = await params;
   const result = await getProductGroupsAdmin();
-  const groups = result.map((g) => ({ id: g.id, name: g.name }));
+  const groups = result
+    .filter((g) => g.isActive)
+    .map((g) => ({ id: g.id, name: g.name }));
 
   return (
     <div className="space-y-6">

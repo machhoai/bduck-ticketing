@@ -21,6 +21,14 @@ export interface DashboardStats {
   }>;
 }
 
+export interface RangeStats {
+  revenue: number;
+  orders: number;
+  passes: number;
+  avgOrderValue: number;
+  dailyRevenue: Array<{ date: string; revenue: number; orders: number }>;
+}
+
 export async function getDashboardStats(): Promise<DashboardStats> {
   await requireAdmin();
 
@@ -74,4 +82,66 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     pendingAffiliates: pendingAffSnap.size,
     recentOrders,
   };
+}
+
+// ─── Get Revenue Stats for a custom date range ────────────────────────────────
+/**
+ * Returns aggregated revenue data for a given date range.
+ * Used by the DashboardClient for the date picker.
+ * Dates are ISO strings (YYYY-MM-DD) in local time.
+ */
+export async function getDashboardStatsByRange(
+  fromISO: string, // e.g. "2024-04-01"
+  toISO: string    // e.g. "2024-04-30"
+): Promise<RangeStats> {
+  await requireAdmin();
+
+  const fromMs = new Date(fromISO + "T00:00:00+07:00").getTime();
+  const toMs   = new Date(toISO   + "T23:59:59+07:00").getTime();
+
+  const snap = await adminDb
+    .collection(COLLECTIONS.ORDERS)
+    .where("status", "==", "paid")
+    .where("createdAt", ">=", Timestamp.fromMillis(fromMs))
+    .where("createdAt", "<=", Timestamp.fromMillis(toMs))
+    .orderBy("createdAt", "asc")
+    .get();
+
+  let revenue = 0;
+  let passes  = 0;
+  const dailyMap: Record<string, { revenue: number; orders: number }> = {};
+
+  for (const doc of snap.docs) {
+    const d = doc.data();
+    revenue += d.finalAmount ?? 0;
+    passes  += (d.passIds as string[])?.length ?? 0;
+
+    // Group by date (Asia/Ho_Chi_Minh = UTC+7)
+    const date = new Date((d.createdAt as Timestamp).toMillis())
+      .toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" })
+      .slice(0, 10); // "YYYY-MM-DD"
+
+    if (!dailyMap[date]) dailyMap[date] = { revenue: 0, orders: 0 };
+    dailyMap[date].revenue += d.finalAmount ?? 0;
+    dailyMap[date].orders  += 1;
+  }
+
+  const orders = snap.size;
+  const avgOrderValue = orders > 0 ? Math.round(revenue / orders) : 0;
+
+  // Fill in every day in range (even with 0)
+  const dailyRevenue: Array<{ date: string; revenue: number; orders: number }> = [];
+  const cursor = new Date(fromMs);
+  const end    = new Date(toMs);
+  while (cursor <= end) {
+    const key = cursor.toISOString().slice(0, 10);
+    dailyRevenue.push({
+      date:    key,
+      revenue: dailyMap[key]?.revenue ?? 0,
+      orders:  dailyMap[key]?.orders  ?? 0,
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return { revenue, orders, passes, avgOrderValue, dailyRevenue };
 }

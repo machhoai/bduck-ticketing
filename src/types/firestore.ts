@@ -54,7 +54,9 @@ export interface BankInfo {
 /** Document ID = auto-generated Firestore ID */
 export interface ProductGroupDocument {
   id: string;
-  name: string; // e.g. "Vé lẻ", "Combo gia đình"
+  name: string; // e.g. "Vé lẻ", "Combo gia đình" — default Vietnamese, used as fallback
+  /** Localized display names. Fallback chain: nameLocales[locale] -> nameLocales.vi -> name */
+  nameLocales?: Record<string, string>; // e.g. { vi: "Vé lẻ", en: "Single Ticket" }
   slug: string; // e.g. "ve-le", "combo-gia-dinh" — for URL-safe tab keys
   order: number; // ascending sort for tab display
   isActive: boolean;
@@ -108,8 +110,16 @@ export interface FlashSaleConfig {
 /** Document ID = auto-generated Firestore ID */
 export interface ProductDocument {
   id: string;
-  name: string;
-  description: string;
+  name: string; // Default Vietnamese name — used as fallback & for admin search
+  description: string; // Default Vietnamese description
+  /**
+   * Localized display names.
+   * Fallback chain: nameLocales[locale] → nameLocales["vi"] → name
+   * Optional — existing products without this field use `name` directly.
+   */
+  nameLocales?: Record<string, string>; // e.g. { vi: "Vé vào cổng", en: "Entrance Ticket" }
+  /** Localized descriptions. Same fallback chain as nameLocales. */
+  descriptionLocales?: Record<string, string>;
   type: ProductType;
   price: number; // VND — original price
   thumbnailUrl: string; // Firebase Storage URL
@@ -123,6 +133,8 @@ export interface ProductDocument {
 
   /** Managed via Firestore Transaction when order is paid */
   totalStock?: number; // undefined = unlimited
+  /** When stockEnabled, reset period for stock. undefined = no reset */
+  stockResetPeriod?: "none" | "daily" | "monthly";
   soldCount: number;
 
   /**

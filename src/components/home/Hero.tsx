@@ -66,7 +66,7 @@ export function Hero() {
             />
 
             {/* ── Main content ──────────────────────────────────── */}
-            <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-28 pb-24">
+            <div className="relative z-10 w-full sm:max-w-[80%] mx-auto px-6 pt-28 pb-24">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-6 items-center">
 
                     {/* ── Left: Text content ──────────────────────── */}
@@ -95,7 +95,7 @@ export function Hero() {
                             className="font-[800] text-white leading-[1.08] tracking-tight"
                             style={{
                                 fontFamily: "var(--font-heading)",
-                                fontSize: "clamp(1.8rem, 5.5vw, 4.2rem)",
+                                fontSize: "clamp(1.8rem, 5vw, 4.2rem)",
                             }}
                         >
                             {t("title1")}{" "}

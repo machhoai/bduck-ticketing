@@ -7,6 +7,7 @@ import { AddToCartButton } from "@/components/customer/AddToCartButton";
 import { RippleWrapper } from "@/components/ui/RippleWrapper";
 import type { ProductDocument } from "@/types/firestore";
 import { serializeProduct, getClientEffectivePrice } from "@/lib/serializeProduct";
+import { localizeField } from "@/lib/localize";
 
 interface ProductCardProps {
     product: ProductDocument;
@@ -26,6 +27,13 @@ export function ProductCard({ product, locale }: ProductCardProps) {
     const isSoldOut = product.status === "sold-out";
     const isCombo = product.type === "combo";
 
+    const displayName = localizeField(product.name, product.nameLocales, locale);
+    const displayDesc = localizeField(
+        product.description ?? "",
+        product.descriptionLocales,
+        locale
+    );
+
     return (
         <article className="group relative flex flex-col overflow-visible h-full">
             {/* ── Blob Background ── */}
@@ -38,10 +46,10 @@ export function ProductCard({ product, locale }: ProductCardProps) {
             >
                 {/* Image container — Blob-shaped mask */}
                 <RippleWrapper className="relative block w-full aspect-[4/3] rounded-[22px] overflow-hidden bg-gray-50 flex-shrink-0">
-                    <Link href={`/${locale}/tickets/${product.id}`} className="absolute inset-0 z-10 outline-none" aria-label={product.name} />
+                    <Link href={`/${locale}/tickets/${product.id}`} className="absolute inset-0 z-10 outline-none" aria-label={displayName} />
                     <Image
                         src={product.thumbnailUrl}
-                        alt={product.name}
+                        alt={displayName}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover transition-transform duration-600 ease-out group-hover:scale-[1.06]"
@@ -80,10 +88,10 @@ export function ProductCard({ product, locale }: ProductCardProps) {
                 <div className="pt-4 px-3 pb-2 flex flex-col flex-1">
                     <Link href={`/${locale}/tickets/${product.id}`} className="flex flex-col gap-1 outline-none mb-3">
                         <h3 className="font-bold text-gray-900 text-lg leading-snug tracking-tight line-clamp-2 group-hover:text-duck-orange transition-colors duration-300">
-                            {product.name}
+                            {displayName}
                         </h3>
                         <p className="text-gray-500 text-[13px] font-medium leading-relaxed line-clamp-2">
-                            {product.description || "Vé cổng điện tử B.Duck Cityfuns"}
+                            {displayDesc || "Vé cổng điện tử B.Duck Cityfuns"}
                         </p>
                     </Link>
 

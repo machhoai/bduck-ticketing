@@ -404,7 +404,7 @@ export function Navbar() {
                                             </p>
                                             <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => { setIsMobileMenuOpen(false); router.push(`/${locale}/orders`); }}
+                                                    onClick={() => { setIsMobileMenuOpen(false); router.push("/orders"); }}
                                                     className="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
                                                 >
                                                     Đơn hàng

@@ -67,11 +67,16 @@ async function convertToWebP(
 // ─── Zod Schema (client-side — matches server schema) ────────────────────────
 const formSchema = z.object({
   name: z.string().min(2, "Tên tối thiểu 2 ký tự"),
+  nameEn: z.string().optional(),
   description: z.string().optional(),
+  descriptionEn: z.string().optional(),
   type: z.enum(["ticket", "combo"]),
   price: z.coerce.number().positive("Giá phải lớn hơn 0"),
   groupId: z.string().optional(),
+  // Stock
+  stockEnabled: z.boolean().default(false),
   totalStock: z.coerce.number().int().positive().optional().or(z.literal("").transform(() => undefined)),
+  stockResetPeriod: z.enum(["none", "daily", "monthly"]).default("none"),
   commissionRate: z.coerce.number().min(0).max(100).optional().or(z.literal("").transform(() => undefined)),
   validityType: z.enum(["open-dated", "date-specific", "date-range"]),
   validDaysFromPurchase: z.coerce.number().int().positive().optional().or(z.literal("").transform(() => undefined)),
@@ -100,22 +105,31 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [uploadMode, setUploadMode] = useState<"file" | "url">("file");
+  const [localeLang, setLocaleLang] = useState<"vi" | "en">("vi"); // locale tab for name/description
+  const [priceDisplay, setPriceDisplay] = useState<string>(
+    initialData?.price ? new Intl.NumberFormat("vi-VN").format(initialData.price) : ""
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
     defaultValues: {
       name: initialData?.name ?? "",
+      nameEn: initialData?.nameLocales?.["en"] ?? "",
       description: initialData?.description ?? "",
+      descriptionEn: initialData?.descriptionLocales?.["en"] ?? "",
       type: initialData?.type ?? "ticket",
       price: initialData?.price ?? undefined,
       groupId: initialData?.groupId ?? "",
+      stockEnabled: (initialData?.totalStock !== undefined),
       totalStock: initialData?.totalStock ?? undefined,
+      stockResetPeriod: (initialData as any)?.stockResetPeriod ?? "none",
       commissionRate: initialData?.commissionRate ? initialData.commissionRate * 100 : undefined,
       validityType: initialData?.validityConfig?.type ?? "open-dated",
       validDaysFromPurchase: initialData?.validityConfig?.validDaysFromPurchase ?? undefined,
@@ -123,6 +137,23 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
   });
 
   const validityType = watch("validityType");
+  const stockEnabled = watch("stockEnabled");
+  const stockResetPeriod = watch("stockResetPeriod");
+  const nameVi = watch("name");
+  const nameEn = watch("nameEn");
+
+  // VND price formatter
+  function handlePriceInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/[^0-9]/g, "");
+    const num = parseInt(raw, 10);
+    if (isNaN(num)) {
+      setPriceDisplay("");
+      setValue("price", 0);
+    } else {
+      setPriceDisplay(new Intl.NumberFormat("vi-VN").format(num));
+      setValue("price", num);
+    }
+  }
 
   // ─── Thumbnail Upload with WebP conversion ────────────────────────────────
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -198,14 +229,27 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
       if (data.validUntil) validityConfig.overallExpiresAt = data.validUntil;
     }
 
+    // Build nameLocales: always store vi (= name), add en if provided
+    const nameLocales: Record<string, string> = { vi: data.name };
+    if (data.nameEn?.trim()) nameLocales["en"] = data.nameEn.trim();
+
+    // Build descriptionLocales
+    const descriptionLocales: Record<string, string> = {};
+    if (data.description?.trim()) descriptionLocales["vi"] = data.description.trim();
+    if (data.descriptionEn?.trim()) descriptionLocales["en"] = data.descriptionEn.trim();
+
     const payload = {
       name: data.name,
+      nameLocales,
       description: data.description,
+      ...(Object.keys(descriptionLocales).length > 0 ? { descriptionLocales } : {}),
       type: data.type,
       price: data.price,
       thumbnailUrl,
       groupId: data.groupId || undefined,
-      totalStock: data.totalStock,
+      // Stock: only set totalStock if stockEnabled is true
+      totalStock: data.stockEnabled ? data.totalStock : undefined,
+      stockResetPeriod: data.stockEnabled ? data.stockResetPeriod : undefined,
       commissionRate: data.commissionRate ? data.commissionRate / 100 : undefined,
       validityConfig: validityConfig as Parameters<typeof createProduct>[0]["validityConfig"],
     };
@@ -331,22 +375,76 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
         <h2 className="font-bold text-[#1A1A2E] text-sm">Thông tin cơ bản</h2>
 
-        <Field label="Tên sản phẩm *" error={errors.name?.message}>
-          <input
-            {...register("name")}
-            placeholder="VD: Vé vào cổng B.Duck Funland"
-            className={inputCls(!!errors.name)}
-          />
-        </Field>
+        {/* ── Language Tabs for Name & Description ──────────────────────── */}
+        <div className="space-y-4">
+          {/* Tab switcher */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Ngôn ngữ:</span>
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+              <button
+                type="button"
+                onClick={() => setLocaleLang("vi")}
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1 ${
+                  localeLang === "vi" ? "bg-white shadow-sm text-[#1A1A2E]" : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                🇻🇳 Tiếng Việt
+                {nameVi && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocaleLang("en")}
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1 ${
+                  localeLang === "en" ? "bg-white shadow-sm text-[#1A1A2E]" : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                🇬🇧 English
+                {nameEn && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />}
+              </button>
+            </div>
+          </div>
 
-        <Field label="Mô tả" error={errors.description?.message}>
-          <textarea
-            {...register("description")}
-            rows={3}
-            placeholder="Mô tả ngắn về sản phẩm..."
-            className={`${inputCls(false)} resize-none`}
-          />
-        </Field>
+          {/* Vietnamese fields */}
+          <div className={localeLang === "vi" ? "block space-y-4" : "hidden"}>
+            <Field label="Tên sản phẩm (Tiếng Việt) *" error={errors.name?.message}>
+              <input
+                {...register("name")}
+                placeholder="VD: Vé vào cổng B.Duck Funland"
+                className={inputCls(!!errors.name)}
+              />
+            </Field>
+            <Field label="Mô tả (Tiếng Việt)" error={errors.description?.message}>
+              <textarea
+                {...register("description")}
+                rows={3}
+                placeholder="Mô tả ngắn về sản phẩm..."
+                className={`${inputCls(false)} resize-none`}
+              />
+            </Field>
+          </div>
+
+          {/* English fields */}
+          <div className={localeLang === "en" ? "block space-y-4" : "hidden"}>
+            <Field label="Product Name (English)" error={errors.nameEn?.message}>
+              <input
+                {...register("nameEn")}
+                placeholder="E.g. B.Duck Funland Entrance Ticket"
+                className={inputCls(!!errors.nameEn)}
+              />
+            </Field>
+            <Field label="Description (English)" error={errors.descriptionEn?.message}>
+              <textarea
+                {...register("descriptionEn")}
+                rows={3}
+                placeholder="Short product description in English..."
+                className={`${inputCls(false)} resize-none`}
+              />
+            </Field>
+            <p className="text-xs text-gray-400">
+              💡 Để trống nếu không có bản dịch tiếng Anh — tiếng Việt sẽ được dùng làm fallback.
+            </p>
+          </div>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Loại sản phẩm *" error={errors.type?.message}>
@@ -367,44 +465,94 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
         </div>
 
         <div className="grid grid-cols-2 gap-4">
+          {/* VND Price Input */}
           <Field label="Giá (VND) *" error={errors.price?.message}>
-            <input
-              {...register("price")}
-              type="number"
-              step="1000"
-              min="0"
-              placeholder="150000"
-              className={inputCls(!!errors.price)}
-            />
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={priceDisplay}
+                onChange={handlePriceInput}
+                placeholder="150.000"
+                className={`${inputCls(!!errors.price)} pr-10`}
+              />
+              {/* Hidden real value */}
+              <input type="hidden" {...register("price")} />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">₫</span>
+            </div>
+            {priceDisplay && (
+              <p className="text-[11px] text-gray-400 mt-1 font-mono">
+                = {priceDisplay} VNĐ
+              </p>
+            )}
           </Field>
 
-          <Field label="Tổng stock (để trống = không giới hạn)" error={errors.totalStock?.message}>
+          <Field label="Hoa hồng affiliate (%)" hint="Bỏ trống = default affiliate" error={errors.commissionRate?.message}>
             <input
-              {...register("totalStock")}
+              {...register("commissionRate")}
               type="number"
-              min="1"
-              placeholder="500"
-              className={inputCls(!!errors.totalStock)}
+              step="0.5"
+              min="0"
+              max="100"
+              placeholder="10"
+              className={inputCls(!!errors.commissionRate)}
             />
           </Field>
         </div>
 
-        <Field
-          label="Hoa hồng affiliate (%)"
-          hint="Bỏ trống để dùng default của affiliate"
-          error={errors.commissionRate?.message}
-        >
-          <input
-            {...register("commissionRate")}
-            type="number"
-            step="0.5"
-            min="0"
-            max="100"
-            placeholder="10"
-            className={inputCls(!!errors.commissionRate)}
-          />
-        </Field>
+        {/* ── Stock Configuration ── */}
+        <div className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50/60">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[#1A1A2E]">Giới hạn stock</p>
+              <p className="text-xs text-gray-400">Bật để giới hạn số lượng vé có thể bán</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                {...register("stockEnabled")}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-gray-200 rounded-full peer-checked:bg-[#F5C842] transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:shadow after:transition-all peer-checked:after:translate-x-5" />
+            </label>
+          </div>
+
+          {stockEnabled && (
+            <div className="space-y-3 pt-2 border-t border-gray-100">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Số lượng tối đa" error={errors.totalStock?.message}>
+                  <input
+                    {...register("totalStock")}
+                    type="number"
+                    min="1"
+                    placeholder="500"
+                    className={inputCls(!!errors.totalStock)}
+                  />
+                </Field>
+
+                <Field label="Làm mới stock theo" hint="Hết kỳ → stock reset về giá trị trên">
+                  <select {...register("stockResetPeriod")} className={inputCls(false)}>
+                    <option value="none">Không làm mới (cố định)</option>
+                    <option value="daily">Mỗi ngày</option>
+                    <option value="monthly">Mỗi tháng</option>
+                  </select>
+                </Field>
+              </div>
+
+              {stockResetPeriod !== "none" && (
+                <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+                  <span>⚠️</span>
+                  <span>
+                    Stock sẽ được reset về <strong>{watch("totalStock") ?? "—"}</strong> vào đầu mỗi{" "}
+                    {stockResetPeriod === "daily" ? "ngày" : "tháng"}.
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
 
       {/* Validity */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">

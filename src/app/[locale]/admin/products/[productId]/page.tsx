@@ -40,7 +40,10 @@ export default async function EditProductPage({ params }: PageProps) {
   // so the object is safe to pass across the RSC → Client Component boundary.
   const product = JSON.parse(JSON.stringify(raw)) as typeof raw;
 
-  const groupList = groups.map((g) => ({ id: g.id, name: g.name }));
+  // Show only active groups in dropdown — but keep product's current group even if now inactive
+  const groupList = groups
+    .filter((g) => g.isActive || g.id === raw.groupId)
+    .map((g) => ({ id: g.id, name: g.name }));
 
   return (
     <div className="space-y-6">

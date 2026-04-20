@@ -19,6 +19,7 @@ import {
   Globe,
   LogOut,
   Image as ImageIcon,
+  UserCog,
 } from "lucide-react";
 
 const LOCALE_FLAGS: Record<Locale, { flag: string; label: string }> = {
@@ -36,6 +37,7 @@ const NAV_ITEMS = [
   { href: "/admin/scan", key: "scan", icon: QrCode },
   { href: "/admin/affiliates", key: "affiliates", icon: Users },
   { href: "/admin/payouts", key: "payouts", icon: Wallet },
+  { href: "/admin/accounts", key: "accounts", icon: UserCog },
 ];
 
 interface AdminSidebarProps {

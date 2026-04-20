@@ -4,15 +4,18 @@ import { useRouter, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { clsx } from "clsx";
 import type { ProductGroupDocument } from "@/types/firestore";
+import { localizeField } from "@/lib/localize";
 
 interface ProductGroupTabsProps {
     groups: ProductGroupDocument[];
     activeGroupId?: string;
+    locale: string;
 }
 
 export function ProductGroupTabs({
     groups,
     activeGroupId,
+    locale,
 }: ProductGroupTabsProps) {
     const router = useRouter();
     const pathname = usePathname();
@@ -62,7 +65,7 @@ export function ProductGroupTabs({
                             : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     )}
                 >
-                    {group.name}
+                    {localizeField(group.name, group.nameLocales, locale)}
                 </button>
             ))}
         </nav>

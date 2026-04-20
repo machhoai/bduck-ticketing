@@ -62,6 +62,7 @@
             "scan": "Scan Ticket",
             "affiliates": "Affiliates",
             "payouts": "Payouts",
+            "accounts": "Admin Accounts",
             "viewWebsite": "View Website",
             "logout": "Logout"
         },

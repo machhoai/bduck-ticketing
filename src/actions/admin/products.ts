@@ -14,13 +14,16 @@ import { z } from "zod/v4";
 
 const productSchema = z.object({
   name: z.string().min(2, "Tên sản phẩm tối thiểu 2 ký tự"),
+  nameLocales: z.record(z.string(), z.string()).optional(),
   description: z.string().optional(),
+  descriptionLocales: z.record(z.string(), z.string()).optional(),
   type: z.enum(["ticket", "combo"]),
   price: z.number().positive("Giá phải lớn hơn 0"),
   thumbnailUrl: z.string().url("URL ảnh không hợp lệ"),
   groupId: z.string().optional(),
   tags: z.array(z.string()).optional(),
   totalStock: z.number().int().positive().optional(),
+  stockResetPeriod: z.enum(["none", "daily", "monthly"]).optional(),
   validityConfig: z.object({
     type: z.enum(["date-specific", "date-range", "open-dated"]),
     validDaysFromPurchase: z.number().optional(),

@@ -75,6 +75,7 @@ export default async function HomePage({ params, searchParams }: PageProps) {
                             <ProductGroupTabs
                                 groups={groups}
                                 activeGroupId={activeGroupId}
+                                locale={locale}
                             />
                         </div>
                     )}
