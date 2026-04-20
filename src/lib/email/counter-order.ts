@@ -113,15 +113,15 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
     const stepsHtml = [
         {
             n: "1",
-            text: `Mang ma QR (hoac ma so <strong>${orderCode}</strong>) den quay thu ngan B.Duck Cityfuns`,
+            text: `Mang mã QR (hoặc mã số <strong>${orderCode}</strong>) đến quầy thu ngân B.Duck Cityfuns`,
         },
         {
             n: "2",
-            text: "Nhan vien se quet ma va hien thi thong tin don hang",
+            text: "Nhân viên sẽ quét mã và hiển thị thông tin đơn hàng",
         },
         {
             n: "3",
-            text: "Thanh toan truc tiep &mdash; ve dien tu se duoc gui qua email ngay sau do",
+            text: "Thanh toán trực tiếp &mdash; vé điện tử sẽ được gửi qua email ngay sau đó",
         },
     ]
         .map(
@@ -139,7 +139,7 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
 
     return `
 <!DOCTYPE html>
-<html lang="${locale}">
+<html lang="vi">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -152,9 +152,9 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
         <!-- Header -->
         <tr>
           <td style="background:#1A1A2E;padding:36px 32px;text-align:center;">
-            <h1 style="margin:0;font-size:22px;color:#F5C842;font-weight:800;">Dat hang thanh cong!</h1>
+            <h1 style="margin:0;font-size:22px;color:#F5C842;font-weight:800;">Đặt hàng thành công!</h1>
             <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.75);">
-              Vui long mang ma QR den quay thu ngan de thanh toan &amp; nhan ve
+              Vui lòng mang mã QR đến quầy thu ngân để thanh toán &amp; nhận vé
             </p>
           </td>
         </tr>
@@ -162,11 +162,11 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
         <!-- Greeting -->
         <tr>
           <td style="padding:28px 32px 0;">
-            <p style="margin:0 0 4px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Ma don hang</p>
+            <p style="margin:0 0 4px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Mã đơn hàng</p>
             <p style="margin:0 0 16px;font-size:16px;color:#1A1A2E;font-weight:700;font-family:monospace;">${orderNumber}</p>
             <p style="margin:0 0 20px;font-size:15px;color:#555;line-height:1.6;">
-              Xin chao <strong>${customerName}</strong>,<br />
-              Don hang cua ban da duoc ghi nhan. Ve se duoc phat hanh ngay sau khi nhan vien xac nhan thanh toan tai quay.
+              Xin chào <strong>${customerName}</strong>,<br />
+              Đơn hàng của bạn đã được ghi nhận. Vé sẽ được phát hành ngay sau khi nhân viên xác nhận thanh toán tại quầy.
             </p>
           </td>
         </tr>
@@ -179,7 +179,7 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
               <tr>
                 <td style="padding:28px 24px;text-align:center;">
                   <p style="margin:0 0 16px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;">
-                    Ma thanh toan tai quay
+                    Mã thanh toán tại quầy
                   </p>
 
                   <!-- CID reference — nodemailer resolves this to the attached PNG -->
@@ -195,7 +195,7 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
                     ${orderCode}
                   </p>
                   <p style="margin:8px 0 0;font-size:12px;color:rgba(255,255,255,0.5);">
-                    Quet ma QR hoac doc ma so tai quay thu ngan
+                    Quét mã QR hoặc đọc mã số tại quầy thu ngân
                   </p>
                 </td>
               </tr>
@@ -211,12 +211,12 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
               <tr>
                 <td style="padding:18px 20px;">
                   <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#B45309;text-transform:uppercase;letter-spacing:0.5px;">
-                    So tien can thanh toan tai quay
+                    Số tiền cần thanh toán tại quầy
                   </p>
                   <p style="margin:0;font-size:28px;font-weight:900;color:#1A1A2E;">
                     ${formatVND(finalAmount)}
                   </p>
-                  ${discountAmount > 0 ? `<p style="margin:4px 0 0;font-size:13px;color:#059669;">Da giam ${formatVND(discountAmount)}</p>` : ""}
+                  ${discountAmount > 0 ? `<p style="margin:4px 0 0;font-size:13px;color:#059669;">Đã giảm ${formatVND(discountAmount)}</p>` : ""}
                 </td>
               </tr>
             </table>
@@ -227,21 +227,21 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
         <tr>
           <td style="padding:0 32px 24px;">
             <p style="margin:0 0 12px;font-size:12px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.5px;">
-              Chi tiet don hang
+              Chi tiết đơn hàng
             </p>
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="padding:10px 0;border-bottom:2px solid #1A1A2E;font-size:12px;color:#999;text-transform:uppercase;">San pham</td>
-                <td style="padding:10px 0;border-bottom:2px solid #1A1A2E;font-size:12px;color:#999;text-transform:uppercase;text-align:right;">Thanh tien</td>
+                <td style="padding:10px 0;border-bottom:2px solid #1A1A2E;font-size:12px;color:#999;text-transform:uppercase;">Sản phẩm</td>
+                <td style="padding:10px 0;border-bottom:2px solid #1A1A2E;font-size:12px;color:#999;text-transform:uppercase;text-align:right;">Thành tiền</td>
               </tr>
               ${itemRows}
               ${discountAmount > 0 ? `
               <tr>
-                <td style="padding:10px 0;font-size:14px;color:#059669;">Giam gia</td>
+                <td style="padding:10px 0;font-size:14px;color:#059669;">Giảm giá</td>
                 <td style="padding:10px 0;font-size:14px;color:#059669;text-align:right;">-${formatVND(discountAmount)}</td>
               </tr>` : ""}
               <tr>
-                <td style="padding:14px 0;font-size:15px;color:#1A1A2E;font-weight:800;">Tong can thanh toan</td>
+                <td style="padding:14px 0;font-size:15px;color:#1A1A2E;font-weight:800;">Tổng cần thanh toán</td>
                 <td style="padding:14px 0;font-size:17px;color:#1A1A2E;font-weight:900;text-align:right;">${formatVND(finalAmount)}</td>
               </tr>
             </table>
@@ -256,7 +256,7 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
               <tr>
                 <td style="padding:20px 24px;">
                   <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#1A1A2E;text-transform:uppercase;letter-spacing:0.5px;">
-                    Huong dan 3 buoc
+                    Hướng dẫn 3 bước
                   </p>
                   ${stepsHtml}
                 </td>
@@ -272,8 +272,8 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
                    style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;">
               <tr>
                 <td style="padding:14px 18px;font-size:13px;color:#92400E;line-height:1.5;">
-                  <strong>Luu y:</strong> Don hang co hieu luc den <strong>${expiryFormatted}</strong>.
-                  Neu ban khong den thanh toan trong thoi han nay, don hang se bi tu dong huy.
+                  <strong>Lưu ý:</strong> Đơn hàng có hiệu lực đến <strong>${expiryFormatted}</strong>.
+                  Nếu bạn không đến thanh toán trong thời hạn này, đơn hàng sẽ bị tự động hủy.
                 </td>
               </tr>
             </table>
@@ -285,12 +285,12 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
           <td style="padding:0 32px 32px;text-align:center;">
             <a href="${resultLink}"
                style="display:inline-block;background:#F5C842;color:#1A1A2E;font-size:14px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:12px;margin-bottom:12px;">
-              Mo trang QR day du &rarr;
+              Mở trang QR đầy đủ &rarr;
             </a>
             <br />
             <a href="${ordersLink}"
                style="font-size:13px;color:#888;text-decoration:underline;">
-              Xem lich su don hang
+              Xem lịch sử đơn hàng
             </a>
           </td>
         </tr>
@@ -300,7 +300,7 @@ function buildCounterOrderHTML(params: CounterOrderEmailParams): string {
           <td style="padding:20px 32px;background:#FAFAFA;border-top:1px solid #F0F0F0;text-align:center;">
             <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">
               &copy; ${new Date().getFullYear()} B.Duck Cityfuns Vietnam. All rights reserved.<br />
-              Neu ban can ho tro, vui long lien he hotline: <strong>1900-xxxx</strong>
+              Nếu bạn cần hỗ trợ, vui lòng liên hệ hotline: <strong>096 927 17 37</strong>
             </p>
           </td>
         </tr>
