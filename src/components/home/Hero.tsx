@@ -32,8 +32,8 @@ export function Hero() {
                     poster="/images/bduck_summer_backdrop.png"
                     className="w-full h-full object-cover"
                 >
-                    <source src="/videos/hero-bduck-video.webm" type="video/webm" />
-                    <source src="/videos/hero-bduck-video.mp4" type="video/mp4" />
+                    <source src="/videos/hero-bduck-video.mp4" type="video/mp4; codecs=avc1.42E01E,mp4a.40.2" />
+                    <source src="/videos/hero-bduck-video.webm" type="video/webm; codecs=vp9,opus" />
                 </video>
 
                 {/* Cinematic gradient overlays */}

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import {
     signInWithEmailAndPassword,
@@ -13,7 +14,8 @@ import {
 import { auth } from "@/lib/firebase/client";
 import { createSessionAndSyncUser } from "@/actions/auth";
 import { useTranslations } from "next-intl";
-import { Eye, EyeOff, Loader2, AlertCircle, ArrowRight, UserPlus } from "lucide-react";
+import { useLocale } from "next-intl";
+import { Eye, EyeOff, Loader2, AlertCircle, ArrowRight, UserPlus, X } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Tab = "login" | "register";
@@ -72,6 +74,7 @@ function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const t = useTranslations("auth");
+    const locale = useLocale();
 
     const [tab, setTab] = useState<Tab>("login");
     const [email, setEmail] = useState("");
@@ -729,6 +732,32 @@ function LoginContent() {
                     letter-spacing: 0.3px;
                 }
 
+                /* Close / back button */
+                .auth-close-btn {
+                    position: absolute;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 10;
+                    width: 38px;
+                    height: 38px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(255,255,255,0.06);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    color: rgba(255,255,255,0.5);
+                    cursor: pointer;
+                    transition: all 0.22s ease;
+                    text-decoration: none;
+                }
+                .auth-close-btn:hover {
+                    background: rgba(255,255,255,0.12);
+                    border-color: rgba(255,255,255,0.2);
+                    color: rgba(255,255,255,0.9);
+                    transform: scale(1.08);
+                }
+
                 /* ── PARTICLES ── */
                 .auth-particle {
                     position: absolute;
@@ -797,7 +826,16 @@ function LoginContent() {
                 {/* Bottom content */}
                 <div className="auth-hero-content">
                     <div className="auth-hero-logo">
-                        <div className="auth-hero-logo-mark">BD</div>
+                        <div className="auth-hero-logo-mark relative overflow-hidden">
+                            <Image
+                                src="/images/avt_bduck-cityfuns.png"
+                                alt="B.Duck Cityfuns"
+                                fill
+                                priority
+                                sizes="52vw"
+                                quality={85}
+                            />
+                        </div>
                         <div>
                             <div className="auth-hero-logo-text">B.Duck Cityfuns</div>
                             <div className="auth-hero-logo-sub">Vietnam</div>
@@ -827,6 +865,16 @@ function LoginContent() {
 
             {/* ══════════ RIGHT: FORM PANEL ══════════ */}
             <div className="auth-form-panel">
+                {/* Close / back button */}
+                <Link
+                    href={`/${locale}`}
+                    className="auth-close-btn"
+                    aria-label={t("goBack")}
+                    title={t("goBack")}
+                >
+                    <X size={18} />
+                </Link>
+
                 <FloatingParticles />
 
                 <div className="auth-form-container">
@@ -846,7 +894,7 @@ function LoginContent() {
                         {/* Greeting */}
                         <div className="auth-greeting">
                             <h1>
-                                {tab === "login" ? t("loginTab") : t("registerTab")} 👋
+                                {tab === "login" ? t("loginTab") : t("registerTab")}
                             </h1>
                             <p>
                                 {tab === "login"
@@ -1124,6 +1172,16 @@ function LoginContent() {
                     {/* Footer */}
                     <p className={`auth-footer ${mounted ? "auth-enter auth-enter--d4" : ""}`}>
                         © 2026 B.Duck Cityfuns Vietnam
+                    </p>
+
+                    {/* Continue as guest link */}
+                    <p className={`auth-footer ${mounted ? "auth-enter auth-enter--d4" : ""}`} style={{ marginTop: 8 }}>
+                        <Link
+                            href={`/${locale}`}
+                            style={{ color: "rgba(255,255,255,0.35)", textDecoration: "underline", fontSize: 12 }}
+                        >
+                            {t("continueAsGuest")}
+                        </Link>
                     </p>
                 </div>
             </div>

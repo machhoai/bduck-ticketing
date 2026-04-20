@@ -60,7 +60,9 @@
         "errorTooManyRequests": "Quá nhiều lần thử. Vui lòng thử lại sau.",
         "errorUserDisabled": "Tài khoản đã bị vô hiệu hóa",
         "errorGeneric": "Đã xảy ra lỗi. Vui lòng thử lại.",
-        "errorUserNotFound": "Không tìm thấy tài khoản với email này"
+        "errorUserNotFound": "Không tìm thấy tài khoản với email này",
+        "goBack": "Quay về trang chủ",
+        "continueAsGuest": "Tiếp tục mà không đăng nhập"
     },
     "admin": {
         "sidebar": {

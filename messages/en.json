@@ -47,7 +47,9 @@
         "errorTooManyRequests": "Too many attempts. Please try again later.",
         "errorUserDisabled": "This account has been disabled",
         "errorGeneric": "An error occurred. Please try again.",
-        "errorUserNotFound": "No account found with this email"
+        "errorUserNotFound": "No account found with this email",
+        "goBack": "Back to home",
+        "continueAsGuest": "Continue without signing in"
     },
     "admin": {
         "sidebar": {
