@@ -6,6 +6,7 @@ import { COLLECTIONS } from "@/lib/firebase/client";
 import { getEffectivePrice } from "@/actions/products";
 import type {
   CartItemInput,
+  CounterPayData,
   OrderDocument,
   OrderItem,
   ProductDocument,
@@ -13,6 +14,7 @@ import type {
 } from "@/types/firestore";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { verifySession } from "@/lib/auth/session";
+import { sendCounterOrderEmail } from "@/lib/email/counter-order";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -348,5 +350,270 @@ export async function createOrder(
   return {
     success: true,
     data: { orderId: orderRef.id, paymentUrl },
+  };
+}
+
+// ─── Create Counter Order ─────────────────────────────────────────────────────
+/**
+ * Tạo đơn hàng với phương thức "thanh toán tại quầy" (Online-to-Offline).
+ *
+ * Khác createOrder (online) ở 3 điểm:
+ *   1. Sinh orderCode (BDK-XXXXXX) với Transaction+Retry để đảm bảo UNIQUE (D6).
+ *   2. Set expiresAt = createdAt + 24h — đơn tự huỷ nếu khách không đến quầy (D4).
+ *   3. paymentDetails.provider = "counter"; providerData không có confirmedBy/At
+ *      (sẽ được populate bởi confirmCounterPayment khi admin xác nhận).
+ *
+ * Pass KHÔNG được sinh ra ở đây — chỉ sinh sau khi nhân viên bấm xác nhẫn.
+ *
+ * @returns orderId (Firestore doc ID) và orderCode (để hiển thị QR cho khách)
+ */
+export async function createCounterOrder(
+  input: CreateOrderInput
+): Promise<ActionResult<{ orderId: string; orderCode: string }>> {
+  const {
+    items,
+    customerName,
+    customerEmail,
+    customerPhone,
+    customerId: clientCustomerId = "",
+    promoCode,
+    affiliateCode,
+  } = input;
+
+  // D8: Link to session user if available
+  let customerId = clientCustomerId;
+  if (!customerId) {
+    const session = await verifySession();
+    if (session?.uid) customerId = session.uid;
+  }
+
+  if (!items.length) {
+    return { success: false, errorKey: "order.empty_cart" };
+  }
+
+  // ── Step 1: Re-fetch all product prices server-side (D5) ──
+  const orderItems: OrderItem[] = [];
+  let subtotal = 0;
+
+  for (const cartItem of items) {
+    const productDoc = await adminDb
+      .collection(COLLECTIONS.PRODUCTS)
+      .doc(cartItem.productId)
+      .get();
+
+    if (!productDoc.exists) {
+      return {
+        success: false,
+        errorKey: "order.product_not_found",
+        message: cartItem.productId,
+      };
+    }
+
+    const product = {
+      id: productDoc.id,
+      ...productDoc.data(),
+    } as ProductDocument;
+
+    if (product.status !== "active") {
+      return {
+        success: false,
+        errorKey: "order.product_unavailable",
+        message: product.name,
+      };
+    }
+
+    if (
+      product.totalStock !== undefined &&
+      product.soldCount + cartItem.quantity > product.totalStock
+    ) {
+      return {
+        success: false,
+        errorKey: "order.stock_exhausted",
+        message: product.name,
+      };
+    }
+
+    const unitPrice = getEffectivePrice(product);
+    const itemSubtotal = unitPrice * cartItem.quantity;
+    subtotal += itemSubtotal;
+
+    const orderItem: OrderItem = {
+      productId: product.id,
+      productName: product.name,
+      productType: product.type,
+      thumbnailUrl: product.thumbnailUrl,
+      quantity: cartItem.quantity,
+      unitPrice,
+      subtotal: itemSubtotal,
+      validityConfig: product.validityConfig,
+    };
+    if (product.comboItems !== undefined) {
+      orderItem.comboItems = product.comboItems;
+    }
+    orderItems.push(orderItem);
+  }
+
+  // ── Step 2: Validate promo if provided ──
+  let discountAmount = 0;
+  let promotionId: string | undefined;
+  let promotionCode: string | undefined;
+
+  if (promoCode) {
+    const promoResult = await validatePromoCode(promoCode, items, customerEmail);
+    if (!promoResult.valid) {
+      return { success: false, errorKey: promoResult.errorKey ?? "promo.invalid" };
+    }
+    discountAmount = promoResult.discountAmount;
+    promotionId = promoResult.promotionId;
+    promotionCode = promoResult.promotionCode;
+  }
+
+  const finalAmount = subtotal - discountAmount;
+
+  // ── Step 3: Generate order number ──
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const randomSuffix = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const orderNumber = `BDUCK-${dateStr}-${randomSuffix}`;
+
+  // ── Step 4: Resolve affiliate ──
+  let affiliateId: string | undefined;
+  let affiliateCommissionAmount: number | undefined;
+
+  if (affiliateCode) {
+    const affSnap = await adminDb
+      .collection(COLLECTIONS.AFFILIATE_PROFILES)
+      .where("referralCode", "==", affiliateCode)
+      .where("applicationStatus", "==", "approved")
+      .limit(1)
+      .get();
+
+    if (!affSnap.empty) {
+      const affDoc = affSnap.docs[0];
+      affiliateId = affDoc.id;
+      const affData = affDoc.data();
+      let commissionRate = affData.defaultCommissionRate ?? 0;
+      for (const item of orderItems) {
+        const productDoc = await adminDb
+          .collection(COLLECTIONS.PRODUCTS)
+          .doc(item.productId)
+          .get();
+        const product = productDoc.data() as ProductDocument;
+        if (product.commissionRate !== undefined) {
+          commissionRate = product.commissionRate;
+          break;
+        }
+      }
+      affiliateCommissionAmount = Math.round(finalAmount * commissionRate);
+    }
+  }
+
+  // ── Step 5: Generate UNIQUE orderCode via Transaction + Retry (D6) ────────
+  /**
+   * Sinh 6 ký tự A-Z0-9 ngẫu nhiên, prefix "BDK-".
+   * 36^6 ≈ 2.17 tỷ tổ hợp — xác suất trùng cực thấp nhưng vẫn phải verify.
+   */
+  const generateCode = (): string => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "BDK-";
+    for (let i = 0; i < 6; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return code;
+  };
+
+  const MAX_RETRIES = 3;
+  let orderCode = "";
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const candidate = generateCode();
+
+    // Check uniqueness: query existing orders with this code
+    const existing = await adminDb
+      .collection(COLLECTIONS.ORDERS)
+      .where("orderCode", "==", candidate)
+      .limit(1)
+      .get();
+
+    if (existing.empty) {
+      orderCode = candidate;
+      break;
+    }
+    // Collision — retry with new code
+    console.warn(`[createCounterOrder] orderCode collision on attempt ${attempt + 1}: ${candidate}`);
+  }
+
+  if (!orderCode) {
+    // Astronomically unlikely (p ≈ 1.5×10⁻¹⁸) but we never trust luck
+    return { success: false, errorKey: "order.code_generation_failed" };
+  }
+
+  // ── Step 6: Write counter order to Firestore ──
+  const now = Timestamp.now();
+  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+  const expiresAt = Timestamp.fromMillis(now.toMillis() + TWENTY_FOUR_HOURS_MS);
+
+  const counterPayData: CounterPayData = {}; // confirmedBy/At filled by confirmCounterPayment
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const orderData: Record<string, any> = {
+    orderNumber,
+    orderCode,
+    expiresAt,
+    customerId,
+    isGuestOrder: !customerId,
+    customerEmail,
+    customerName,
+    customerPhone,
+    items: orderItems,
+    subtotal,
+    discountAmount,
+    finalAmount,
+    promotionId,
+    promotionCode,
+    affiliateId,
+    affiliateCode,
+    affiliateCommissionAmount,
+    status: "pending",
+    paymentDetails: {
+      provider: "counter",
+      providerData: counterPayData,
+    },
+    passIds: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  // Remove undefined fields to satisfy Firestore
+  Object.keys(orderData).forEach((key) => {
+    if (orderData[key] === undefined) delete orderData[key];
+  });
+
+  const orderRef = await adminDb.collection(COLLECTIONS.ORDERS).add(orderData);
+
+  // ── Step 7: Send confirmation email (fire-and-forget) ──
+  // Non-blocking: email failure never aborts the order creation.
+  sendCounterOrderEmail({
+    to: customerEmail,
+    customerName,
+    orderId: orderRef.id,
+    orderNumber,
+    orderCode,
+    items: orderItems.map((i) => ({
+      productName: i.productName,
+      productType: i.productType,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+      subtotal: i.subtotal,
+    })),
+    finalAmount,
+    discountAmount,
+    expiresAt: expiresAt.toDate(),
+  }).catch((err) =>
+    console.error("[createCounterOrder] Email send failed (non-fatal):", err)
+  );
+
+  return {
+    success: true,
+    data: { orderId: orderRef.id, orderCode },
   };
 }

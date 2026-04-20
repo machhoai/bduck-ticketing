@@ -53,6 +53,9 @@ export default async function CheckoutResultPage({
       finalAmount={orderData?.finalAmount ?? 0}
       discountAmount={orderData?.discountAmount ?? 0}
       passes={orderData?.passes ?? []}
+      orderCode={orderData?.orderCode}
+      paymentProvider={orderData?.paymentProvider}
+      expiresAt={orderData?.expiresAt}
     />
   );
 }

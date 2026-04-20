@@ -203,9 +203,29 @@ export interface MockPayData {
   simulateResult: "success" | "fail";
 }
 
+/**
+ * Audit trail cho thanh toán tại quầy (counter).
+ * Chỉ chứa thông tin xác nhận — orderCode và expiresAt nằm ở root OrderDocument.
+ * confirmedBy/At được populate khi admin bấm "Xác nhận đã thanh toán";
+ * khi đơn mới tạo (status=pending) hai trường này là undefined.
+ */
+export interface CounterPayData {
+  /** Firebase Auth UID của nhân viên admin đã bấm xác nhận thu tiền */
+  confirmedBy?: string;
+  /** Timestamp khi nhân viên xác nhận — chỉ có sau khi status → "paid" */
+  confirmedAt?: Timestamp;
+  /** Ghi chú nội bộ tuỳ chọn (e.g. "Khách trả bằng MOMO ngoài") */
+  note?: string;
+}
+
 export interface PaymentDetails {
-  provider: "vnpay" | "mock";
-  providerData: VNPayData | MockPayData;
+  /**
+   * "vnpay"   — tích hợp cổng VNPay (planned)
+   * "mock"    — giả lập thanh toán (dev/test)
+   * "counter" — thanh toán trực tiếp tại quầy (Online-to-Offline flow)
+   */
+  provider: "vnpay" | "mock" | "counter";
+  providerData: VNPayData | MockPayData | CounterPayData;
 }
 
 export type OrderStatus = "pending" | "paid" | "cancelled";
@@ -222,6 +242,32 @@ export interface OrderDocument {
   id: string;
   /** Human-readable: "BDUCK-20240412-00001" — for customer service & invoices */
   orderNumber: string;
+
+  // ── Counter payment fields ──────────────────────────────────────────────────
+  /**
+   * Mã quét ngắn tại quầy — encode thành QR Code trên UI của khách hàng.
+   * Format: "BDK-XXXXXX" (6 ký tự A-Z0-9, prefix "BDK-", e.g. "BDK-A3F9X2").
+   * Sinh server-side khi tạo đơn counter. UNIQUE — enforced bằng Transaction+Retry.
+   * Indexed trên Firestore để Admin Panel query: where("orderCode", "==", scannedCode).
+   *
+   * @see D6 trong Decision Log — Firestore không có UNIQUE constraint;
+   *      Server Action phải dùng Retry loop (tối đa 3 lần) để đảm bảo uniqueness.
+   *
+   * undefined với đơn online (vnpay / mock).
+   */
+  orderCode?: string; // indexed — counter orders only
+
+  /**
+   * Thời điểm đơn counter tự động bị huỷ nếu chưa thanh toán.
+   * = createdAt + 24 giờ. Chỉ set khi provider = "counter".
+   *
+   * Cơ chế kiểm tra (MVP): lazy check tại thời điểm Admin quét mã.
+   * Cloud Function scheduled có thể batch-cancel các đơn hết hạn (nice-to-have).
+   *
+   * undefined với đơn online (vnpay / mock).
+   */
+  expiresAt?: Timestamp; // counter orders only
+  // ───────────────────────────────────────────────────────────────────────────
 
   // Customer snapshot (denormalized)
   /** Firebase Auth UID when logged in. Empty string "" for guest orders. */

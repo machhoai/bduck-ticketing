@@ -77,6 +77,7 @@ export async function getOrderById(
  * Returns paginated orders for an authenticated user.
  * Security (D8): UID is extracted from verified session cookie only.
  * Never trusts a client-sent UID.
+ * Includes "pending" counter orders so customers can view their QR codes.
  */
 export async function getMyOrders(): Promise<OrderDocument[]> {
   const session = await verifySession();
@@ -85,9 +86,9 @@ export async function getMyOrders(): Promise<OrderDocument[]> {
   const snap = await adminDb
     .collection(COLLECTIONS.ORDERS)
     .where("customerId", "==", session.uid)
-    .where("status", "in", ["paid", "cancelled"])
+    .where("status", "in", ["paid", "pending", "cancelled"])
     .orderBy("createdAt", "desc")
-    .limit(20)
+    .limit(30)
     .get();
 
   return snap.docs.map((doc) => ({
@@ -127,6 +128,12 @@ export interface OrderStatusResult {
   finalAmount: number;
   discountAmount: number;
   passes: PassValidity[];
+  /** Short QR code for counter payment (e.g. "BDK-A3F9X2") */
+  orderCode?: string;
+  /** Payment provider — "counter" triggers the counter-pending UI */
+  paymentProvider?: string;
+  /** ISO string — expiresAt for counter orders (24h window) */
+  expiresAt?: string;
 }
 
 export async function getOrderStatus(
@@ -185,5 +192,10 @@ export async function getOrderStatus(
     finalAmount: data.finalAmount ?? 0,
     discountAmount: data.discountAmount ?? 0,
     passes,
+    orderCode: data.orderCode,
+    paymentProvider: data.paymentDetails?.provider,
+    expiresAt: data.expiresAt?.toDate
+      ? (data.expiresAt.toDate() as Date).toISOString()
+      : undefined,
   };
 }

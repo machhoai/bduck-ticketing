@@ -22,6 +22,10 @@ import {
     Calendar,
     CreditCard,
     Sparkles,
+    Store,
+    Clock,
+    Banknote,
+    ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
@@ -56,6 +60,12 @@ interface CheckoutResultClientProps {
     finalAmount: number;
     discountAmount: number;
     passes: PassValidity[];
+    /** Counter payment — short QR code string e.g. "BDK-A3F9X2" */
+    orderCode?: string;
+    /** "counter" | "mock" | etc. */
+    paymentProvider?: string;
+    /** ISO string — 24h counter order expiry */
+    expiresAt?: string;
 }
 
 function formatVND(amount: number) {
@@ -118,6 +128,9 @@ export function CheckoutResultClient({
     finalAmount,
     discountAmount,
     passes,
+    orderCode,
+    paymentProvider,
+    expiresAt,
 }: CheckoutResultClientProps) {
     const t = useTranslations("checkout");
 
@@ -129,12 +142,44 @@ export function CheckoutResultClient({
     const [resendStatus, setResendStatus] = useState<
         "idle" | "sending" | "success"
     >("idle");
+    const [resendCounterStatus, setResendCounterStatus] = useState<
+        "idle" | "sending" | "success"
+    >("idle");
+
+    // ─── Live countdown for counter orders ───────────────────────────────────────
+    const [timeLeft, setTimeLeft] = useState<string>("");
+    const [expired, setExpired] = useState(false);
+
+    useEffect(() => {
+        if (!expiresAt || paymentProvider !== "counter") return;
+        const target = new Date(expiresAt).getTime();
+
+        const tick = () => {
+            const diff = target - Date.now();
+            if (diff <= 0) {
+                setExpired(true);
+                setTimeLeft("00:00:00");
+                return;
+            }
+            const h = Math.floor(diff / 3_600_000);
+            const m = Math.floor((diff % 3_600_000) / 60_000);
+            const s = Math.floor((diff % 60_000) / 1_000);
+            setTimeLeft(
+                `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+            );
+        };
+        tick();
+        const id = setInterval(tick, 1000);
+        return () => clearInterval(id);
+    }, [expiresAt, paymentProvider]);
 
     const startTime = useRef(Date.now());
     const MAX_POLL_MS = 30_000;
 
-    // ── Polling for pending orders ──────────────────────────────────────────────
+    // ── Polling for pending orders — only for online payment, NOT counter ──────
     useEffect(() => {
+        // Counter orders wait for admin confirmation — no point polling here
+        if (paymentProvider === "counter") return;
         if (!orderId || status !== "pending") return;
 
         const interval = setInterval(async () => {
@@ -190,6 +235,23 @@ export function CheckoutResultClient({
         setTimeout(() => setResendStatus("idle"), 4000);
     }, [resendStatus, orderId]);
 
+    // ── Resend counter order email ──────────────────────────────────────────────
+    const handleResendCounterEmail = useCallback(async () => {
+        if (resendCounterStatus === "sending" || !orderId) return;
+        setResendCounterStatus("sending");
+        try {
+            const res = await fetch("/api/resend-counter-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId }),
+            });
+            setResendCounterStatus(res.ok ? "success" : "idle");
+        } catch {
+            setResendCounterStatus("idle");
+        }
+        setTimeout(() => setResendCounterStatus("idle"), 4_000);
+    }, [resendCounterStatus, orderId]);
+
     // QR base URL
     const qrBaseUrl =
         typeof window !== "undefined"
@@ -216,7 +278,212 @@ export function CheckoutResultClient({
         );
     }
 
-    // ── Pending ─────────────────────────────────────────────────────────────────
+    // ── Counter Payment Pending ─────────────────────────────────────────────────
+    // Show QR code + amount + countdown instead of a spinner
+    if (paymentProvider === "counter" && status === "pending") {
+        return (
+            <ResultShell locale={locale}>
+                <div className="space-y-6 animate-[fadeSlideUp_0.5s_ease-out]">
+                    {/* Header */}
+                    <div className="relative overflow-hidden bg-gradient-to-br from-[#1A1A2E] via-[#16213E] to-[#0F3460] rounded-3xl p-8 text-white text-center">
+                        {/* Subtle animated dots */}
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            {[...Array(8)].map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="absolute rounded-full animate-[float_4s_ease-in-out_infinite]"
+                                    style={{
+                                        width: `${4 + (i % 3) * 4}px`,
+                                        height: `${4 + (i % 3) * 4}px`,
+                                        background: `hsla(45, 90%, 70%, 0.15)`,
+                                        top: `${10 + i * 11}%`,
+                                        left: `${8 + i * 11}%`,
+                                        animationDelay: `${i * 0.5}s`,
+                                    }}
+                                />
+                            ))}
+                        </div>
+                        <div className="relative z-10 space-y-3">
+                            <div className="w-16 h-16 mx-auto rounded-full bg-[#F5C842]/20 backdrop-blur-sm flex items-center justify-center ring-2 ring-[#F5C842]/30">
+                                <Store className="h-8 w-8 text-[#F5C842]" />
+                            </div>
+                            <h1 className="text-2xl font-extrabold">
+                                {t("counterPendingTitle")}
+                            </h1>
+                            <p className="text-sm text-white/70">
+                                {t("counterPendingSubtitle")}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* QR Code card */}
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_4px_32px_-8px_rgba(0,0,0,0.10)] overflow-hidden">
+                        {/* Top: Amount to pay */}
+                        <div className="px-6 py-5 bg-gradient-to-r from-[#F5C842]/10 to-amber-50 border-b border-amber-100/60 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-[#F5C842]/20 flex items-center justify-center">
+                                    <Banknote className="h-5 w-5 text-[#C49B00]" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500 font-medium">{t("counterAmountLabel")}</p>
+                                    <p className="text-2xl font-black text-[#1A1A2E]">
+                                        {new Intl.NumberFormat("vi-VN").format(finalAmount)} ₫
+                                    </p>
+                                </div>
+                            </div>
+                            {/* Countdown */}
+                            {timeLeft && (
+                                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold font-mono ${
+                                    expired
+                                        ? "bg-red-100 text-red-600"
+                                        : "bg-amber-100 text-amber-800"
+                                }`}>
+                                    <Clock className="h-3.5 w-3.5" />
+                                    {timeLeft}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Center: QR */}
+                        <div className="px-6 py-8 flex flex-col items-center gap-5">
+                            <div className="relative">
+                                <div className="p-4 bg-white rounded-2xl shadow-[0_0_0_1px_rgba(0,0,0,0.06),0_4px_16px_-4px_rgba(0,0,0,0.12)]">
+                                    <QRCodeSVG
+                                        value={orderCode ?? orderId}
+                                        size={200}
+                                        level="H"
+                                        bgColor="#FFFFFF"
+                                        fgColor="#1A1A2E"
+                                        includeMargin={false}
+                                    />
+                                </div>
+                                {/* Scanner corner indicators */}
+                                {["top-0 left-0", "top-0 right-0", "bottom-0 left-0", "bottom-0 right-0"].map((pos, i) => (
+                                    <div
+                                        key={i}
+                                        className={`absolute ${pos} w-6 h-6 border-[#F5C842] ${
+                                            i === 0 ? "border-t-[3px] border-l-[3px] rounded-tl-lg" :
+                                            i === 1 ? "border-t-[3px] border-r-[3px] rounded-tr-lg" :
+                                            i === 2 ? "border-b-[3px] border-l-[3px] rounded-bl-lg" :
+                                                      "border-b-[3px] border-r-[3px] rounded-br-lg"
+                                        }`}
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Order code badge */}
+                            {orderCode && (
+                                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">
+                                    <Hash className="h-4 w-4 text-gray-400" />
+                                    <span className="font-mono font-bold text-xl tracking-[0.2em] text-[#1A1A2E]">
+                                        {orderCode}
+                                    </span>
+                                </div>
+                            )}
+
+                            <p className="text-xs text-gray-400 text-center max-w-[240px]">
+                                {t("counterQrHint")}
+                            </p>
+                        </div>
+
+                        {/* Bottom: Items summary */}
+                        <div className="px-6 pb-6 space-y-2">
+                            <div className="w-full border-t border-dashed border-gray-200 mb-4" />
+                            <div className="flex items-center gap-2 mb-3">
+                                <ClipboardList className="h-4 w-4 text-gray-400" />
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t("counterItemsLabel")}</p>
+                            </div>
+                            {items.map((item, i) => (
+                                <div key={i} className="flex items-center justify-between text-sm">
+                                    <span className="text-gray-700">{item.productName} × {item.quantity}</span>
+                                    <span className="font-semibold text-[#1A1A2E]">{new Intl.NumberFormat("vi-VN").format(item.subtotal)} ₫</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Steps */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.06)] p-5 space-y-4">
+                        <h3 className="text-sm font-bold text-[#1A1A2E]">{t("counterStepsTitle")}</h3>
+                        {(["counterStep1", "counterStep2", "counterStep3"] as const).map((key, i) => (
+                            <div key={key} className="flex items-start gap-3">
+                                <div className="w-6 h-6 rounded-full bg-[#F5C842]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span className="text-xs font-bold text-[#C49B00]">{i + 1}</span>
+                                </div>
+                                <p className="text-sm text-gray-600">{t(key)}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Expiry warning */}
+                    {expired && (
+                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-red-50 border border-red-100">
+                            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                            <p className="text-sm text-red-700 font-medium">{t("counterExpired")}</p>
+                        </div>
+                    )}
+
+                    {/* Resend email */}
+                    {!expired && (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.06)] p-5 space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                                    <Mail className="h-5 w-5 text-amber-500" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-[#1A1A2E]">{t("counterEmailSent")}</p>
+                                    <p className="text-xs text-gray-400 truncate">{customerEmail}</p>
+                                </div>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={handleResendCounterEmail}
+                                disabled={resendCounterStatus === "sending"}
+                                className="w-full"
+                            >
+                                {resendCounterStatus === "sending" ? (
+                                    <>
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        {t("resending")}
+                                    </>
+                                ) : resendCounterStatus === "success" ? (
+                                    <>
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                                        {t("resendSuccess")}
+                                    </>
+                                ) : (
+                                    <>
+                                        <RefreshCw className="h-3.5 w-3.5" />
+                                        {t("resendEmail")}
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Navigation */}
+                    <div className="flex gap-3 justify-center">
+                        <Link href={`/${locale}/orders`}>
+                            <Button variant="secondary" size="md">
+                                <ShoppingBag className="h-4 w-4" />
+                                {t("viewOrders")}
+                            </Button>
+                        </Link>
+                        <Link href={`/${locale}`}>
+                            <Button variant="ghost" size="md">
+                                <Home className="h-4 w-4" />
+                                {t("backToHome")}
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+            </ResultShell>
+        );
+    }
+
+    // ── Online Pending (spinner) ─────────────────────────────────────────────────
     if (status === "pending" && !timedOut) {
         return (
             <ResultShell locale={locale}>
