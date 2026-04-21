@@ -12,6 +12,7 @@ import { useNavbar } from "@/stores/navbar";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui";
 import { CheckoutProgressBar } from "@/components/customer/CheckoutProgressBar";
+import { PaymentMethodSelector, type PaymentMethodId } from "@/components/customer/PaymentMethodSelector";
 import {
   Tag,
   ShieldCheck,
@@ -59,6 +60,7 @@ const PROMO_ERRORS: Record<string, string> = {
 };
 
 // ─── Payment Methods ──────────────────────────────────────────────────────────
+// NOTE: legacy type kept for submit routing; extended by PaymentMethodId in future
 type PaymentMethod = "counter" | "mock";
 
 // ─── Test Payment Cards (mock only) ──────────────────────────────────────────
@@ -127,6 +129,8 @@ export default function CheckoutPage() {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   // "counter" = go-live default; "mock" = dev test simulation
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("counter");
+  // Full payment method selection for UI (maps to PaymentMethod for submit routing)
+  const [selectedPaymentId, setSelectedPaymentId] = useState<PaymentMethodId>("counter");
   const [selectedCard, setSelectedCard] = useState<SimulateType>("success");
 
   // ── Promo state ──
@@ -473,157 +477,15 @@ export default function CheckoutPage() {
                         {t("paymentMethod")}
                       </h2>
 
-                      {/* ── Counter Payment Card ── */}
-                      <button
-                        type="button"
+                      <PaymentMethodSelector
+                        selected={selectedPaymentId}
+                        onChange={(id) => {
+                          setSelectedPaymentId(id);
+                          // Route to submit handler: counter stays counter, everything else uses mock/VNPay
+                          setPaymentMethod(id === "counter" ? "counter" : "mock");
+                        }}
                         disabled={submitting}
-                        onClick={() => setPaymentMethod("counter")}
-                        className={`w-full text-left rounded-2xl border-2 p-5 transition-all duration-300 ${
-                          paymentMethod === "counter"
-                            ? "border-[#F5C842] bg-gradient-to-r from-[#1A1A2E] to-[#16213E] shadow-lg shadow-[#1A1A2E]/10 scale-[1.01]"
-                            : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
-                        } ${submitting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                            paymentMethod === "counter"
-                              ? "bg-[#F5C842]/20"
-                              : "bg-gray-50"
-                          }`}>
-                            <Store className={`h-6 w-6 ${
-                              paymentMethod === "counter" ? "text-[#F5C842]" : "text-gray-400"
-                            }`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`font-bold text-base ${
-                              paymentMethod === "counter" ? "text-white" : "text-[#1A1A2E]"
-                            }`}>
-                              {t("counterMethodTitle")}
-                            </p>
-                            <p className={`text-sm mt-0.5 ${
-                              paymentMethod === "counter" ? "text-white/60" : "text-gray-500"
-                            }`}>
-                              {t("counterMethodDesc")}
-                            </p>
-                          </div>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                            paymentMethod === "counter"
-                              ? "border-[#F5C842] bg-transparent"
-                              : "border-gray-300"
-                          }`}>
-                            {paymentMethod === "counter" && (
-                              <div className="w-2.5 h-2.5 rounded-full bg-[#F5C842]" />
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Counter payment info pills */}
-                        {paymentMethod === "counter" && (
-                          <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap gap-2">
-                            {[
-                              { icon: "🏪", text: t("counterPillLocation") },
-                              { icon: "⏰", text: t("counterPillExpiry") },
-                              { icon: "💳", text: t("counterPillPayment") },
-                            ].map((pill, i) => (
-                              <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white/80 text-xs font-medium">
-                                {pill.icon} {pill.text}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </button>
-
-                      {/* ── Mock Payment Card (Dev) ── */}
-                      <button
-                        type="button"
-                        disabled={submitting}
-                        onClick={() => setPaymentMethod("mock")}
-                        className={`w-full text-left rounded-2xl border-2 p-5 transition-all duration-300 ${
-                          paymentMethod === "mock"
-                            ? "border-violet-300 bg-gradient-to-r from-violet-50 to-purple-50 shadow-md scale-[1.01]"
-                            : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
-                        } ${submitting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                            paymentMethod === "mock" ? "bg-violet-100" : "bg-gray-50"
-                          }`}>
-                            <MonitorSmartphone className={`h-6 w-6 ${
-                              paymentMethod === "mock" ? "text-violet-600" : "text-gray-400"
-                            }`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`font-bold text-base flex items-center gap-2 ${
-                              paymentMethod === "mock" ? "text-violet-900" : "text-[#1A1A2E]"
-                            }`}>
-                              {t("mockMethodTitle")}
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-violet-100 text-violet-600 uppercase tracking-wider">
-                                Dev
-                              </span>
-                            </p>
-                            <p className={`text-sm mt-0.5 ${
-                              paymentMethod === "mock" ? "text-violet-600" : "text-gray-500"
-                            }`}>
-                              {t("mockMethodDesc")}
-                            </p>
-                          </div>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                            paymentMethod === "mock"
-                              ? "border-violet-400 bg-white"
-                              : "border-gray-300"
-                          }`}>
-                            {paymentMethod === "mock" && (
-                              <div className="w-2.5 h-2.5 rounded-full bg-violet-500" />
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Test cards (shown only when mock selected) */}
-                        {paymentMethod === "mock" && (
-                          <div className="mt-4 pt-4 border-t border-violet-100 space-y-2">
-                            <p className="text-xs text-violet-500 font-medium flex items-center gap-1.5">
-                              <Zap className="h-3 w-3" />
-                              {t("paymentTestNote")}
-                            </p>
-                            <div className="space-y-2">
-                              {TEST_CARDS.map((card) => {
-                                const CardIcon = card.icon;
-                                const isSelected = selectedCard === card.id;
-                                return (
-                                  <button
-                                    key={card.id}
-                                    type="button"
-                                    disabled={submitting}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedCard(card.id);
-                                    }}
-                                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200 text-left ${
-                                      isSelected
-                                        ? `bg-gradient-to-r ${card.gradient} ${card.borderColor.split(" ")[0]} shadow-sm`
-                                        : `bg-white border-gray-100 hover:border-gray-200`
-                                    } ${submitting ? "cursor-not-allowed" : "cursor-pointer"}`}
-                                  >
-                                    <CardIcon className={`h-4 w-4 flex-shrink-0 ${isSelected ? card.iconColor : "text-gray-400"}`} />
-                                    <div className="flex-1 min-w-0">
-                                      <p className={`text-xs font-semibold ${isSelected ? "text-[#1A1A2E]" : "text-gray-600"}`}>
-                                        {t(card.labelKey)}
-                                      </p>
-                                    </div>
-                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                                      isSelected ? `${card.borderColor.split(" ")[0]} bg-white` : "border-gray-300"
-                                    }`}>
-                                      {isSelected && (
-                                        <div className={`w-2 h-2 rounded-full ${card.iconColor.replace("text-", "bg-")}`} />
-                                      )}
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </button>
+                      />
                     </div>
 
                     {/* ── Submit Button ── */}

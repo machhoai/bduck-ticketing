@@ -149,6 +149,31 @@
             }
         }
     },
+    "paymentSelector": {
+        "groupLabel": "Select a payment method",
+        "groupOnline": "Online payment",
+        "groupWallet": "E-Wallets",
+        "groupCounter": "Pay in person",
+        "methodCard": "Domestic ATM card (Napas)",
+        "methodCardDesc": "Supports most Vietnamese banks",
+        "methodIntl": "International card",
+        "methodIntlDesc": "Visa, Mastercard, JCB, UnionPay — 3D Secure authenticated",
+        "methodTransfer": "Bank transfer",
+        "methodTransferDesc": "Internet Banking via dozens of supported banks",
+        "methodQr": "QR Pay (VNPay)",
+        "methodQrDesc": "Scan QR code with your banking or e-wallet app",
+        "methodVNPayWallet": "VNPay Wallet",
+        "methodVNPayWalletDesc": "Pay directly from your VNPay wallet balance",
+        "methodMomo": "MoMo Wallet",
+        "methodMomoDesc": "Link MoMo wallet, pay in seconds",
+        "methodZalopay": "ZaloPay Wallet",
+        "methodZalopayDesc": "Pay via the ZaloPay application",
+        "methodApplePay": "Apple Pay",
+        "methodApplePayDesc": "Available on iPhone, iPad and MacBook with Touch ID / Face ID",
+        "methodCounter": "Pay at counter",
+        "methodCounterDesc": "Receive an order QR code, then pay cash or bank transfer at the cashier",
+        "secureNote": "All transactions are SSL 256-bit encrypted and processed through payment gateways licensed by Vietnam's Ministry of Industry and Trade"
+    },
     "footer": {
         "copyright": "© 2026 Joy World Entertainment Limited. All rights reserved.",
         "brandTagline": "Vietnam's premier international entertainment destination for children.",
