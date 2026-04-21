@@ -150,10 +150,29 @@
         }
     },
     "footer": {
-        "copyright": "© 2026 B.Duck Cityfuns Vietnam. All rights reserved.",
+        "copyright": "© 2026 Joy World Entertainment Limited. All rights reserved.",
+        "brandTagline": "Vietnam's premier international entertainment destination for children.",
+        "companyHeading": "Company Info",
+        "companyName": "Joy World Entertainment Limited",
+        "companyNameEn": "Công ty TNHH Joy World Entertainment",
+        "taxIdLabel": "Tax ID",
+        "hqLabel": "Head Office",
+        "address": "154A Nguyen Thi Thap, Tan Thuan Ward, Ho Chi Minh City",
+        "storeHeading": "Store & Contact",
+        "phoneLabel": "Hotline",
+        "emailLabel": "Email",
+        "hoursLabel": "Opening Hours",
+        "hours": "10:00 AM – 10:00 PM weekdays,\n 9:00 AM – 10:00 PM weekends and holidays.",
+        "policyHeading": "Policies",
+        "legalHeading": "Legal",
+        "purchaseGuide": "How to Buy Tickets",
+        "deliveryPolicy": "Delivery Policy",
+        "paymentMethods": "Payment Methods",
+        "returnPolicy": "Warranty & Returns",
         "terms": "Terms of Use",
         "privacy": "Privacy Policy",
-        "contactUs": "Contact"
+        "contactUs": "Buy Tickets",
+        "bctNote": "Compliant with Vietnam Ministry of Industry and Trade"
     },
     "privacyPolicy": {
         "metaTitle": "Privacy Policy — B.Duck Cityfuns",
@@ -185,11 +204,11 @@
             },
             "rights": {
                 "title": "Your Rights",
-                "content": "You have the right to:\n\n• Access and view the personal information we hold about you.\n• Request correction of inaccurate information.\n• Request deletion of your account and personal data.\n• Object to the processing of your data for marketing purposes.\n\nTo exercise these rights, please contact: support@bduck-cityfuns.vn"
+                "content": "You have the right to:\n\n• Access and view the personal information we hold about you.\n• Request correction of inaccurate information.\n• Request deletion of your account and personal data.\n• Object to the processing of your data for marketing purposes.\n\nTo exercise these rights, please contact: ask@bduckcifyfuns.com.vn"
             },
             "contact": {
                 "title": "Privacy Contact",
-                "content": "If you have questions about our privacy policy, please contact:\n\n📧 Email: support@bduck-cityfuns.vn\n📍 Address: B.Duck Cityfuns, Vietnam\n\nWe will respond within 5 business days."
+                "content": "If you have questions about our privacy policy, please contact:\n\n📧 Email: ask@bduckcifyfuns.com.vn\n📍 Address: B.Duck Cityfuns, Vietnam\n\nWe will respond within 5 business days."
             }
         },
         "footerNote": "This privacy policy may be updated periodically. The latest version is always published on this page."
@@ -232,10 +251,142 @@
             },
             "governing": {
                 "title": "Governing Law",
-                "content": "These Terms are governed by the laws of Vietnam. Any disputes arising shall be resolved in the competent courts of Ho Chi Minh City, Vietnam.\n\nFor any questions, please contact: support@bduck-cityfuns.vn"
+                "content": "These Terms are governed by the laws of Vietnam. Any disputes arising shall be resolved in the competent courts of Ho Chi Minh City, Vietnam.\n\nFor any questions, please contact: ask@bduckcifyfuns.com.vn"
             }
         },
         "footerNote": "By using our services, you agree to these Terms of Use. © 2026 B.Duck Cityfuns Vietnam."
+    },
+    "purchaseGuide": {
+        "metaTitle": "How to Buy Tickets — B.Duck Cityfuns",
+        "metaDescription": "Step-by-step guide to purchasing e-tickets at B.Duck Cityfuns. Choose, pay, and receive your QR code instantly.",
+        "heroTitle": "How to Buy Tickets",
+        "heroSubtitle": "Just a few simple steps to get your e-ticket — secure payment, instant QR code delivery.",
+        "lastUpdated": "Last updated: April 1, 2026",
+        "intro": "B.Duck Cityfuns provides a convenient, fast, and secure online ticketing service. Your QR e-ticket will be sent directly to your email right after a successful payment — no printing required.",
+        "sections": {
+            "browse": {
+                "title": "Step 1: Choose Your Ticket",
+                "content": "Visit the Tickets page (click 'Tickets' in the navigation bar) to browse all available tickets and combos.\n\n• Single tickets: For individual rides or attractions.\n• Combo packages: Bundles of multiple sessions at a discounted price.\n• Filter by product group or search by name to find the right ticket.\n• Click on a ticket card to view the full description, price, and remaining stock."
+            },
+            "cart": {
+                "title": "Step 2: Add to Cart",
+                "content": "Once you've found your ticket, click the 'Add to Cart' button on the product card.\n\n• You can add multiple different ticket types to a single cart.\n• The cart icon in the navigation bar shows the current number of items.\n• Click the cart icon to review and edit your selections before checkout."
+            },
+            "info": {
+                "title": "Step 3: Enter Buyer Information",
+                "content": "On the checkout page, fill in the following details:\n\n• Full name (buyer or ticket recipient)\n• Email address — your QR ticket will be sent here, please double-check.\n• Phone number.\n• Promo code (if any): Enter it in the 'Promo Code' field and click 'Apply'."
+            },
+            "payment": {
+                "title": "Step 4: Select Payment Method",
+                "content": "B.Duck Cityfuns supports the following payment methods:\n\n• Online payment: Domestic cards, international cards (Visa/Mastercard), e-wallets, QR Pay.\n• Pay at Counter: Select this option to receive an order QR code, then bring it to the cashier and pay by cash or bank transfer.\n\nReview the order summary and total amount before confirming."
+            },
+            "receive": {
+                "title": "Step 5: Receive Your E-Ticket",
+                "content": "After successful payment:\n\n• Your QR ticket will be sent to the email you provided within a few seconds to 5 minutes.\n• You can also view your ticket in 'My Orders' when logged in.\n• If you don't receive the email, check your Spam/Junk folder first.\n• Use the 'Resend Email' button on the order detail page if needed."
+            },
+            "use": {
+                "title": "Step 6: Use Your Ticket at the Park",
+                "content": "When you arrive at B.Duck Cityfuns:\n\n• Open your email or go to 'My Orders' to retrieve your QR code.\n• Present the QR code at the ticket counter to exchange for a paper ticket (if applicable) or scan directly at the entrance.\n• Each QR code can only be used once.\n• Take a screenshot of the QR code for offline use in case you have no internet access."
+            },
+            "support": {
+                "title": "Support & Contact",
+                "content": "If you encounter any issues during the ticket purchase process:\n\n📧 Email: ask@bduckcifyfuns.com.vn\n📞 Hotline: At the cashier counter at the park\n🕐 Support hours: 8:00 AM – 9:00 PM daily\n\nOur team will respond within 2 business hours."
+            }
+        },
+        "footerNote": "Need more help? Don't hesitate to contact us at ask@bduckcifyfuns.com.vn."
+    },
+    "deliveryPolicy": {
+        "metaTitle": "Delivery Policy — B.Duck Cityfuns",
+        "metaDescription": "B.Duck Cityfuns e-ticket delivery policy. Receive your QR code instantly via email after successful payment.",
+        "heroTitle": "Delivery Policy",
+        "heroSubtitle": "E-tickets delivered instantly to your inbox — no waiting, no printing.",
+        "lastUpdated": "Last updated: April 1, 2026",
+        "intro": "Due to the nature of our service, B.Duck Cityfuns delivers tickets exclusively in digital format (e-tickets). Tickets are delivered directly to the customer's email address after a successful payment — completely free and instantaneous.",
+        "sections": {
+            "method": {
+                "title": "Ticket Delivery Method",
+                "content": "B.Duck Cityfuns uses electronic ticket (e-ticket) delivery exclusively:\n\n• QR tickets are sent to the email address provided at the time of order.\n• Physical delivery (paper tickets by mail) is not available.\n• Delivery fee: Completely free.\n• Customers can also view their tickets in 'My Orders' after logging in."
+            },
+            "timeline": {
+                "title": "Delivery Timeline",
+                "content": "• Successful online payment: Ticket sent within 30 seconds – 5 minutes.\n• Counter payment: Ticket sent immediately after the cashier confirms payment.\n• During high system load: Maximum 15 minutes.\n\nIf you haven't received your ticket after 15 minutes, please check your Spam/Junk folder or contact support."
+            },
+            "scope": {
+                "title": "Coverage",
+                "content": "• Applies to all orders placed on bduck-cityfuns.vn.\n• E-tickets can be used at all B.Duck Cityfuns locations in Vietnam.\n• No geographic restrictions on email delivery — customers anywhere can order tickets."
+            },
+            "notreceived": {
+                "title": "Didn't Receive Your Ticket?",
+                "content": "If you haven't received your ticket after 15 minutes, follow these steps:\n\n1. Check your Spam/Junk/Trash folder in your email client.\n2. Search for emails from noreply@bduck-cityfuns.vn.\n3. Go to 'My Orders' on the website to check your order status.\n4. Click 'Resend Email' if the order status shows 'Successful'.\n5. If still not received, contact ask@bduckcifyfuns.com.vn with your order ID."
+            },
+            "notes": {
+                "title": "Important Notes",
+                "content": "• Please enter your email address accurately at checkout — we are not responsible for tickets sent to an incorrectly typed email.\n• Each QR ticket can only be used once and will be automatically voided after scanning.\n• We recommend screenshotting your QR code or saving the ticket URL for offline use.\n• Do not share your QR code with others before using it."
+            }
+        },
+        "footerNote": "B.Duck Cityfuns e-tickets — convenient, instant, and eco-friendly."
+    },
+    "paymentMethods": {
+        "metaTitle": "Payment Methods — B.Duck Cityfuns",
+        "metaDescription": "B.Duck Cityfuns supports online and counter payment. Multiple secure payment options available.",
+        "heroTitle": "Payment Methods",
+        "heroSubtitle": "Flexible, secure, and convenient payment options for every customer.",
+        "lastUpdated": "Last updated: April 1, 2026",
+        "intro": "B.Duck Cityfuns supports a variety of payment methods to accommodate all customers. All transactions are SSL-encrypted and processed through trusted payment gateways, ensuring absolute security.",
+        "sections": {
+            "online": {
+                "title": "Online Payment",
+                "content": "We support the following online payment methods:\n\n• Domestic bank cards (ATM/Napas): Most Vietnamese banks.\n• International cards: Visa, Mastercard, JCB, American Express.\n• E-wallets: MoMo, ZaloPay, VNPay, Moca.\n• QR Pay: Scan via banking apps or e-wallet apps.\n• Internet Banking: Online transfers via banking apps.\n\nOnline transactions are processed instantly — tickets sent to your email right after confirmation."
+            },
+            "counter": {
+                "title": "Pay at Counter",
+                "content": "For customers who prefer to pay in person at the park:\n\n1. Add items to cart and place an order on the website, selecting 'Pay at Counter'.\n2. Receive an order QR code — valid for 24 hours.\n3. Bring the QR code to the B.Duck Cityfuns cashier counter.\n4. Staff will scan the code and display your order details.\n5. Pay by Cash or Bank Transfer.\n6. Your e-ticket will be sent to your email right after."
+            },
+            "promo": {
+                "title": "Promo Codes & Discounts",
+                "content": "• Enter your promo code in the 'Promo Code' field during the checkout process.\n• Click 'Apply' to validate and see the discount amount.\n• Only one promo code can be applied per order.\n• Promo codes may have expiration dates or specific conditions.\n• Promo codes have no cash value and cannot be exchanged."
+            },
+            "security": {
+                "title": "Payment Security",
+                "content": "Every transaction at B.Duck Cityfuns is protected by:\n\n• 256-bit SSL encryption for all connections.\n• PCI-DSS compliance for payment industry standards.\n• No storage of customer payment card information.\n• Server-side price confirmation — cannot be altered client-side.\n• Automatic anomalous transaction detection system."
+            },
+            "notes": {
+                "title": "Important Notes",
+                "content": "• Ticket prices displayed on the website include VAT where applicable.\n• Counter payment orders are valid for a maximum of 24 hours from placement.\n• If a payment is declined, please check your account balance or contact your bank.\n• For transaction disputes, contact ask@bduckcifyfuns.com.vn with your order ID and proof of payment."
+            }
+        },
+        "footerNote": "B.Duck Cityfuns is committed to providing the safest and most convenient payment experience for our customers."
+    },
+    "returnPolicy": {
+        "metaTitle": "Warranty & Return Policy — B.Duck Cityfuns",
+        "metaDescription": "B.Duck Cityfuns e-ticket refund and exchange policy. Transparent, fair, and customer-first.",
+        "heroTitle": "Warranty & Return Policy",
+        "heroSubtitle": "We are committed to transparency and protecting our customers' rights in every situation.",
+        "lastUpdated": "Last updated: April 1, 2026",
+        "intro": "B.Duck Cityfuns respects customer rights and maintains a clear policy on e-ticket exchanges and refunds. Due to the digital nature of e-tickets, the return policy has specific conditions outlined below.",
+        "sections": {
+            "conditions": {
+                "title": "Refund Eligibility",
+                "content": "You may request a refund in the following cases:\n\n✅ System technical error: Ticket was not generated after a successful charge.\n✅ Ticket sent to wrong email: Due to a system error (not caused by the customer entering incorrect details).\n✅ Event cancelled by B.Duck Cityfuns: A full 100% refund will be issued.\n✅ Incorrect ticket pricing: The difference between the displayed price and actual price will be refunded."
+            },
+            "process": {
+                "title": "Refund Request Process",
+                "content": "Follow these steps to request a ticket refund:\n\n1. Email ask@bduckcifyfuns.com.vn with the subject: [REFUND REQUEST] + Order ID.\n2. Provide: Full name, booking email, order ID, and reason for refund request.\n3. Attach supporting evidence if available (error screenshots, payment receipts).\n4. Our team will review and respond within 1–2 business days.\n5. If approved, the refund will be returned to the original payment method."
+            },
+            "timeline": {
+                "title": "Refund Processing Time",
+                "content": "• Request review: 1–2 business days from receiving complete information.\n• Approval and processing: 3–5 business days.\n• Funds returned to account/card: 5–15 business days depending on bank/e-wallet.\n\nTotal maximum time: 7–20 business days from when the request is approved."
+            },
+            "exceptions": {
+                "title": "Non-Refundable Cases",
+                "content": "We do not support refunds in the following cases:\n\n🚫 Ticket has already been scanned/used at the park.\n🚫 Customer entered the wrong email and the ticket was successfully sent to that address.\n🚫 Ticket has expired according to the validity stated on the ticket.\n🚫 Customer changes their mind after successfully receiving the ticket.\n🚫 Ticket was shared with a third party and has been used.\n🚫 Request submitted more than 24 hours after a technical issue occurred."
+            },
+            "contact": {
+                "title": "Refund Support Contact",
+                "content": "📧 Email: ask@bduckcifyfuns.com.vn\n📝 Email subject: [REFUND REQUEST] + Order ID\n🕐 Processing hours: Monday – Saturday, 8:00 AM – 6:00 PM\n\nPlease provide complete information so we can process your request as quickly as possible. We are committed to resolving all complaints fairly and transparently."
+            }
+        },
+        "footerNote": "This policy complies with the regulations of Vietnam's Ministry of Industry and Trade on consumer protection in e-commerce."
     },
     "common": {
         "popular": "Popular",

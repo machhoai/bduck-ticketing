@@ -150,10 +150,29 @@
         }
     },
     "footer": {
-        "copyright": "© 2026 B.Duck Cityfuns Vietnam. All rights reserved.",
+        "copyright": "© 2026 Công ty TNHH Joy World Entertainment. Mọi quyền được bảo lưu.",
+        "brandTagline": "Khu vui chơi quốc tế hàng đầu Việt Nam dành riêng cho trẻ em.",
+        "companyHeading": "Thông tin công ty",
+        "companyName": "Công ty TNHH Joy World Entertainment",
+        "companyNameEn": "Joy World Entertainment Limited",
+        "taxIdLabel": "Mã số thuế",
+        "hqLabel": "Trụ sở chính",
+        "address": "154A Nguyễn Thị Thập, P. Tân Thuận, TP. HCM",
+        "storeHeading": "Cửa hàng & liên hệ",
+        "phoneLabel": "Hotline",
+        "emailLabel": "Email",
+        "hoursLabel": "Giờ mở cửa",
+        "hours": "10:00 – 22:00 ngày thường,\n 9:00 – 22:00 cuối tuần và ngày lễ",
+        "policyHeading": "Chính sách",
+        "legalHeading": "Pháp lý",
+        "purchaseGuide": "Hướng dẫn mua hàng",
+        "deliveryPolicy": "Chính sách giao hàng",
+        "paymentMethods": "Hình thức thanh toán",
+        "returnPolicy": "Chính sách bảo hành đổi trả",
         "terms": "Điều khoản sử dụng",
-        "privacy": "Chính sách bảo mật",
-        "contactUs": "Liên hệ"
+        "privacy": "Chính sách bảo mật thông tin",
+        "contactUs": "Mua vé",
+        "bctNote": "Tuân thủ quy định Bộ Công Thương Việt Nam"
     },
     "privacyPolicy": {
         "metaTitle": "Chính sách bảo mật — B.Duck Cityfuns",
@@ -185,11 +204,11 @@
             },
             "rights": {
                 "title": "Quyền của bạn",
-                "content": "Bạn có quyền:\n\n• Truy cập và xem thông tin cá nhân chúng tôi đang lưu trữ.\n• Yêu cầu chỉnh sửa thông tin không chính xác.\n• Yêu cầu xóa tài khoản và dữ liệu cá nhân.\n• Phản đối việc xử lý dữ liệu cho mục đích tiếp thị.\n\nĐể thực hiện các quyền này, vui lòng liên hệ: support@bduck-cityfuns.vn"
+                "content": "Bạn có quyền:\n\n• Truy cập và xem thông tin cá nhân chúng tôi đang lưu trữ.\n• Yêu cầu chỉnh sửa thông tin không chính xác.\n• Yêu cầu xóa tài khoản và dữ liệu cá nhân.\n• Phản đối việc xử lý dữ liệu cho mục đích tiếp thị.\n\nĐể thực hiện các quyền này, vui lòng liên hệ: ask@bduckcifyfuns.com.vn"
             },
             "contact": {
                 "title": "Liên hệ về quyền riêng tư",
-                "content": "Nếu có thắc mắc về chính sách bảo mật, vui lòng liên hệ:\n\n📧 Email: support@bduck-cityfuns.vn\n📍 Địa chỉ: B.Duck Cityfuns, Việt Nam\n\nChúng tôi sẽ phản hồi trong vòng 5 ngày làm việc."
+                "content": "Nếu có thắc mắc về chính sách bảo mật, vui lòng liên hệ:\n\n📧 Email: ask@bduckcifyfuns.com.vn\n📍 Địa chỉ: B.Duck Cityfuns, Việt Nam\n\nChúng tôi sẽ phản hồi trong vòng 5 ngày làm việc."
             }
         },
         "footerNote": "Chính sách bảo mật này có thể được cập nhật định kỳ. Phiên bản mới nhất luôn được đăng tải trên trang này."
@@ -232,10 +251,142 @@
             },
             "governing": {
                 "title": "Luật áp dụng",
-                "content": "Các Điều khoản này được điều chỉnh bởi pháp luật Việt Nam. Mọi tranh chấp phát sinh sẽ được giải quyết tại Tòa án có thẩm quyền tại Thành phố Hồ Chí Minh, Việt Nam.\n\nMọi thắc mắc, vui lòng liên hệ: support@bduck-cityfuns.vn"
+                "content": "Các Điều khoản này được điều chỉnh bởi pháp luật Việt Nam. Mọi tranh chấp phát sinh sẽ được giải quyết tại Tòa án có thẩm quyền tại Thành phố Hồ Chí Minh, Việt Nam.\n\nMọi thắc mắc, vui lòng liên hệ: ask@bduckcifyfuns.com.vn"
             }
         },
         "footerNote": "Bằng cách sử dụng dịch vụ của chúng tôi, bạn đồng ý với các Điều khoản Sử dụng trên. © 2026 B.Duck Cityfuns Vietnam."
+    },
+    "purchaseGuide": {
+        "metaTitle": "Hướng dẫn mua hàng — B.Duck Cityfuns",
+        "metaDescription": "Hướng dẫn từng bước mua vé điện tử tại B.Duck Cityfuns. Chọn vé, thanh toán, nhận QR Code ngay lập tức.",
+        "heroTitle": "Hướng dẫn Mua hàng",
+        "heroSubtitle": "Chỉ vài bước đơn giản để có vé điện tử — thanh toán an toàn, nhận QR Code ngay lập tức.",
+        "lastUpdated": "Cập nhật lần cuối: 1 tháng 4, 2026",
+        "intro": "B.Duck Cityfuns cung cấp dịch vụ mua vé trực tuyến tiện lợi, nhanh chóng và bảo mật. Vé điện tử dưới dạng QR Code sẽ được gửi ngay đến email của bạn sau khi thanh toán thành công, sẵn sàng cho chuyến vui chơi không cần in giấy.",
+        "sections": {
+            "browse": {
+                "title": "Bước 1: Chọn loại vé",
+                "content": "Truy cập trang Vé (mục 'Vé' trên thanh điều hướng) để xem toàn bộ các loại vé và combo đang có.\n\n• Vé đơn lẻ: Dành cho từng trò chơi cụ thể.\n• Vé Combo: Gói ưu đãi gồm nhiều lượt chơi với giá tiết kiệm hơn.\n• Lọc theo nhóm sản phẩm hoặc tìm kiếm theo tên để tìm vé phù hợp.\n• Nhấn vào thẻ vé để xem mô tả chi tiết, giá và số lượng còn lại."
+            },
+            "cart": {
+                "title": "Bước 2: Thêm vào giỏ hàng",
+                "content": "Sau khi chọn được loại vé, nhấn nút 'Thêm vào giỏ' trên thẻ sản phẩm.\n\n• Bạn có thể thêm nhiều loại vé khác nhau vào cùng một giỏ hàng.\n• Biểu tượng giỏ hàng trên thanh điều hướng sẽ hiển thị số lượng sản phẩm hiện có.\n• Nhấn vào biểu tượng giỏ hàng để xem lại và chỉnh sửa trước khi thanh toán."
+            },
+            "info": {
+                "title": "Bước 3: Điền thông tin người mua",
+                "content": "Tại trang thanh toán, điền đầy đủ thông tin sau:\n\n• Họ và tên (người mua hoặc người nhận vé)\n• Địa chỉ email — vé QR Code sẽ được gửi đến đây, hãy kiểm tra kỹ.\n• Số điện thoại liên hệ.\n• Mã giảm giá (nếu có): Nhập vào ô 'Mã giảm giá' và nhấn 'Áp dụng'."
+            },
+            "payment": {
+                "title": "Bước 4: Chọn phương thức thanh toán",
+                "content": "B.Duck Cityfuns hỗ trợ các phương thức thanh toán sau:\n\n• Thanh toán trực tuyến: Thẻ nội địa, thẻ quốc tế (Visa/Master), ví điện tử, QR Pay.\n• Thanh toán tại quầy: Chọn phương thức này để nhận mã QR, mang đến quầy thu ngân và thanh toán trực tiếp bằng tiền mặt hoặc chuyển khoản.\n\nKiểm tra lại tóm tắt đơn hàng và tổng tiền trước khi xác nhận."
+            },
+            "receive": {
+                "title": "Bước 5: Nhận vé điện tử",
+                "content": "Sau khi thanh toán thành công:\n\n• Vé QR Code sẽ được gửi đến email bạn đã cung cấp trong vòng vài giây đến 5 phút.\n• Bạn cũng có thể xem lại vé trong mục 'Đơn hàng của tôi' khi đăng nhập.\n• Nếu không nhận được email, hãy kiểm tra thư mục Spam/Junk trước khi liên hệ hỗ trợ.\n• Nhấn 'Gửi lại email' trong trang chi tiết đơn hàng nếu cần."
+            },
+            "use": {
+                "title": "Bước 6: Sử dụng vé tại khu vui chơi",
+                "content": "Khi đến B.Duck Cityfuns:\n\n• Mở email hoặc vào 'Đơn hàng của tôi' để lấy mã QR Code.\n• Xuất trình mã QR tại quầy vé để đổi vé giấy (nếu có) hoặc trực tiếp vào cổng.\n• Mỗi mã QR chỉ sử dụng được một lần duy nhất.\n• Nên chụp màn hình QR để dùng offline trong trường hợp không có Internet."
+            },
+            "support": {
+                "title": "Hỗ trợ & liên hệ",
+                "content": "Nếu gặp bất kỳ vấn đề nào trong quá trình mua vé:\n\n📧 Email: ask@bduckcifyfuns.com.vn\n📞 Hotline: Tại quầy thu ngân khu vui chơi\n🕐 Giờ hỗ trợ: 8:00 – 21:00 hàng ngày\n\nĐội ngũ của chúng tôi sẽ phản hồi trong vòng 2 giờ làm việc."
+            }
+        },
+        "footerNote": "Nếu cần hỗ trợ thêm, đừng ngần ngại liên hệ với chúng tôi qua email ask@bduckcifyfuns.com.vn."
+    },
+    "deliveryPolicy": {
+        "metaTitle": "Chính sách giao hàng — B.Duck Cityfuns",
+        "metaDescription": "Chính sách giao vé điện tử của B.Duck Cityfuns. Nhận QR Code ngay qua email sau khi thanh toán thành công.",
+        "heroTitle": "Chính sách Giao hàng",
+        "heroSubtitle": "Vé điện tử được giao tức thì qua email — không cần chờ đợi, không cần in giấy.",
+        "lastUpdated": "Cập nhật lần cuối: 1 tháng 4, 2026",
+        "intro": "Do tính chất của dịch vụ, B.Duck Cityfuns cung cấp vé dưới dạng điện tử (e-ticket). Vé được giao trực tiếp đến email của khách hàng sau khi giao dịch thanh toán thành công, hoàn toàn miễn phí và tức thì.",
+        "sections": {
+            "method": {
+                "title": "Phương thức giao vé",
+                "content": "B.Duck Cityfuns sử dụng phương thức giao vé điện tử (e-ticket) duy nhất:\n\n• Vé QR Code được gửi qua email đã đăng ký khi đặt hàng.\n• Không áp dụng giao hàng vật lý (vé giấy qua bưu điện).\n• Phí giao vé: Hoàn toàn miễn phí.\n• Khách hàng cũng có thể xem lại vé trong mục 'Đơn hàng của tôi' sau khi đăng nhập."
+            },
+            "timeline": {
+                "title": "Thời gian giao vé",
+                "content": "• Thanh toán trực tuyến thành công: Vé được gửi trong vòng 30 giây – 5 phút.\n• Thanh toán tại quầy: Vé được gửi ngay sau khi nhân viên thu ngân xác nhận thanh toán.\n• Trường hợp tải hệ thống cao: Tối đa 15 phút.\n\nNếu sau 15 phút chưa nhận được vé, vui lòng kiểm tra thư mục Spam/Junk hoặc liên hệ hỗ trợ."
+            },
+            "scope": {
+                "title": "Phạm vi áp dụng",
+                "content": "• Áp dụng cho tất cả đơn hàng trên website bduck-cityfuns.vn.\n• Vé điện tử có thể sử dụng tại tất cả địa điểm của B.Duck Cityfuns tại Việt Nam.\n• Không có giới hạn địa lý đối với việc nhận email — khách hàng ở bất kỳ đâu đều có thể đặt vé."
+            },
+            "notreceived": {
+                "title": "Không nhận được vé?",
+                "content": "Nếu chưa nhận được vé sau 15 phút, thực hiện các bước sau:\n\n1. Kiểm tra thư mục Spam/Junk/Thư rác trong email.\n2. Tìm kiếm email từ địa chỉ noreply@bduck-cityfuns.vn.\n3. Vào mục 'Đơn hàng của tôi' trên website để xem trạng thái đơn hàng.\n4. Nhấn 'Gửi lại email' nếu đơn hàng đã ở trạng thái 'Thành công'.\n5. Nếu vẫn không nhận được, liên hệ ask@bduckcifyfuns.com.vn kèm mã đơn hàng."
+            },
+            "notes": {
+                "title": "Lưu ý quan trọng",
+                "content": "• Vui lòng nhập chính xác địa chỉ email khi đặt hàng — chúng tôi không chịu trách nhiệm nếu email bị nhập sai.\n• Mỗi vé QR Code chỉ được sử dụng một lần và sẽ tự động vô hiệu sau khi quét.\n• Nên chụp màn hình QR hoặc lưu URL vé để dùng offline.\n• Không chia sẻ QR Code với người khác trước khi sử dụng."
+            }
+        },
+        "footerNote": "Vé điện tử B.Duck Cityfuns — tiện lợi, nhanh chóng, thân thiện với môi trường."
+    },
+    "paymentMethods": {
+        "metaTitle": "Hình thức thanh toán — B.Duck Cityfuns",
+        "metaDescription": "B.Duck Cityfuns hỗ trợ thanh toán trực tuyến và tại quầy. Đa dạng phương thức, bảo mật tuyệt đối.",
+        "heroTitle": "Hình thức Thanh toán",
+        "heroSubtitle": "Đa dạng phương thức thanh toán linh hoạt, bảo mật và tiện lợi cho mọi khách hàng.",
+        "lastUpdated": "Cập nhật lần cuối: 1 tháng 4, 2026",
+        "intro": "B.Duck Cityfuns hỗ trợ nhiều hình thức thanh toán khác nhau để đáp ứng nhu cầu đa dạng của khách hàng. Tất cả giao dịch đều được mã hóa SSL và xử lý qua các cổng thanh toán uy tín, đảm bảo an toàn tuyệt đối.",
+        "sections": {
+            "online": {
+                "title": "Thanh toán trực tuyến",
+                "content": "Hỗ trợ các phương thức thanh toán online:\n\n• Thẻ ngân hàng nội địa (ATM/Napas): Hầu hết các ngân hàng tại Việt Nam.\n• Thẻ quốc tế: Visa, Mastercard, JCB, American Express.\n• Ví điện tử: MoMo, ZaloPay, VNPay, Moca.\n• QR Pay: Quét mã QR qua ứng dụng ngân hàng hoặc ví điện tử.\n• Internet Banking: Chuyển khoản trực tuyến qua ứng dụng ngân hàng.\n\nGiao dịch trực tuyến được xử lý tức thì — vé gửi đến email ngay sau khi xác nhận."
+            },
+            "counter": {
+                "title": "Thanh toán tại quầy",
+                "content": "Dành cho khách hàng muốn thanh toán trực tiếp tại khu vui chơi:\n\n1. Chọn sản phẩm và đặt hàng trên website, chọn phương thức 'Thanh toán tại quầy'.\n2. Nhận mã QR đơn hàng — mã này có hiệu lực trong 24 giờ.\n3. Mang mã QR đến quầy thu ngân B.Duck Cityfuns.\n4. Nhân viên sẽ quét mã và hiển thị thông tin đơn hàng.\n5. Thanh toán bằng Tiền mặt hoặc Chuyển khoản ngân hàng.\n6. Vé điện tử sẽ được gửi qua email ngay sau đó."
+            },
+            "promo": {
+                "title": "Mã giảm giá & ưu đãi",
+                "content": "• Nhập mã giảm giá tại bước 'Thông tin' trong quy trình thanh toán.\n• Nhấn 'Áp dụng' để kiểm tra tính hợp lệ và xem số tiền được giảm.\n• Mỗi đơn hàng chỉ áp dụng được một mã giảm giá.\n• Mã giảm giá có thể có thời hạn sử dụng hoặc điều kiện áp dụng riêng.\n• Mã giảm giá không có giá trị quy đổi thành tiền mặt."
+            },
+            "security": {
+                "title": "Bảo mật thanh toán",
+                "content": "Mọi giao dịch tại B.Duck Cityfuns đều được bảo vệ bởi:\n\n• Mã hóa SSL 256-bit cho toàn bộ kết nối.\n• Tuân thủ chuẩn bảo mật PCI-DSS của ngành thanh toán.\n• Không lưu trữ thông tin thẻ thanh toán của khách hàng.\n• Giá cuối cùng được xác nhận bởi server — không thể bị thay đổi từ phía client.\n• Hệ thống phát hiện giao dịch bất thường tự động."
+            },
+            "notes": {
+                "title": "Lưu ý quan trọng",
+                "content": "• Giá vé hiển thị trên website đã bao gồm thuế VAT (nếu có).\n• Đơn thanh toán tại quầy có hiệu lực tối đa 24 giờ từ khi đặt.\n• Nếu thanh toán bị từ chối, vui lòng kiểm tra số dư tài khoản hoặc liên hệ ngân hàng.\n• Mọi tranh chấp về giao dịch, vui lòng liên hệ ask@bduckcifyfuns.com.vn kèm theo mã đơn hàng và bằng chứng thanh toán."
+            }
+        },
+        "footerNote": "B.Duck Cityfuns cam kết mang đến trải nghiệm thanh toán an toàn và tiện lợi nhất cho khách hàng."
+    },
+    "returnPolicy": {
+        "metaTitle": "Chính sách bảo hành đổi trả — B.Duck Cityfuns",
+        "metaDescription": "Chính sách đổi, hoàn vé điện tử tại B.Duck Cityfuns. Minh bạch, công bằng và bảo vệ quyền lợi khách hàng.",
+        "heroTitle": "Chính sách Bảo hành & Đổi trả",
+        "heroSubtitle": "Chúng tôi cam kết minh bạch và bảo vệ quyền lợi khách hàng trong mọi trường hợp.",
+        "lastUpdated": "Cập nhật lần cuối: 1 tháng 4, 2026",
+        "intro": "B.Duck Cityfuns tôn trọng quyền lợi của khách hàng và có chính sách rõ ràng về việc đổi, hoàn vé điện tử. Do đặc thù của vé điện tử (là sản phẩm kỹ thuật số), chính sách đổi trả có một số điều kiện cụ thể được nêu dưới đây.",
+        "sections": {
+            "conditions": {
+                "title": "Điều kiện được hoàn vé",
+                "content": "Bạn có thể yêu cầu hoàn tiền trong các trường hợp sau:\n\n✅ Lỗi kỹ thuật từ hệ thống: Vé không được tạo sau khi đã trừ tiền thành công.\n✅ Vé bị gửi sai email: Do lỗi của hệ thống (không phải do khách hàng nhập sai).\n✅ Sự kiện bị hủy bởi B.Duck Cityfuns: Toàn bộ tiền sẽ được hoàn lại 100%.\n✅ Vé bị tính tiền nhầm: Chênh lệch giữa giá hiển thị và giá thực tế sẽ được hoàn trả."
+            },
+            "process": {
+                "title": "Quy trình yêu cầu đổi/hoàn vé",
+                "content": "Thực hiện các bước sau để yêu cầu hoàn vé:\n\n1. Gửi email đến ask@bduckcifyfuns.com.vn với tiêu đề: [YÊU CẦU HOÀN VÉ] + Mã đơn hàng.\n2. Cung cấp: Họ tên, email đặt vé, mã đơn hàng, lý do yêu cầu hoàn.\n3. Đính kèm bằng chứng nếu có (screenshot lỗi, biên lai thanh toán).\n4. Đội ngũ chúng tôi sẽ xem xét và phản hồi trong vòng 1–2 ngày làm việc.\n5. Nếu yêu cầu hợp lệ, tiền hoàn được trả về phương thức thanh toán ban đầu."
+            },
+            "timeline": {
+                "title": "Thời gian xử lý hoàn tiền",
+                "content": "• Xem xét yêu cầu: 1–2 ngày làm việc kể từ khi nhận đủ thông tin.\n• Phê duyệt và xử lý hoàn tiền: 3–5 ngày làm việc.\n• Tiền về tài khoản/thẻ: 5–15 ngày làm việc tùy ngân hàng/ví điện tử.\n\nTổng thời gian tối đa: 7–20 ngày làm việc kể từ khi yêu cầu được chấp nhận."
+            },
+            "exceptions": {
+                "title": "Trường hợp không được hoàn vé",
+                "content": "Chúng tôi không hỗ trợ hoàn tiền trong các trường hợp:\n\n🚫 Vé đã được quét/sử dụng tại khu vui chơi.\n🚫 Khách hàng tự nhập sai email và vé đã được gửi thành công đến email đó.\n🚫 Vé đã hết hạn hiệu lực theo quy định trên vé.\n🚫 Khách hàng đổi ý sau khi nhận vé thành công.\n🚫 Vé đã bị chia sẻ cho bên thứ ba và bị sử dụng.\n🚫 Yêu cầu được gửi sau 24 giờ kể từ khi phát sinh sự cố kỹ thuật."
+            },
+            "contact": {
+                "title": "Liên hệ hỗ trợ đổi trả",
+                "content": "📧 Email: ask@bduckcifyfuns.com.vn\n📝 Tiêu đề email: [YÊU CẦU HOÀN VÉ] + Mã đơn hàng\n🕐 Giờ xử lý: Thứ 2 – Thứ 7, 8:00 – 18:00\n\nVui lòng cung cấp đầy đủ thông tin để chúng tôi xử lý nhanh nhất có thể. Chúng tôi cam kết giải quyết mọi khiếu nại một cách công bằng và minh bạch."
+            }
+        },
+        "footerNote": "Chính sách này tuân thủ quy định của Bộ Công Thương Việt Nam về bảo vệ quyền lợi người tiêu dùng trong thương mại điện tử."
     },
     "common": {
         "popular": "Phổ biến",

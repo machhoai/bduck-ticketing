@@ -2,47 +2,234 @@
 
 import { useTranslations } from "next-intl";
 import { usePathname } from "@/i18n/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Image from "next/image";
+import { Mail, MapPin, Clock, Phone, Building2, ShieldCheck } from "lucide-react";
 
-export function Footer() {
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface NavLink {
+    readonly label: string;
+    readonly href: string;
+}
+
+interface ContactItem {
+    readonly icon: React.ReactNode;
+    readonly label: string;
+    readonly value: string;
+    readonly href?: string;
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+const FooterHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/35 mb-5 flex items-center gap-2">
+        <span className="w-4 h-px bg-gradient-to-r from-[#FFD100]/60 to-transparent" />
+        {children}
+    </h3>
+);
+
+const FooterLink: React.FC<NavLink> = ({ label, href }) => (
+    <li>
+        <Link
+            href={href}
+            className="group flex items-center gap-1.5 text-[13px] text-white/55 hover:text-[#FFD100] transition-colors duration-200"
+        >
+            <span className="w-1 h-1 rounded-full bg-white/20 group-hover:bg-[#FFD100]/70 transition-colors duration-200 flex-shrink-0" />
+            {label}
+        </Link>
+    </li>
+);
+
+// ── Main Component ────────────────────────────────────────────────────────────
+
+export const Footer: React.FC = () => {
     const t = useTranslations("footer");
     const pathname = usePathname();
 
     if (pathname.startsWith("/admin")) return null;
 
-    const links = [
-        { label: t("terms"), href: "/terms-of-service" },
+    const policies: NavLink[] = [
+        { label: t("purchaseGuide"), href: "/huong-dan-mua-hang" },
+        { label: t("deliveryPolicy"), href: "/chinh-sach-giao-hang" },
+        { label: t("paymentMethods"), href: "/hinh-thuc-thanh-toan" },
+        { label: t("returnPolicy"), href: "/chinh-sach-doi-tra" },
         { label: t("privacy"), href: "/privacy-policy" },
-        { label: t("contactUs"), href: "/tickets" },
+    ];
+
+    const legal: NavLink[] = [
+        { label: t("terms"), href: "/terms-of-service" },
+    ];
+
+    const contacts: ContactItem[] = [
+        {
+            icon: <Phone className="w-3.5 h-3.5 flex-shrink-0 text-[#FFD100]/70" />,
+            label: t("phoneLabel"),
+            value: "0969 271 737",
+            href: "tel:+84969271737",
+        },
+        {
+            icon: <Mail className="w-3.5 h-3.5 flex-shrink-0 text-[#FFD100]/70" />,
+            label: t("emailLabel"),
+            value: "ask@bduckcityfuns.com.vn",
+            href: "mailto:ask@bduckcityfuns.com.vn",
+        },
+        {
+            icon: <Clock className="w-3.5 h-3.5 flex-shrink-0 text-[#FFD100]/70" />,
+            label: t("hoursLabel"),
+            value: t("hours"),
+        },
     ];
 
     return (
-        <footer className="bg-text-primary text-white/70 py-4">
-            <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                {/* Brand */}
-                <div className="flex items-center gap-2.5">
-                    <Image src="/images/avt_bduck-cityfuns.png" alt="B.Duck Cityfuns" width={40} height={40} className="rounded-2xl" />
-                    <span className="font-[var(--font-heading)] font-bold text-white">
-                        B.Duck Cityfuns
-                    </span>
+        <footer className="bg-[#12122A] text-white relative overflow-hidden">
+
+            {/* Subtle decorative glow */}
+            <div
+                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[2px]"
+                style={{ background: "linear-gradient(90deg, transparent, rgba(255,209,0,0.25), transparent)" }}
+            />
+
+            {/* ── Main body ── */}
+            <div className="max-w-7xl mx-auto px-6 pt-12 pb-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+
+                    {/* ── Col 1: Brand ── */}
+                    <div className="sm:col-span-2 lg:col-span-1 flex flex-col gap-5">
+                        <div className="flex items-center gap-3">
+                            <Image
+                                src="/images/avt_bduck-cityfuns.png"
+                                alt="B.Duck Cityfuns"
+                                width={44}
+                                height={44}
+                                className="rounded-2xl ring-2 ring-white/10"
+                            />
+                            <div>
+                                <p className="font-[var(--font-heading)] font-extrabold text-white text-base leading-tight">
+                                    B.Duck Cityfuns
+                                </p>
+                                <p className="text-[10px] text-white/30 mt-0.5">Joy World Entertainment</p>
+                            </div>
+                        </div>
+
+                        <p className="text-[12px] text-white/45 leading-relaxed">
+                            {t("brandTagline")}
+                        </p>
+
+                        {/* BCT compliance badge */}
+                        {/* <div className="inline-flex items-center gap-2 self-start bg-gradient-to-r from-[#FFD100]/10 to-transparent border border-[#FFD100]/20 rounded-xl px-3 py-2">
+                            <ShieldCheck className="w-4 h-4 text-[#FFD100]/70 flex-shrink-0" />
+                            <span className="text-[10px] text-white/50 leading-tight">
+                                {t("bctNote")}
+                            </span>
+                        </div> */}
+                    </div>
+
+                    {/* ── Col 2: Company info ── */}
+                    <div className="flex flex-col gap-1">
+                        <FooterHeading>{t("companyHeading")}</FooterHeading>
+
+                        {/* Company name */}
+                        <div className="mb-4">
+                            <p className="text-[12px] font-semibold text-white/70 leading-snug flex items-start gap-2">
+                                <Building2 className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#FFD100]/70" />
+                                {t("companyName")}
+                            </p>
+                            <p className="text-[11px] text-white/35 ml-[22px] mt-0.5">
+                                {t("companyNameEn")}
+                            </p>
+                        </div>
+
+                        {/* Tax ID */}
+                        <div className="bg-white/4 rounded-lg px-3 py-2 mb-4 border border-white/8">
+                            <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">{t("taxIdLabel")}</p>
+                            <p className="text-[13px] font-mono font-semibold text-white/60">0318958531</p>
+                        </div>
+
+                        {/* HQ Address */}
+                        <div className="flex items-start gap-2">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#FFD100]/70" />
+                            <div>
+                                <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1">{t("hqLabel")}</p>
+                                <p className="text-[11px] text-white/50 leading-relaxed">
+                                    154A Nguyễn Thị Thập, P. Tân Thuận,<br />TP. Hồ Chí Minh
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Col 3: Store & Contact ── */}
+                    <div className="flex flex-col gap-1">
+                        <FooterHeading>{t("storeHeading")}</FooterHeading>
+
+                        {/* Store address */}
+                        <div className="flex items-start gap-2 mb-5">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#FFD100]/70" />
+                            <div>
+                                <p className="text-[12px] font-semibold text-white/65 mb-1">
+                                    B.Duck Cityfuns Landmark 81
+                                </p>
+                                <p className="text-[11px] text-white/45 leading-relaxed">
+                                    720A Nguyễn Hữu Cảnh,<br />
+                                    P. Thạnh Mỹ Tây (Mới), P. 22,<br />
+                                    Q. Bình Thạnh, TP. HCM
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Contact items */}
+                        <div className="flex flex-col gap-3">
+                            {contacts.map((item) => (
+                                <div key={item.value} className="flex items-start gap-2">
+                                    {item.icon}
+                                    <div>
+                                        <p className="text-[10px] text-white/30 uppercase tracking-wider">{item.label}</p>
+                                        {item.href ? (
+                                            <a
+                                                href={item.href}
+                                                className="text-[12px] text-white/55 hover:text-[#FFD100] transition-colors duration-200 mt-0.5 block"
+                                            >
+                                                {item.value}
+                                            </a>
+                                        ) : (
+                                            <p className="text-[12px] text-white/55 mt-0.5">{item.value}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ── Col 4: Policies ── */}
+                    <div className="flex flex-col gap-1">
+                        <FooterHeading>{t("policyHeading")}</FooterHeading>
+                        <ul className="flex flex-col gap-2.5 mb-6">
+                            {policies.map((link) => (
+                                <FooterLink key={link.href} {...link} />
+                            ))}
+                        </ul>
+
+                        <FooterHeading>{t("legalHeading")}</FooterHeading>
+                        <ul className="flex flex-col gap-2.5">
+                            {legal.map((link) => (
+                                <FooterLink key={link.href} {...link} />
+                            ))}
+                        </ul>
+                    </div>
                 </div>
+            </div>
 
-                <p className="text-sm text-center">{t("copyright")}</p>
-
-                {/* Links */}
-                <div className="flex gap-4">
-                    {links.map((link) => (
-                        <Link
-                            key={link.label}
-                            href={link.href}
-                            className="text-sm hover:text-duck-yellow transition-colors duration-200"
-                        >
-                            {link.label}
-                        </Link>
-                    ))}
+            {/* ── Copyright bar ── */}
+            <div className="border-t border-white/8">
+                <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <p className="text-[11px] text-white/25">{t("copyright")}</p>
+                    <p className="text-[11px] text-white/18">
+                        {t("taxIdLabel")}: 0318958531 &nbsp;|&nbsp; {t("address")}
+                    </p>
                 </div>
             </div>
         </footer>
     );
-}
+};
+
+export default Footer;
