@@ -66,12 +66,11 @@ export function Hero() {
             />
 
             {/* ── Main content ──────────────────────────────────── */}
-            <div className="relative z-10 w-full sm:max-w-[80%] mx-auto px-6 pt-28 pb-24">
+            <div className="relative z-10 w-full sm:px-48 mx-auto px-5 pt-28 pb-24">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-6 items-center">
 
                     {/* ── Left: Text content ──────────────────────── */}
-                    <div className="lg:col-span-7 flex flex-col gap-6 animate-fade-up">
-
+                    <div className="lg:col-span-9 flex flex-col gap-6 animate-fade-up">
                         {/* Badge
                         <div className="inline-flex w-fit">
                             <span
