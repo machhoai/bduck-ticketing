@@ -110,9 +110,8 @@ interface RadioDotProps {
 
 const RadioDot: React.FC<RadioDotProps> = ({ selected, color = "bg-[#F5C842]" }) => (
     <div
-        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-            selected ? "border-[#F5C842]" : "border-gray-200"
-        }`}
+        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${selected ? "border-[#F5C842]" : "border-gray-200"
+            }`}
         aria-hidden
     >
         {selected && <div className={`w-2.5 h-2.5 rounded-full ${color}`} />}
@@ -151,9 +150,8 @@ const MethodCard: React.FC<MethodCardProps> = ({ method, selected, disabled, onS
         >
             {/* Method icon */}
             <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                    selected ? "bg-amber-100" : "bg-gray-50 group-hover:bg-gray-100"
-                }`}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center relative flex-shrink-0 transition-all duration-200 ${selected ? "bg-amber-100" : "bg-gray-50 group-hover:bg-gray-100"
+                    }`}
             >
                 {method.icon}
             </div>
@@ -171,7 +169,7 @@ const MethodCard: React.FC<MethodCardProps> = ({ method, selected, disabled, onS
                     )}
                 </div>
                 {method.logoSlot && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
+                    <div className="flex items-center gap-1.5 mt-1.5 relative">
                         {method.logoSlot}
                     </div>
                 )}
@@ -236,17 +234,18 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                 },
                 {
                     id: "vnpay_transfer",
-                    labelKey: t("methodTransfer"),
-                    descKey: t("methodTransferDesc"),
-                    icon: <Building2 className="h-5 w-5 text-teal-500" />,
-                    logoSlot: <VNPayLogo />,
-                },
-                {
-                    id: "vnpay_qr",
                     labelKey: t("methodQr"),
                     descKey: t("methodQrDesc"),
                     icon: <QrCode className="h-5 w-5 text-emerald-500" />,
                     logoSlot: <VNPayLogo />,
+                },
+                {
+                    id: "apple_pay",
+                    labelKey: t("methodApplePay"),
+                    descKey: t("methodApplePayDesc"),
+                    icon: <Image src="/images/apple.png" alt="Apple Pay" fill className="object-contain" />,
+                    badge: "Apple",
+                    applePlatformOnly: true,
                 },
             ],
         },
@@ -260,26 +259,6 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                     descKey: t("methodVNPayWalletDesc"),
                     icon: <Wallet className="h-5 w-5 text-blue-600" />,
                     logoSlot: <VNPayLogo />,
-                },
-                {
-                    id: "momo",
-                    labelKey: t("methodMomo"),
-                    descKey: t("methodMomoDesc"),
-                    icon: <MoMoLogo />,
-                },
-                {
-                    id: "zalopay",
-                    labelKey: t("methodZalopay"),
-                    descKey: t("methodZalopayDesc"),
-                    icon: <ZaloPayLogo />,
-                },
-                {
-                    id: "apple_pay",
-                    labelKey: t("methodApplePay"),
-                    descKey: t("methodApplePayDesc"),
-                    icon: <Smartphone className="h-5 w-5 text-gray-800" />,
-                    badge: "Apple",
-                    applePlatformOnly: true,
                 },
             ],
         },

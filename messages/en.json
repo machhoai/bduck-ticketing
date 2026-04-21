@@ -160,7 +160,7 @@
         "methodIntlDesc": "Visa, Mastercard, JCB, UnionPay — 3D Secure authenticated",
         "methodTransfer": "Bank transfer",
         "methodTransferDesc": "Internet Banking via dozens of supported banks",
-        "methodQr": "QR Pay (VNPay)",
+        "methodQr": "QR Pay",
         "methodQrDesc": "Scan QR code with your banking or e-wallet app",
         "methodVNPayWallet": "VNPay Wallet",
         "methodVNPayWalletDesc": "Pay directly from your VNPay wallet balance",

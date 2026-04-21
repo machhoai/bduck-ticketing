@@ -160,7 +160,7 @@
         "methodIntlDesc": "Visa, Mastercard, JCB, UnionPay — xác thực 3D Secure",
         "methodTransfer": "Chuyển khoản ngân hàng",
         "methodTransferDesc": "Internet Banking qua hàng chục ngân hàng hỗ trợ",
-        "methodQr": "QR Pay (VNPay)",
+        "methodQr": "QR Pay",
         "methodQrDesc": "Quét mã QR bằng ứng dụng ngân hàng hoặc ví điện tử",
         "methodVNPayWallet": "Ví VNPay",
         "methodVNPayWalletDesc": "Thanh toán trực tiếp từ số dư ví VNPay",
