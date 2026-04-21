@@ -130,9 +130,13 @@ export const Footer: React.FC = () => {
                                     aria-label="Facebook"
                                     className="group/social w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-[#FFD100]/15 hover:border-[#FFD100]/30 transition-all duration-300"
                                 >
-                                    <svg className="w-4 h-4 text-white/50 group-hover/social:text-[#FFD100] transition-colors duration-300" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                                    </svg>
+                                    <Image
+                                        src="/images/facebook-logo.png"
+                                        alt="Facebook"
+                                        width={18}
+                                        height={18}
+                                        className="opacity-50 group-hover/social:opacity-100 transition-opacity duration-300"
+                                    />
                                 </a>
 
                                 {/* Zalo */}
@@ -143,9 +147,13 @@ export const Footer: React.FC = () => {
                                     aria-label="Zalo"
                                     className="group/social w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-[#FFD100]/15 hover:border-[#FFD100]/30 transition-all duration-300"
                                 >
-                                    <svg className="w-4 h-4 text-white/50 group-hover/social:text-[#FFD100] transition-colors duration-300" viewBox="0 0 48 48" fill="currentColor">
-                                        <path d="M12.5 6C8.91 6 6 8.91 6 12.5v23C6 39.09 8.91 42 12.5 42h23c3.59 0 6.5-2.91 6.5-6.5v-23C42 8.91 39.09 6 35.5 6h-23zm2.05 8h18.9c.28 0 .55.09.55.52 0 .86-1.28 2.5-1.73 3.08-.12.16-.24.17-.48.17H17.73c-.48 0-.73-.14-.73-.67 0-.76 1.2-2.34 1.65-2.84.14-.16.28-.26.52-.26h-.62zm-.55 7h12c.55 0 1 .45 1 1v9c0 .55-.45 1-1 1H18l-4 3v-3c-.55 0-1-.45-1-1v-9c0-.55.45-1 1-1zm14 1h6c.55 0 1 .45 1 1v7c0 .55-.45 1-1 1h-1v3l-3-3h-2c-.55 0-1-.45-1-1v-7c0-.55.45-1 1-1z" />
-                                    </svg>
+                                    <Image
+                                        src="/images/zalo-logo.png"
+                                        alt="Zalo"
+                                        width={18}
+                                        height={18}
+                                        className="opacity-50 group-hover/social:opacity-100 transition-opacity duration-300"
+                                    />
                                 </a>
 
                                 {/* TikTok */}
@@ -156,9 +164,13 @@ export const Footer: React.FC = () => {
                                     aria-label="TikTok"
                                     className="group/social w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-[#FFD100]/15 hover:border-[#FFD100]/30 transition-all duration-300"
                                 >
-                                    <svg className="w-4 h-4 text-white/50 group-hover/social:text-[#FFD100] transition-colors duration-300" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.88-2.88 2.89 2.89 0 0 1 2.88-2.88c.28 0 .56.04.81.11v-3.51a6.27 6.27 0 0 0-.81-.05A6.34 6.34 0 0 0 3.16 15.2a6.34 6.34 0 0 0 6.33 6.33 6.34 6.34 0 0 0 6.33-6.33V8.86a8.27 8.27 0 0 0 4.84 1.56V6.97a4.84 4.84 0 0 1-1.07-.28z" />
-                                    </svg>
+                                    <Image
+                                        src="/images/tiktok-logo.png"
+                                        alt="TikTok"
+                                        width={18}
+                                        height={18}
+                                        className="opacity-50 group-hover/social:opacity-100 transition-opacity duration-300"
+                                    />
                                 </a>
                             </div>
                         </div>
