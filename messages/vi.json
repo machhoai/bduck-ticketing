@@ -151,9 +151,91 @@
     },
     "footer": {
         "copyright": "© 2026 B.Duck Cityfuns Vietnam. All rights reserved.",
-        "terms": "Điều khoản",
-        "privacy": "Bảo mật",
+        "terms": "Điều khoản sử dụng",
+        "privacy": "Chính sách bảo mật",
         "contactUs": "Liên hệ"
+    },
+    "privacyPolicy": {
+        "metaTitle": "Chính sách bảo mật — B.Duck Cityfuns",
+        "metaDescription": "Tìm hiểu cách B.Duck Cityfuns thu thập, sử dụng và bảo vệ thông tin cá nhân của bạn.",
+        "heroTitle": "Chính sách Bảo mật",
+        "heroSubtitle": "Chúng tôi cam kết bảo vệ quyền riêng tư và dữ liệu cá nhân của bạn theo tiêu chuẩn cao nhất.",
+        "lastUpdated": "Cập nhật lần cuối: 1 tháng 4, 2026",
+        "intro": "B.Duck Cityfuns Vietnam ('chúng tôi') coi trọng quyền riêng tư của bạn. Chính sách này mô tả cách chúng tôi thu thập, sử dụng và bảo vệ thông tin cá nhân khi bạn sử dụng dịch vụ mua vé trực tuyến tại bduck-cityfuns.vn.",
+        "sections": {
+            "collection": {
+                "title": "Thông tin chúng tôi thu thập",
+                "content": "Chúng tôi thu thập các thông tin sau khi bạn sử dụng dịch vụ:\n\n• Thông tin tài khoản: Họ tên, địa chỉ email, số điện thoại khi bạn đăng ký hoặc mua vé.\n• Thông tin giao dịch: Chi tiết đơn hàng, phương thức thanh toán (không lưu số thẻ), mã vé điện tử.\n• Thông tin thiết bị: Địa chỉ IP, loại trình duyệt, hệ điều hành, và hành vi duyệt web thông qua cookie."
+            },
+            "usage": {
+                "title": "Cách chúng tôi sử dụng thông tin",
+                "content": "Thông tin thu thập được sử dụng để:\n\n• Xử lý và xác nhận giao dịch mua vé.\n• Gửi vé điện tử QR Code qua email.\n• Cải thiện trải nghiệm dịch vụ và hỗ trợ khách hàng.\n• Gửi thông báo về chương trình khuyến mãi (bạn có thể hủy đăng ký bất kỳ lúc nào).\n• Tuân thủ các nghĩa vụ pháp lý."
+            },
+            "sharing": {
+                "title": "Chia sẻ thông tin với bên thứ ba",
+                "content": "Chúng tôi không bán hoặc cho thuê thông tin cá nhân của bạn. Tuy nhiên, chúng tôi có thể chia sẻ thông tin với:\n\n• Đối tác xử lý thanh toán (ví dụ: cổng thanh toán) để hoàn tất giao dịch.\n• Nhà cung cấp dịch vụ email để gửi vé và thông báo.\n• Cơ quan pháp lý khi được yêu cầu theo quy định của pháp luật Việt Nam."
+            },
+            "security": {
+                "title": "Bảo mật dữ liệu",
+                "content": "Chúng tôi áp dụng các biện pháp kỹ thuật và tổ chức phù hợp để bảo vệ dữ liệu của bạn, bao gồm:\n\n• Mã hóa HTTPS cho toàn bộ kết nối.\n• Lưu trữ dữ liệu trên hạ tầng đám mây được chứng nhận bảo mật (Google Firebase).\n• Kiểm soát quyền truy cập nghiêm ngặt đối với nhân viên nội bộ.\n\nMặc dù vậy, không có hệ thống nào có thể đảm bảo an toàn tuyệt đối."
+            },
+            "cookies": {
+                "title": "Cookie và công nghệ theo dõi",
+                "content": "Website sử dụng cookie để:\n\n• Duy trì phiên đăng nhập của bạn.\n• Ghi nhớ giỏ hàng và tùy chọn ngôn ngữ.\n• Phân tích lưu lượng truy cập (Google Analytics).\n\nBạn có thể tắt cookie trong cài đặt trình duyệt, nhưng điều này có thể ảnh hưởng đến một số tính năng của dịch vụ."
+            },
+            "rights": {
+                "title": "Quyền của bạn",
+                "content": "Bạn có quyền:\n\n• Truy cập và xem thông tin cá nhân chúng tôi đang lưu trữ.\n• Yêu cầu chỉnh sửa thông tin không chính xác.\n• Yêu cầu xóa tài khoản và dữ liệu cá nhân.\n• Phản đối việc xử lý dữ liệu cho mục đích tiếp thị.\n\nĐể thực hiện các quyền này, vui lòng liên hệ: support@bduck-cityfuns.vn"
+            },
+            "contact": {
+                "title": "Liên hệ về quyền riêng tư",
+                "content": "Nếu có thắc mắc về chính sách bảo mật, vui lòng liên hệ:\n\n📧 Email: support@bduck-cityfuns.vn\n📍 Địa chỉ: B.Duck Cityfuns, Việt Nam\n\nChúng tôi sẽ phản hồi trong vòng 5 ngày làm việc."
+            }
+        },
+        "footerNote": "Chính sách bảo mật này có thể được cập nhật định kỳ. Phiên bản mới nhất luôn được đăng tải trên trang này."
+    },
+    "termsOfService": {
+        "metaTitle": "Điều khoản sử dụng — B.Duck Cityfuns",
+        "metaDescription": "Đọc điều khoản và điều kiện sử dụng dịch vụ mua vé trực tuyến của B.Duck Cityfuns Vietnam.",
+        "heroTitle": "Điều khoản Sử dụng",
+        "heroSubtitle": "Vui lòng đọc kỹ các điều khoản này trước khi sử dụng dịch vụ mua vé tại B.Duck Cityfuns.",
+        "lastUpdated": "Cập nhật lần cuối: 1 tháng 4, 2026",
+        "intro": "Bằng cách sử dụng website và dịch vụ mua vé của B.Duck Cityfuns Vietnam ('chúng tôi'), bạn đồng ý tuân thủ các Điều khoản Sử dụng dưới đây. Nếu không đồng ý, vui lòng không sử dụng dịch vụ của chúng tôi.",
+        "sections": {
+            "acceptance": {
+                "title": "Chấp nhận Điều khoản",
+                "content": "Khi mua vé hoặc tạo tài khoản trên website, bạn xác nhận đã đọc, hiểu và đồng ý với các Điều khoản Sử dụng này. Người dùng dưới 18 tuổi cần có sự đồng ý của cha mẹ hoặc người giám hộ hợp pháp."
+            },
+            "tickets": {
+                "title": "Mua vé và sử dụng vé",
+                "content": "• Vé điện tử QR Code được gửi qua email sau khi thanh toán thành công.\n• Mỗi vé chỉ được sử dụng một lần duy nhất. Sau khi quét sẽ bị vô hiệu hóa tự động.\n• Vé không có ngày tham quan cố định ('Open-dated') có hiệu lực theo chính sách đã nêu trên vé.\n• Không chia sẻ mã QR với người khác để tránh bị lợi dụng.\n• Chúng tôi có quyền từ chối vé đã bị làm giả hoặc vi phạm điều khoản."
+            },
+            "payment": {
+                "title": "Thanh toán",
+                "content": "• Giá vé hiển thị đã bao gồm thuế VAT (nếu có).\n• Thanh toán được xử lý qua cổng thanh toán an toàn. Chúng tôi không lưu trữ thông tin thẻ tín dụng.\n• Giá cuối cùng được xác nhận bởi hệ thống server — nếu có sai lệch, hệ thống sẽ thông báo trước khi hoàn tất giao dịch.\n• Thanh toán tại quầy: Đơn hàng có hiệu lực trong 24 giờ kể từ khi đặt."
+            },
+            "refund": {
+                "title": "Hoàn trả và hủy vé",
+                "content": "• Vé đã thanh toán thành công và nhận QR Code không được hoàn tiền, trừ trường hợp lỗi kỹ thuật từ phía chúng tôi.\n• Nếu bạn gặp sự cố kỹ thuật, vui lòng liên hệ hỗ trợ trong vòng 24 giờ kể từ khi phát sinh sự cố.\n• B.Duck Cityfuns có quyền từ chối yêu cầu hoàn tiền nếu vé đã được sử dụng hoặc quá thời hạn hiệu lực."
+            },
+            "conduct": {
+                "title": "Quy tắc ứng xử",
+                "content": "Khi tham quan và sử dụng dịch vụ, bạn cam kết:\n\n• Tuân thủ nội quy khu vui chơi.\n• Không có hành vi gây rối, bạo lực, hoặc đe dọa người khác.\n• Không sử dụng dịch vụ cho mục đích bất hợp pháp.\n• Trẻ em phải có người lớn (từ 18 tuổi trở lên) đi kèm và chịu trách nhiệm."
+            },
+            "liability": {
+                "title": "Giới hạn trách nhiệm",
+                "content": "• B.Duck Cityfuns không chịu trách nhiệm về thiệt hại gián tiếp phát sinh từ việc sử dụng dịch vụ.\n• Chúng tôi không đảm bảo dịch vụ hoạt động liên tục, không bị gián đoạn do bảo trì hoặc sự cố kỹ thuật.\n• Trách nhiệm tối đa của chúng tôi giới hạn ở giá trị giao dịch thực tế của đơn hàng liên quan."
+            },
+            "changes": {
+                "title": "Thay đổi Điều khoản",
+                "content": "Chúng tôi có quyền cập nhật Điều khoản Sử dụng này bất kỳ lúc nào. Phiên bản mới nhất sẽ được đăng tải tại trang này với ngày cập nhật. Việc tiếp tục sử dụng dịch vụ sau khi thay đổi đồng nghĩa với việc bạn chấp nhận điều khoản mới."
+            },
+            "governing": {
+                "title": "Luật áp dụng",
+                "content": "Các Điều khoản này được điều chỉnh bởi pháp luật Việt Nam. Mọi tranh chấp phát sinh sẽ được giải quyết tại Tòa án có thẩm quyền tại Thành phố Hồ Chí Minh, Việt Nam.\n\nMọi thắc mắc, vui lòng liên hệ: support@bduck-cityfuns.vn"
+            }
+        },
+        "footerNote": "Bằng cách sử dụng dịch vụ của chúng tôi, bạn đồng ý với các Điều khoản Sử dụng trên. © 2026 B.Duck Cityfuns Vietnam."
     },
     "common": {
         "popular": "Phổ biến",

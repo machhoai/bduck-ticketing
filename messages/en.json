@@ -151,9 +151,91 @@
     },
     "footer": {
         "copyright": "© 2026 B.Duck Cityfuns Vietnam. All rights reserved.",
-        "terms": "Terms",
-        "privacy": "Privacy",
+        "terms": "Terms of Use",
+        "privacy": "Privacy Policy",
         "contactUs": "Contact"
+    },
+    "privacyPolicy": {
+        "metaTitle": "Privacy Policy — B.Duck Cityfuns",
+        "metaDescription": "Learn how B.Duck Cityfuns collects, uses, and protects your personal information.",
+        "heroTitle": "Privacy Policy",
+        "heroSubtitle": "We are committed to protecting your privacy and personal data to the highest standards.",
+        "lastUpdated": "Last updated: April 1, 2026",
+        "intro": "B.Duck Cityfuns Vietnam ('we', 'us') values your privacy. This policy describes how we collect, use, and protect your personal information when you use our online ticketing service at bduck-cityfuns.vn.",
+        "sections": {
+            "collection": {
+                "title": "Information We Collect",
+                "content": "We collect the following information when you use our services:\n\n• Account information: Full name, email address, and phone number when you register or purchase tickets.\n• Transaction data: Order details, payment method (we do not store card numbers), and QR e-ticket codes.\n• Device information: IP address, browser type, operating system, and browsing behavior via cookies."
+            },
+            "usage": {
+                "title": "How We Use Your Information",
+                "content": "The information we collect is used to:\n\n• Process and confirm ticket purchase transactions.\n• Deliver QR e-tickets via email.\n• Improve our service experience and provide customer support.\n• Send promotional notifications (you may unsubscribe at any time).\n• Comply with applicable legal obligations."
+            },
+            "sharing": {
+                "title": "Sharing Information with Third Parties",
+                "content": "We do not sell or rent your personal information. However, we may share it with:\n\n• Payment processing partners (e.g., payment gateways) to complete transactions.\n• Email service providers to send tickets and notifications.\n• Legal authorities when required under Vietnamese law."
+            },
+            "security": {
+                "title": "Data Security",
+                "content": "We apply appropriate technical and organizational measures to protect your data, including:\n\n• HTTPS encryption for all connections.\n• Storing data on certified secure cloud infrastructure (Google Firebase).\n• Strict internal access controls for staff.\n\nHowever, no system can guarantee absolute security."
+            },
+            "cookies": {
+                "title": "Cookies and Tracking Technologies",
+                "content": "Our website uses cookies to:\n\n• Maintain your login session.\n• Remember your cart and language preferences.\n• Analyze traffic (Google Analytics).\n\nYou may disable cookies in your browser settings, but this may affect some features of our service."
+            },
+            "rights": {
+                "title": "Your Rights",
+                "content": "You have the right to:\n\n• Access and view the personal information we hold about you.\n• Request correction of inaccurate information.\n• Request deletion of your account and personal data.\n• Object to the processing of your data for marketing purposes.\n\nTo exercise these rights, please contact: support@bduck-cityfuns.vn"
+            },
+            "contact": {
+                "title": "Privacy Contact",
+                "content": "If you have questions about our privacy policy, please contact:\n\n📧 Email: support@bduck-cityfuns.vn\n📍 Address: B.Duck Cityfuns, Vietnam\n\nWe will respond within 5 business days."
+            }
+        },
+        "footerNote": "This privacy policy may be updated periodically. The latest version is always published on this page."
+    },
+    "termsOfService": {
+        "metaTitle": "Terms of Use — B.Duck Cityfuns",
+        "metaDescription": "Read the terms and conditions for using B.Duck Cityfuns Vietnam's online ticketing service.",
+        "heroTitle": "Terms of Use",
+        "heroSubtitle": "Please read these terms carefully before using B.Duck Cityfuns' ticketing service.",
+        "lastUpdated": "Last updated: April 1, 2026",
+        "intro": "By using the website and ticketing services of B.Duck Cityfuns Vietnam ('we', 'us'), you agree to comply with the Terms of Use set out below. If you do not agree, please do not use our services.",
+        "sections": {
+            "acceptance": {
+                "title": "Acceptance of Terms",
+                "content": "By purchasing tickets or creating an account on our website, you confirm that you have read, understood, and agreed to these Terms of Use. Users under 18 years of age must have the consent of a parent or legal guardian."
+            },
+            "tickets": {
+                "title": "Ticket Purchase and Use",
+                "content": "• QR e-tickets are sent via email upon successful payment.\n• Each ticket may only be used once. It will be automatically voided after scanning.\n• Open-dated tickets (without a fixed visit date) are valid according to the policy stated on the ticket.\n• Do not share your QR code with others to prevent misuse.\n• We reserve the right to reject counterfeit or misused tickets."
+            },
+            "payment": {
+                "title": "Payment",
+                "content": "• Ticket prices displayed include VAT where applicable.\n• Payments are processed through a secure payment gateway. We do not store credit card information.\n• The final price is confirmed by our server — if there is a discrepancy, you will be notified before the transaction is completed.\n• Counter payment: Orders are valid for 24 hours from the time of placement."
+            },
+            "refund": {
+                "title": "Refunds and Cancellations",
+                "content": "• Tickets that have been successfully paid for and QR codes issued are non-refundable, except in cases of technical error on our part.\n• If you experience a technical issue, please contact support within 24 hours of the incident.\n• B.Duck Cityfuns reserves the right to refuse refund requests for tickets that have been used or have expired."
+            },
+            "conduct": {
+                "title": "Code of Conduct",
+                "content": "When visiting and using our services, you agree to:\n\n• Comply with the rules and regulations of the entertainment venue.\n• Refrain from any disruptive, violent, or threatening behavior.\n• Not use our services for any unlawful purposes.\n• Ensure children are accompanied by an adult (18+) who is responsible for them."
+            },
+            "liability": {
+                "title": "Limitation of Liability",
+                "content": "• B.Duck Cityfuns is not liable for indirect damages arising from the use of our services.\n• We do not guarantee uninterrupted service availability, which may be affected by maintenance or technical issues.\n• Our maximum liability is limited to the actual transaction value of the relevant order."
+            },
+            "changes": {
+                "title": "Changes to Terms",
+                "content": "We reserve the right to update these Terms of Use at any time. The latest version will be published on this page with the date of update. Continued use of our services after changes are made constitutes your acceptance of the new terms."
+            },
+            "governing": {
+                "title": "Governing Law",
+                "content": "These Terms are governed by the laws of Vietnam. Any disputes arising shall be resolved in the competent courts of Ho Chi Minh City, Vietnam.\n\nFor any questions, please contact: support@bduck-cityfuns.vn"
+            }
+        },
+        "footerNote": "By using our services, you agree to these Terms of Use. © 2026 B.Duck Cityfuns Vietnam."
     },
     "common": {
         "popular": "Popular",

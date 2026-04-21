@@ -12,9 +12,9 @@ export function Footer() {
     if (pathname.startsWith("/admin")) return null;
 
     const links = [
-        { label: t("terms"), href: "#" },
-        { label: t("privacy"), href: "#" },
-        { label: t("contactUs"), href: "#" },
+        { label: t("terms"), href: "/terms-of-service" },
+        { label: t("privacy"), href: "/privacy-policy" },
+        { label: t("contactUs"), href: "/tickets" },
     ];
 
     return (
