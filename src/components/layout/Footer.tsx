@@ -116,6 +116,65 @@ export const Footer: React.FC = () => {
                             {t("brandTagline")}
                         </p>
 
+                        {/* Social media links */}
+                        <div className="flex flex-col gap-3 mt-1">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+                                {t("socialHeading")}
+                            </p>
+                            <div className="flex items-center gap-2.5">
+                                {/* Facebook */}
+                                <a
+                                    href="https://erp.joyworld.vn/r/facebook"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label="Facebook"
+                                    className="group/social w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-[#FFD100]/15 hover:border-[#FFD100]/30 transition-all duration-300"
+                                >
+                                    <Image
+                                        src="/images/facebook-logo.png"
+                                        alt="Facebook"
+                                        width={18}
+                                        height={18}
+                                        className="opacity-50 group-hover/social:opacity-100 transition-opacity duration-300"
+                                    />
+                                </a>
+
+                                {/* Zalo */}
+                                <a
+                                    href="https://erp.joyworld.vn/r/zalo-group"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label="Zalo"
+                                    className="group/social w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-[#FFD100]/15 hover:border-[#FFD100]/30 transition-all duration-300"
+                                >
+                                    <Image
+                                        src="/images/zalo-logo.png"
+                                        alt="Zalo"
+                                        width={18}
+                                        height={18}
+                                        className="opacity-50 group-hover/social:opacity-100 transition-opacity duration-300"
+                                    />
+                                </a>
+
+                                {/* TikTok */}
+                                <a
+                                    href="https://erp.joyworld.vn/r/tiktok"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label="TikTok"
+                                    className="group/social w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-[#FFD100]/15 hover:border-[#FFD100]/30 transition-all duration-300"
+                                >
+                                    <Image
+                                        src="/images/tiktok-logo.png"
+                                        alt="TikTok"
+                                        width={18}
+                                        height={18}
+                                        className="opacity-50 group-hover/social:opacity-100 transition-opacity duration-300"
+                                    />
+                                </a>
+                            </div>
+                        </div>
+
                         {/* BCT compliance badge */}
                         {/* <div className="inline-flex items-center gap-2 self-start bg-gradient-to-r from-[#FFD100]/10 to-transparent border border-[#FFD100]/20 rounded-xl px-3 py-2">
                             <ShieldCheck className="w-4 h-4 text-[#FFD100]/70 flex-shrink-0" />
