@@ -300,7 +300,13 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
                             </div>
                         </div>
 
-                        {error && <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
+                        {error && (
+                            <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl space-y-1">
+                                <p className="text-sm font-semibold text-red-700">⚠️ Thêm deal thất bại</p>
+                                <p className="text-xs text-red-600 font-mono break-all">{error}</p>
+                                <p className="text-xs text-red-400">Kiểm tra console server để xem log đầy đủ.</p>
+                            </div>
+                        )}
 
                         <div className="flex items-center gap-3">
                             <button type="submit" disabled={isPending} className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white font-bold rounded-xl text-sm hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-60">

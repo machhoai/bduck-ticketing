@@ -4,6 +4,7 @@ import { Hero } from "@/components/home/Hero";
 import { Attractions } from "@/components/home/Attractions";
 import { ProductGroupTabs } from "@/components/customer/ProductGroupTabs";
 import { ProductCard } from "@/components/customer/ProductCard";
+import { DealSection } from "@/components/customer/DealSection";
 import { Skeleton } from "@/components/ui";
 import { getProductGroups, getProducts } from "@/actions/products";
 import { setRequestLocale, getTranslations } from "next-intl/server";
@@ -31,6 +32,20 @@ export default async function HomePage({ params, searchParams }: PageProps) {
         <>
             <Hero />
             <Attractions />
+
+            {/* ── Deal Sections (time-gated promos) ── */}
+            <Suspense fallback={
+                <section className="py-10 bg-[#0F0F1A]">
+                    <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-8">
+                        <Skeleton className="h-12 w-64 mx-auto rounded-2xl bg-white/5" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {[1,2,3].map(i => <Skeleton key={i} className="h-80 rounded-[28px] bg-white/5" />)}
+                        </div>
+                    </div>
+                </section>
+            }>
+                <DealSection locale={locale} />
+            </Suspense>
 
             {/* ── Ticket Listing Section ── */}
             <section

@@ -87,23 +87,26 @@ export async function createDealSection(
         const admin = await requireAdmin();
         const now = FieldValue.serverTimestamp();
 
-        const payload: Omit<DealSectionDocument, "id"> = {
+        // Build payload without undefined fields — Firestore Admin SDK rejects undefined values
+        const payload: Record<string, unknown> = {
             title: input.title.trim(),
-            description: input.description?.trim(),
-            badgeLabel: input.badgeLabel?.trim(),
-            dailyOpenHour: input.dailyOpenHour,
             dailyOpenMinute: input.dailyOpenMinute ?? 0,
-            startAt: toTimestamp(input.startAt) as any,
-            endAt: toTimestamp(input.endAt) as any,
-            maxPromoItemsPerOrder: input.maxPromoItemsPerOrder,
-            maxPromoVariantsPerOrder: input.maxPromoVariantsPerOrder,
             isActive: input.isActive,
             order: input.order,
             items: [],
             createdBy: admin.uid,
-            createdAt: now as any,
-            updatedAt: now as any,
+            createdAt: now,
+            updatedAt: now,
         };
+
+        // Optional fields — only set when provided
+        if (input.description?.trim()) payload.description = input.description.trim();
+        if (input.badgeLabel?.trim()) payload.badgeLabel = input.badgeLabel.trim();
+        if (input.dailyOpenHour !== undefined) payload.dailyOpenHour = input.dailyOpenHour;
+        if (input.startAt) payload.startAt = toTimestamp(input.startAt);
+        if (input.endAt) payload.endAt = toTimestamp(input.endAt);
+        if (input.maxPromoItemsPerOrder !== undefined) payload.maxPromoItemsPerOrder = input.maxPromoItemsPerOrder;
+        if (input.maxPromoVariantsPerOrder !== undefined) payload.maxPromoVariantsPerOrder = input.maxPromoVariantsPerOrder;
 
         const ref = await col().add(payload);
         revalidatePath("/admin/deal-sections");
@@ -184,29 +187,31 @@ export async function addDealItem(
     try {
         await requireAdmin();
 
-        const newItem: DealItemDocument = {
+        // Build item payload without any undefined fields — Firestore rejects them
+        const newItem: Record<string, unknown> = {
             id: randomUUID(),
-            linkedProductId: input.linkedProductId,
             name: input.name.trim(),
-            description: input.description?.trim(),
             thumbnailUrl: input.thumbnailUrl,
             productType: input.productType,
             originalPrice: input.originalPrice,
             dealType: input.dealType,
             discountValue: input.discountValue,
             effectivePrice: input.effectivePrice,
-            membershipConfig: input.membershipConfig,
-            membershipBonusOverride: input.membershipBonusOverride,
-            giftVoucher: input.giftVoucher,
-            giftMerch: input.giftMerch?.trim(),
-            totalStock: input.totalStock,
             stockResetPeriod: input.stockResetPeriod ?? "none",
             soldCount: 0,
-            lastStockResetDate: undefined,
             maxQtyPerOrder: input.maxQtyPerOrder,
             isActive: input.isActive,
             order: input.order,
         };
+
+        // Optional fields — only include when defined
+        if (input.linkedProductId) newItem.linkedProductId = input.linkedProductId;
+        if (input.description?.trim()) newItem.description = input.description.trim();
+        if (input.membershipConfig) newItem.membershipConfig = input.membershipConfig;
+        if (input.membershipBonusOverride) newItem.membershipBonusOverride = input.membershipBonusOverride;
+        if (input.giftVoucher) newItem.giftVoucher = input.giftVoucher;
+        if (input.giftMerch?.trim()) newItem.giftMerch = input.giftMerch.trim();
+        if (input.totalStock !== undefined) newItem.totalStock = input.totalStock;
 
         // Append to items array atomically
         await col().doc(sectionId).update({
@@ -217,8 +222,10 @@ export async function addDealItem(
         revalidatePath(`/admin/deal-sections/${sectionId}`);
         return { success: true };
     } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
         console.error("[dealSections] addDealItem:", err);
-        return { success: false, error: "Không thể thêm deal item." };
+        // Return actual error so UI can display it
+        return { success: false, error: `Lỗi: ${message}` };
     }
 }
 
