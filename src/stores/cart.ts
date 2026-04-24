@@ -18,7 +18,7 @@ export interface CartItem {
   /** Original price before flash sale — DISPLAY ONLY */
   originalPrice: number;
   quantity: number;
-  type: "ticket" | "combo";
+  type: "ticket" | "combo" | "membership";
 }
 
 interface CartStore {

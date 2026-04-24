@@ -20,6 +20,8 @@ import {
   LogOut,
   Image as ImageIcon,
   UserCog,
+  Zap,
+  TicketPercent,
 } from "lucide-react";
 
 const LOCALE_FLAGS: Record<Locale, { flag: string; label: string }> = {
@@ -33,6 +35,8 @@ const NAV_ITEMS = [
   { href: "/admin/product-groups", key: "productGroups", icon: Layers },
   { href: "/admin/orders", key: "orders", icon: ShoppingBag },
   { href: "/admin/promotions", key: "promotions", icon: Tag },
+  { href: "/admin/deal-sections", key: "dealSections", icon: Zap },
+  { href: "/admin/voucher-templates", key: "voucherTemplates", icon: TicketPercent },
   { href: "/admin/gallery", key: "gallery", icon: ImageIcon },
   { href: "/admin/scan", key: "scan", icon: QrCode },
   { href: "/admin/affiliates", key: "affiliates", icon: Users },

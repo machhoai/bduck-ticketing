@@ -70,7 +70,7 @@ const formSchema = z.object({
   nameEn: z.string().optional(),
   description: z.string().optional(),
   descriptionEn: z.string().optional(),
-  type: z.enum(["ticket", "combo"]),
+  type: z.enum(["ticket", "combo", "membership"]),
   price: z.coerce.number().positive("Giá phải lớn hơn 0"),
   groupId: z.string().optional(),
   // Stock
@@ -109,6 +109,12 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
   const [priceDisplay, setPriceDisplay] = useState<string>(
     initialData?.price ? new Intl.NumberFormat("vi-VN").format(initialData.price) : ""
   );
+  const [membershipConfig, setMembershipConfig] = useState({
+    packageName: (initialData as any)?.membershipConfig?.packageName ?? "",
+    basePoints: (initialData as any)?.membershipConfig?.basePoints ?? 0,
+    bonusPoints: (initialData as any)?.membershipConfig?.bonusPoints ?? 0,
+    merch: (initialData as any)?.membershipConfig?.merch ?? "",
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -252,6 +258,13 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
       stockResetPeriod: data.stockEnabled ? data.stockResetPeriod : undefined,
       commissionRate: data.commissionRate ? data.commissionRate / 100 : undefined,
       validityConfig: validityConfig as Parameters<typeof createProduct>[0]["validityConfig"],
+      // Membership config: only if type = membership
+      membershipConfig: data.type === "membership" ? {
+        packageName: membershipConfig.packageName || data.name,
+        basePoints: membershipConfig.basePoints,
+        bonusPoints: membershipConfig.bonusPoints,
+        merch: membershipConfig.merch || undefined,
+      } : undefined,
     };
 
     startTransition(async () => {
@@ -451,6 +464,7 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
             <select {...register("type")} className={inputCls(!!errors.type)}>
               <option value="ticket">Vé đơn (ticket)</option>
               <option value="combo">Combo</option>
+              <option value="membership">Thẻ thành viên (membership)</option>
             </select>
           </Field>
 
@@ -552,6 +566,61 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
           )}
         </div>
       </div>
+
+      {/* Membership Config — only shown when type = membership */}
+      {watch("type") === "membership" && (
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 space-y-4">
+          <div>
+            <h2 className="font-bold text-[#1A1A2E] text-sm flex items-center gap-2">
+              <span>💳</span> Cấu hình Thẻ thành viên
+            </h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Khách hàng mua online → đổi thẻ nhựa tại cửa hàng. Thẻ sẽ được nạp sắn số điểm tuyền theo cấu hình này.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Tên gói">
+              <input
+                value={membershipConfig.packageName}
+                onChange={(e) => setMembershipConfig((p) => ({ ...p, packageName: e.target.value }))}
+                placeholder="Gói Bạc"
+                className={inputCls(false)}
+              />
+            </Field>
+            <Field label="Điểm gốc (base points)" hint="= số tiền khách trả chia 1000">
+              <input
+                type="number"
+                min={0}
+                value={membershipConfig.basePoints}
+                onChange={(e) => setMembershipConfig((p) => ({ ...p, basePoints: Number(e.target.value) }))}
+                className={inputCls(false)}
+              />
+            </Field>
+            <Field label="Điểm thưởng (bonus points)" hint="Tặng thêm khi mua">
+              <input
+                type="number"
+                min={0}
+                value={membershipConfig.bonusPoints}
+                onChange={(e) => setMembershipConfig((p) => ({ ...p, bonusPoints: Number(e.target.value) }))}
+                className={inputCls(false)}
+              />
+            </Field>
+            <Field label="Quà merch kèm (tùy chọn)">
+              <input
+                value={membershipConfig.merch}
+                onChange={(e) => setMembershipConfig((p) => ({ ...p, merch: e.target.value }))}
+                placeholder="1 gấu bông B.Duck"
+                className={inputCls(false)}
+              />
+            </Field>
+          </div>
+          <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700">
+            ℹ️ Khi khách thanh toán → pass tạo ra sẽ ghi nhận:
+            <strong> {membershipConfig.basePoints || "BasePoints"} điểm gốc + {membershipConfig.bonusPoints || "BonusPoints"} điểm thưởng = {(membershipConfig.basePoints || 0) + (membershipConfig.bonusPoints || 0)} điểm tổng</strong>.
+            Nhân viên sẽ thấy thông tin này khi quét mã QR.
+          </div>
+        </div>
+      )}
 
 
       {/* Validity */}

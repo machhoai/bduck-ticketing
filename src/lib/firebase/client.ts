@@ -31,6 +31,11 @@ export const COLLECTIONS = {
   PASSES: "bduck_passes",
   AFFILIATE_PROFILES: "bduck_affiliateProfiles",
   PAYOUT_REQUESTS: "bduck_payoutRequests",
+  SETTINGS: "bduck_settings",
+  // ── Promotion system (Phase 2–3) ────────────────────────────────────────────
+  DEAL_SECTIONS: "bduck_dealSections",
+  VOUCHER_TEMPLATES: "bduck_voucherTemplates",
+  ISSUED_VOUCHERS: "bduck_issuedVouchers",
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

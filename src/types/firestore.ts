@@ -98,13 +98,24 @@ export interface UserDocument {
 // bduck_products
 // ─────────────────────────────────────────────
 
-export type ProductType = "ticket" | "combo";
+export type ProductType = "ticket" | "combo" | "membership";
 export type ProductStatus = "active" | "hidden" | "sold-out";
 
 export interface FlashSaleConfig {
   salePrice: number; // VND
   startAt: Timestamp;
   endAt: Timestamp;
+}
+
+/**
+ * Membership card config — only present when type = 'membership'.
+ * Represents a value-loadable physical card sold online and redeemed at the store.
+ */
+export interface MembershipConfig {
+  packageName: string;       // e.g. "Gói Bạc", "Gói Vàng"
+  basePoints: number;        // points loaded = price paid (e.g. 1210)
+  bonusPoints: number;       // fixed bonus gift (e.g. 385)
+  merch?: string;            // physical gift text, e.g. "1 gấu bông B.Duck"
 }
 
 /** Document ID = auto-generated Firestore ID */
@@ -131,6 +142,12 @@ export interface ProductDocument {
   /** Only when type = 'combo'. Displayed at gate scan for ticket exchange */
   comboItems?: ComboItem[];
 
+  /**
+   * Only when type = 'membership'.
+   * Config for physical card points and perks.
+   */
+  membershipConfig?: MembershipConfig;
+
   /** Managed via Firestore Transaction when order is paid */
   totalStock?: number; // undefined = unlimited
   /** When stockEnabled, reset period for stock. undefined = no reset */
@@ -144,9 +161,8 @@ export interface ProductDocument {
   commissionRate?: number; // e.g. 0.08 = 8%
 
   /**
-   * Flash sale config — separate from promotions (promo codes).
-   * Flash sale = automatic price override; promotions = user-entered discount code.
-   * Both can be active simultaneously.
+   * Flash sale config — separate from deal sections.
+   * Flash sale = automatic price override on the product itself.
    */
   flashSale?: FlashSaleConfig;
 
@@ -217,6 +233,18 @@ export interface OrderItem {
   subtotal: number; // unitPrice × quantity
   validityConfig: ValidityConfig; // stamped from product
   comboItems?: ComboItem[]; // stamped from product if combo
+
+  // Deal section context — set when item comes from a deal section
+  isDealItem?: boolean;
+  dealSectionId?: string;
+  dealItemId?: string;
+
+  // Membership snapshot — set when productType = 'membership'
+  membershipPoints?: number;   // base points
+  bonusPoints?: number;        // effective bonus (after multiplier if deal)
+  totalPoints?: number;        // membershipPoints + bonusPoints
+  pointsBreakdown?: string;    // human-readable e.g. "1.210 gốc + 770 thưởng (×2)"
+  merch?: string;              // physical gift
 }
 
 export interface VNPayData {
@@ -319,6 +347,12 @@ export interface OrderDocument {
   promotionId?: string;
   promotionCode?: string; // denormalized for display
 
+  // Deal section (if items came from a deal section)
+  dealSectionId?: string;
+
+  // Issued vouchers generated for this order (populated post-payment)
+  issuedVoucherIds?: string[]; // refs to bduck_issuedVouchers
+
   // Affiliate tracking
   affiliateId?: string; // resolved from referral code — indexed
   affiliateCode?: string; // raw ?ref=CODE captured from URL
@@ -388,6 +422,16 @@ export interface PassDocument {
    */
   // Apple Wallet PKPass download — Firebase Storage URL (populated in Phase 5)
   walletPassUrl?: string;
+
+  /**
+   * Membership card data — only present when productType = 'membership'.
+   * Staff sees this when scanning the pass at the store counter.
+   */
+  membershipPoints?: number;  // base points (= price paid / 1000)
+  bonusPoints?: number;       // effective bonus after any deal multiplier
+  totalPoints?: number;       // membershipPoints + bonusPoints
+  pointsBreakdown?: string;   // "1.210 gốc + 770 thưởng (×2)"
+  merch?: string;             // physical gift: "1 gấu bông B.Duck"
 
   // Gate scan tracking
   status: PassStatus;
@@ -520,5 +564,225 @@ export interface AttractionsSettingsDocument {
   images: string[];
   updatedAt: Timestamp;
   updatedBy: string; // admin UID
+}
+
+// ─────────────────────────────────────────────
+// bduck_dealSections
+// ─────────────────────────────────────────────
+
+export type DealType = "percentage" | "fixed" | "buy1get1";
+
+/**
+ * Configures how membership bonus points are multiplied in a deal.
+ * applyTo: 'bonusOnly' → only bonus points × multiplier
+ * applyTo: 'totalPoints' → (basePoints + bonusPoints) × multiplier
+ */
+export interface DealBonusOverride {
+  applyTo: "bonusOnly" | "totalPoints";
+  multiplier: number; // e.g. 2 = double
+}
+
+/** Reference to a voucher template — governs how gift vouchers are distributed */
+export interface GiftVoucherConfig {
+  templateId: string;     // ref → bduck_voucherTemplates
+  templateName: string;   // denormalized for display
+  distribution: "perProduct" | "perOrder";
+  // perProduct: 1 voucher issued per qty purchased
+  // perOrder:   1 voucher per order regardless of qty
+}
+
+/**
+ * An item inside a DealSection — embedded array (max ~20 items).
+ * Can either link to an existing bduck_products document or be a standalone deal.
+ */
+export interface DealItemDocument {
+  id: string; // client-generated UUID (not Firestore doc ID — embedded)
+
+  /** Link to an existing bduck_products — if set, data is denormalized from product */
+  linkedProductId?: string;
+
+  name: string;
+  description?: string;
+  thumbnailUrl: string;
+  productType: ProductType;
+
+  originalPrice: number;   // VND — before deal discount
+  dealType: DealType;
+  discountValue: number;   // percentage (0-100) or VND amount
+  effectivePrice: number;  // pre-calculated: stored for display, re-validated server-side
+
+  /** Membership config — copied (denormalized) from linked product if applicable */
+  membershipConfig?: MembershipConfig;
+  /**
+   * Override the bonus multiplier for this deal.
+   * e.g. "Nhân đôi lộc" = { applyTo: 'bonusOnly', multiplier: 2 }
+   */
+  membershipBonusOverride?: DealBonusOverride;
+
+  /** Gift voucher attached to this deal item */
+  giftVoucher?: GiftVoucherConfig;
+
+  /** Physical merch gift (separate from membership merch) */
+  giftMerch?: string; // "1 merch B.Duck"
+
+  /**
+   * Per-deal-item stock management.
+   * Independent from the linked product's stock (both are checked).
+   * lastStockResetDate: "YYYY-MM-DD" — lazy daily reset (no cron needed).
+   */
+  totalStock?: number;                // undefined = unlimited
+  stockResetPeriod?: "daily" | "none";
+  soldCount: number;
+  lastStockResetDate?: string;        // "YYYY-MM-DD" for lazy daily reset
+
+  /** Customer can purchase at most this many units per order */
+  maxQtyPerOrder: number; // default 1
+
+  isActive: boolean;
+  order: number; // ascending display order
+}
+
+/** Document ID = auto-generated Firestore ID */
+export interface DealSectionDocument {
+  id: string;
+  title: string;
+  description?: string;
+  badgeLabel?: string; // "🔥 Flash Deal Hè 2025"
+
+  /**
+   * Daily time gate — section items are locked before this time every day.
+   * Server-side validated in createOrder(). Client shows countdown.
+   * Requires TZ=Asia/Ho_Chi_Minh set in Vercel env.
+   */
+  dailyOpenHour?: number;   // 10 = opens at 10:00
+  dailyOpenMinute?: number; // 0
+
+  /** Section overall validity window (optional) */
+  startAt?: Timestamp;
+  endAt?: Timestamp;
+
+  /**
+   * Order-level constraints for deal items in this section.
+   * maxPromoItemsPerOrder: total qty of ALL deal items in one order
+   * maxPromoVariantsPerOrder: max number of distinct deal item types
+   */
+  maxPromoItemsPerOrder?: number;
+  maxPromoVariantsPerOrder?: number;
+
+  isActive: boolean;
+  order: number; // ascending display order on home page
+
+  /** Embedded deal items — max ~20 for Firestore document size safety */
+  items: DealItemDocument[];
+
+  createdBy: string; // admin UID
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ─────────────────────────────────────────────
+// bduck_voucherTemplates
+// ─────────────────────────────────────────────
+
+export type VoucherType = "online_discount" | "instore_points" | "instore_gift";
+
+/** Config for online_discount vouchers — works like a PromotionDocument at checkout */
+export interface OnlineDiscountConfig {
+  type: "percentage" | "fixed";
+  value: number;               // % or VND
+  minOrderValue?: number;
+  maxDiscountAmount?: number;  // cap for percentage type
+  applicableProductIds?: string[]; // empty = applicable to all products
+}
+
+/**
+ * Template that defines how generated vouchers look and behave.
+ * Admin creates templates; deal sections reference them via GiftVoucherConfig.
+ * Document ID = auto-generated Firestore ID.
+ */
+export interface VoucherTemplateDocument {
+  id: string;
+  name: string;         // "Voucher chơi game miễn phí"
+  description?: string; // shown to customer in email/cart
+  imageUrl?: string;    // Firebase Storage URL — displayed on deal card and email
+
+  voucherType: VoucherType;
+
+  // ── Code generation ──────────────────────────────────────────────────────
+  codePrefix?: string;  // "DUCK-"
+  codeSuffix?: string;  // "-VIP"
+  codeLength: number;   // length of the random middle segment, e.g. 6
+
+  // ── Validity ─────────────────────────────────────────────────────────────
+  validDays: number;    // days from issue date until expiry
+
+  // ── Type-specific config ─────────────────────────────────────────────────
+  /** Only when voucherType = 'online_discount' */
+  onlineDiscount?: OnlineDiscountConfig;
+
+  /** Only when voucherType = 'instore_gift' or 'instore_points' */
+  instoreDescription?: string; // "1 lượt chơi game tại khu vui chơi"
+  instorePoints?: number;      // extra points to load if instore_points
+
+  isActive: boolean;
+
+  // ── Counters (updated via Firestore Transaction) ──────────────────────────
+  totalIssued: number;
+  totalRedeemed: number;
+
+  createdBy: string; // admin UID
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ─────────────────────────────────────────────
+// bduck_issuedVouchers
+// ─────────────────────────────────────────────
+
+export type IssuedVoucherStatus = "active" | "redeemed" | "expired";
+
+/**
+ * A single voucher instance issued to a customer.
+ * Created server-side after successful payment.
+ * Document ID = auto-generated Firestore ID.
+ */
+export interface IssuedVoucherDocument {
+  id: string;
+
+  // ── Template reference ────────────────────────────────────────────────────
+  templateId: string;      // indexed → bduck_voucherTemplates
+  templateName: string;    // denormalized for admin display
+  voucherType: VoucherType; // denormalized for validation routing
+
+  // ── Unique code ───────────────────────────────────────────────────────────
+  /** UPPERCASE, formatted as: {prefix}{randomChars}{suffix} — UNIQUE indexed */
+  code: string;
+
+  // ── Customer snapshot ─────────────────────────────────────────────────────
+  customerId?: string;    // Firebase Auth UID (empty for guest)
+  customerEmail: string;  // indexed — for email send + customer lookup
+  customerPhone?: string; // for in-store staff lookup
+  customerName: string;
+
+  // ── Order provenance ──────────────────────────────────────────────────────
+  orderId: string;        // indexed
+  orderNumber: string;    // denormalized
+  dealSectionId?: string; // which deal section triggered the issuance
+  dealItemId?: string;    // which deal item triggered the issuance
+
+  // ── Validity ──────────────────────────────────────────────────────────────
+  issuedAt: Timestamp;
+  expiresAt: Timestamp;   // issuedAt + template.validDays
+
+  status: IssuedVoucherStatus; // indexed
+
+  // ── Redemption audit ──────────────────────────────────────────────────────
+  redeemedAt?: Timestamp;
+  /** admin UID for in-store scans; "system" for online discount auto-redeem */
+  redeemedBy?: string;
+  redemptionNote?: string; // optional staff note
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 

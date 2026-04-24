@@ -17,7 +17,7 @@ const productSchema = z.object({
   nameLocales: z.record(z.string(), z.string()).optional(),
   description: z.string().optional(),
   descriptionLocales: z.record(z.string(), z.string()).optional(),
-  type: z.enum(["ticket", "combo"]),
+  type: z.enum(["ticket", "combo", "membership"]),
   price: z.number().positive("Giá phải lớn hơn 0"),
   thumbnailUrl: z.string().url("URL ảnh không hợp lệ"),
   groupId: z.string().optional(),
@@ -40,6 +40,13 @@ const productSchema = z.object({
     )
     .optional(),
   commissionRate: z.number().min(0).max(1).optional(),
+  // Membership config — only relevant when type = 'membership'
+  membershipConfig: z.object({
+    packageName: z.string().optional(),
+    basePoints: z.number().int().min(0),
+    bonusPoints: z.number().int().min(0),
+    merch: z.string().optional(),
+  }).optional(),
 });
 
 export type ProductFormData = z.infer<typeof productSchema>;
