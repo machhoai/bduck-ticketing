@@ -245,7 +245,7 @@ export async function sendTicketEmail(
     try {
         // Generate QR PNG buffers for all passes in parallel
         const qrBuffers = await Promise.all(
-            params.passIds.map((id) => buildQrBuffer(id.slice(-12).toUpperCase()))
+            params.passIds.map((id) => buildQrBuffer(id))
         );
 
         // Build CID attachments — one per pass

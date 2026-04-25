@@ -21,7 +21,7 @@ export interface ScanResult {
  * Use markPassUsed() or confirmCounterPayment() to change state.
  *
  * Detection order:
- *   1. "BDUCK-PASS-{passId}" → pass lookup (fast path)
+ *   1. "BDUCK-PASS-{passId}" → pass lookup (legacy QR backward compat)
  *   2. "BDK-XXXXXX"          → order lookup by orderCode (fast path)
  *   3. Free-form             → passId → shortCode → orderNumber → orderCode
  */

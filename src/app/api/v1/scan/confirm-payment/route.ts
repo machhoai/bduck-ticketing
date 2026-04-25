@@ -169,7 +169,7 @@ export async function POST(req: Request): Promise<Response> {
       passes: passIds.map((id) => ({
         id,
         shortCode: id.slice(-12).toUpperCase(),
-        qrCode: `BDUCK-PASS-${id}`,
+        qrCode: id,
         status: "active",
       })),
     });

@@ -61,7 +61,7 @@ export function PassCard({ pass, locale }: PassCardProps) {
     const isVoided = pass.status === "voided";
     const isExpired = pass.status === "expired";
 
-    const qrValue = `BDUCK-PASS-${pass.id}`;
+    const qrValue = `${pass.id}`;
 
     // Status config
     type StatusCfg = { label: string; icon: React.ReactNode; bg: string; text: string; border: string };
@@ -174,8 +174,8 @@ export function PassCard({ pass, locale }: PassCardProps) {
                 {/* ── QR Code ─────────────────────────────────────────── */}
                 <div className="flex flex-col items-center gap-3">
                     <div className={`p-4 rounded-2xl border-4 shadow-inner ${isActive
-                            ? "border-[#F5C842] bg-white shadow-[#F5C842]/10"
-                            : "border-gray-200 bg-gray-50"
+                        ? "border-[#F5C842] bg-white shadow-[#F5C842]/10"
+                        : "border-gray-200 bg-gray-50"
                         }`}>
                         <QRCodeCanvas
                             value={qrValue}

@@ -417,8 +417,9 @@ export interface PassDocument {
   validUntil?: Timestamp; // date-range & date-specific: deadline
 
   /**
-   * QR code is rendered client-side from Document ID: "BDUCK-PASS-{id}"
+   * QR code is rendered client-side from Document ID (raw pass.id)
    * using qrcode.react — no Firebase Storage needed (D2).
+   * Legacy QR codes with "BDUCK-PASS-" prefix are still accepted by the scanner.
    */
   // Apple Wallet PKPass download — Firebase Storage URL (populated in Phase 5)
   walletPassUrl?: string;

@@ -71,7 +71,7 @@ export async function POST(req: Request): Promise<Response> {
       const passInfo = {
         id: resolvedId,
         shortCode: resolvedId.slice(-12).toUpperCase(),
-        qrCode: `BDUCK-PASS-${resolvedId}`,
+        qrCode: resolvedId,
         status: pass.status,
         customerName: pass.customerName,
         customerEmail: pass.customerEmail,

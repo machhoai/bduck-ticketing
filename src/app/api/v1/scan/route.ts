@@ -2,7 +2,7 @@
  * GET /api/v1/scan?code={any_code}
  *
  * Unified scan/lookup — accepts any code format:
- *   - "BDUCK-PASS-{passId}" → pass lookup
+ *   - "BDUCK-PASS-{passId}" → pass lookup (legacy QR backward compat)
  *   - "BDK-XXXXXX"          → order lookup by orderCode
  *   - Free-form             → passId → shortCode → orderNumber → orderCode
  *
@@ -153,7 +153,7 @@ function serializePass(pass: PassDocument) {
   return {
     id: pass.id,
     shortCode: pass.id.slice(-12).toUpperCase(),
-    qrCode: `BDUCK-PASS-${pass.id}`,
+    qrCode: pass.id,
     orderId: pass.orderId,
     orderNumber: pass.orderNumber,
     customerId: pass.customerId ?? null,
