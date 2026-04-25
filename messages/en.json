@@ -99,7 +99,7 @@
     },
     "ticketSection": {
         "title": "Buy Tickets",
-        "titleHighlight": "B.Duck Cityfuns",
+        "titleHighlight": "B.Duck Cityfuns Vietnam",
         "subtitle": "Choose the right ticket, pay securely, and receive your e-ticket instantly.",
         "allTab": "All",
         "emptyTitle": "No products yet",
@@ -203,8 +203,8 @@
         "socialHeading": "Connect with us"
     },
     "privacyPolicy": {
-        "metaTitle": "Privacy Policy — B.Duck Cityfuns",
-        "metaDescription": "Learn how B.Duck Cityfuns collects, uses, and protects your personal information.",
+        "metaTitle": "Privacy Policy — B.Duck Cityfuns Vietnam",
+        "metaDescription": "Learn how B.Duck Cityfuns Vietnam collects, uses, and protects your personal information.",
         "heroTitle": "Privacy Policy",
         "heroSubtitle": "We are committed to protecting your privacy and personal data to the highest standards.",
         "lastUpdated": "Last updated: April 1, 2026",
@@ -236,16 +236,16 @@
             },
             "contact": {
                 "title": "Privacy Contact",
-                "content": "If you have questions about our privacy policy, please contact:\n\n📧 Email: ask@bduckcifyfuns.com.vn\n📍 Address: B.Duck Cityfuns, Vietnam\n\nWe will respond within 5 business days."
+                "content": "If you have questions about our privacy policy, please contact:\n\n📧 Email: ask@bduckcifyfuns.com.vn\n📍 Address: B.Duck Cityfuns Vietnam, Vietnam\n\nWe will respond within 5 business days."
             }
         },
         "footerNote": "This privacy policy may be updated periodically. The latest version is always published on this page."
     },
     "termsOfService": {
-        "metaTitle": "Terms of Use — B.Duck Cityfuns",
+        "metaTitle": "Terms of Use — B.Duck Cityfuns Vietnam",
         "metaDescription": "Read the terms and conditions for using B.Duck Cityfuns Vietnam's online ticketing service.",
         "heroTitle": "Terms of Use",
-        "heroSubtitle": "Please read these terms carefully before using B.Duck Cityfuns' ticketing service.",
+        "heroSubtitle": "Please read these terms carefully before using B.Duck Cityfuns Vietnam' ticketing service.",
         "lastUpdated": "Last updated: April 1, 2026",
         "intro": "By using the website and ticketing services of B.Duck Cityfuns Vietnam ('we', 'us'), you agree to comply with the Terms of Use set out below. If you do not agree, please do not use our services.",
         "sections": {
@@ -263,7 +263,7 @@
             },
             "refund": {
                 "title": "Refunds and Cancellations",
-                "content": "• Tickets that have been successfully paid for and QR codes issued are non-refundable, except in cases of technical error on our part.\n• If you experience a technical issue, please contact support within 24 hours of the incident.\n• B.Duck Cityfuns reserves the right to refuse refund requests for tickets that have been used or have expired."
+                "content": "• Tickets that have been successfully paid for and QR codes issued are non-refundable, except in cases of technical error on our part.\n• If you experience a technical issue, please contact support within 24 hours of the incident.\n• B.Duck Cityfuns Vietnam reserves the right to refuse refund requests for tickets that have been used or have expired."
             },
             "conduct": {
                 "title": "Code of Conduct",
@@ -271,7 +271,7 @@
             },
             "liability": {
                 "title": "Limitation of Liability",
-                "content": "• B.Duck Cityfuns is not liable for indirect damages arising from the use of our services.\n• We do not guarantee uninterrupted service availability, which may be affected by maintenance or technical issues.\n• Our maximum liability is limited to the actual transaction value of the relevant order."
+                "content": "• B.Duck Cityfuns Vietnam is not liable for indirect damages arising from the use of our services.\n• We do not guarantee uninterrupted service availability, which may be affected by maintenance or technical issues.\n• Our maximum liability is limited to the actual transaction value of the relevant order."
             },
             "changes": {
                 "title": "Changes to Terms",
@@ -285,12 +285,12 @@
         "footerNote": "By using our services, you agree to these Terms of Use. © 2026 B.Duck Cityfuns Vietnam."
     },
     "purchaseGuide": {
-        "metaTitle": "How to Buy Tickets — B.Duck Cityfuns",
-        "metaDescription": "Step-by-step guide to purchasing e-tickets at B.Duck Cityfuns. Choose, pay, and receive your QR code instantly.",
+        "metaTitle": "How to Buy Tickets — B.Duck Cityfuns Vietnam",
+        "metaDescription": "Step-by-step guide to purchasing e-tickets at B.Duck Cityfuns Vietnam. Choose, pay, and receive your QR code instantly.",
         "heroTitle": "How to Buy Tickets",
         "heroSubtitle": "Just a few simple steps to get your e-ticket — secure payment, instant QR code delivery.",
         "lastUpdated": "Last updated: April 1, 2026",
-        "intro": "B.Duck Cityfuns provides a convenient, fast, and secure online ticketing service. Your QR e-ticket will be sent directly to your email right after a successful payment — no printing required.",
+        "intro": "B.Duck Cityfuns Vietnam provides a convenient, fast, and secure online ticketing service. Your QR e-ticket will be sent directly to your email right after a successful payment — no printing required.",
         "sections": {
             "browse": {
                 "title": "Step 1: Choose Your Ticket",
@@ -306,7 +306,7 @@
             },
             "payment": {
                 "title": "Step 4: Select Payment Method",
-                "content": "B.Duck Cityfuns supports the following payment methods:\n\n• Online payment: Domestic cards, international cards (Visa/Mastercard), e-wallets, QR Pay.\n• Pay at Counter: Select this option to receive an order QR code, then bring it to the cashier and pay by cash or bank transfer.\n\nReview the order summary and total amount before confirming."
+                "content": "B.Duck Cityfuns Vietnam supports the following payment methods:\n\n• Online payment: Domestic cards, international cards (Visa/Mastercard), e-wallets, QR Pay.\n• Pay at Counter: Select this option to receive an order QR code, then bring it to the cashier and pay by cash or bank transfer.\n\nReview the order summary and total amount before confirming."
             },
             "receive": {
                 "title": "Step 5: Receive Your E-Ticket",
@@ -314,7 +314,7 @@
             },
             "use": {
                 "title": "Step 6: Use Your Ticket at the Park",
-                "content": "When you arrive at B.Duck Cityfuns:\n\n• Open your email or go to 'My Orders' to retrieve your QR code.\n• Present the QR code at the ticket counter to exchange for a paper ticket (if applicable) or scan directly at the entrance.\n• Each QR code can only be used once.\n• Take a screenshot of the QR code for offline use in case you have no internet access."
+                "content": "When you arrive at B.Duck Cityfuns Vietnam:\n\n• Open your email or go to 'My Orders' to retrieve your QR code.\n• Present the QR code at the ticket counter to exchange for a paper ticket (if applicable) or scan directly at the entrance.\n• Each QR code can only be used once.\n• Take a screenshot of the QR code for offline use in case you have no internet access."
             },
             "support": {
                 "title": "Support & Contact",
@@ -324,16 +324,16 @@
         "footerNote": "Need more help? Don't hesitate to contact us at ask@bduckcifyfuns.com.vn."
     },
     "deliveryPolicy": {
-        "metaTitle": "Delivery Policy — B.Duck Cityfuns",
-        "metaDescription": "B.Duck Cityfuns e-ticket delivery policy. Receive your QR code instantly via email after successful payment.",
+        "metaTitle": "Delivery Policy — B.Duck Cityfuns Vietnam",
+        "metaDescription": "B.Duck Cityfuns Vietnam e-ticket delivery policy. Receive your QR code instantly via email after successful payment.",
         "heroTitle": "Delivery Policy",
         "heroSubtitle": "E-tickets delivered instantly to your inbox — no waiting, no printing.",
         "lastUpdated": "Last updated: April 1, 2026",
-        "intro": "Due to the nature of our service, B.Duck Cityfuns delivers tickets exclusively in digital format (e-tickets). Tickets are delivered directly to the customer's email address after a successful payment — completely free and instantaneous.",
+        "intro": "Due to the nature of our service, B.Duck Cityfuns Vietnam delivers tickets exclusively in digital format (e-tickets). Tickets are delivered directly to the customer's email address after a successful payment — completely free and instantaneous.",
         "sections": {
             "method": {
                 "title": "Ticket Delivery Method",
-                "content": "B.Duck Cityfuns uses electronic ticket (e-ticket) delivery exclusively:\n\n• QR tickets are sent to the email address provided at the time of order.\n• Physical delivery (paper tickets by mail) is not available.\n• Delivery fee: Completely free.\n• Customers can also view their tickets in 'My Orders' after logging in."
+                "content": "B.Duck Cityfuns Vietnam uses electronic ticket (e-ticket) delivery exclusively:\n\n• QR tickets are sent to the email address provided at the time of order.\n• Physical delivery (paper tickets by mail) is not available.\n• Delivery fee: Completely free.\n• Customers can also view their tickets in 'My Orders' after logging in."
             },
             "timeline": {
                 "title": "Delivery Timeline",
@@ -341,7 +341,7 @@
             },
             "scope": {
                 "title": "Coverage",
-                "content": "• Applies to all orders placed on bduck-cityfuns.vn.\n• E-tickets can be used at all B.Duck Cityfuns locations in Vietnam.\n• No geographic restrictions on email delivery — customers anywhere can order tickets."
+                "content": "• Applies to all orders placed on bduck-cityfuns.vn.\n• E-tickets can be used at all B.Duck Cityfuns Vietnam locations in Vietnam.\n• No geographic restrictions on email delivery — customers anywhere can order tickets."
             },
             "notreceived": {
                 "title": "Didn't Receive Your Ticket?",
@@ -352,15 +352,15 @@
                 "content": "• Please enter your email address accurately at checkout — we are not responsible for tickets sent to an incorrectly typed email.\n• Each QR ticket can only be used once and will be automatically voided after scanning.\n• We recommend screenshotting your QR code or saving the ticket URL for offline use.\n• Do not share your QR code with others before using it."
             }
         },
-        "footerNote": "B.Duck Cityfuns e-tickets — convenient, instant, and eco-friendly."
+        "footerNote": "B.Duck Cityfuns Vietnam e-tickets — convenient, instant, and eco-friendly."
     },
     "paymentMethods": {
-        "metaTitle": "Payment Methods — B.Duck Cityfuns",
-        "metaDescription": "B.Duck Cityfuns supports online and counter payment. Multiple secure payment options available.",
+        "metaTitle": "Payment Methods — B.Duck Cityfuns Vietnam",
+        "metaDescription": "B.Duck Cityfuns Vietnam supports online and counter payment. Multiple secure payment options available.",
         "heroTitle": "Payment Methods",
         "heroSubtitle": "Flexible, secure, and convenient payment options for every customer.",
         "lastUpdated": "Last updated: April 1, 2026",
-        "intro": "B.Duck Cityfuns supports a variety of payment methods to accommodate all customers. All transactions are SSL-encrypted and processed through trusted payment gateways, ensuring absolute security.",
+        "intro": "B.Duck Cityfuns Vietnam supports a variety of payment methods to accommodate all customers. All transactions are SSL-encrypted and processed through trusted payment gateways, ensuring absolute security.",
         "sections": {
             "online": {
                 "title": "Online Payment",
@@ -368,7 +368,7 @@
             },
             "counter": {
                 "title": "Pay at Counter",
-                "content": "For customers who prefer to pay in person at the park:\n\n1. Add items to cart and place an order on the website, selecting 'Pay at Counter'.\n2. Receive an order QR code — valid for 24 hours.\n3. Bring the QR code to the B.Duck Cityfuns cashier counter.\n4. Staff will scan the code and display your order details.\n5. Pay by Cash or Bank Transfer.\n6. Your e-ticket will be sent to your email right after."
+                "content": "For customers who prefer to pay in person at the park:\n\n1. Add items to cart and place an order on the website, selecting 'Pay at Counter'.\n2. Receive an order QR code — valid for 24 hours.\n3. Bring the QR code to the B.Duck Cityfuns Vietnam cashier counter.\n4. Staff will scan the code and display your order details.\n5. Pay by Cash or Bank Transfer.\n6. Your e-ticket will be sent to your email right after."
             },
             "promo": {
                 "title": "Promo Codes & Discounts",
@@ -376,26 +376,26 @@
             },
             "security": {
                 "title": "Payment Security",
-                "content": "Every transaction at B.Duck Cityfuns is protected by:\n\n• 256-bit SSL encryption for all connections.\n• PCI-DSS compliance for payment industry standards.\n• No storage of customer payment card information.\n• Server-side price confirmation — cannot be altered client-side.\n• Automatic anomalous transaction detection system."
+                "content": "Every transaction at B.Duck Cityfuns Vietnam is protected by:\n\n• 256-bit SSL encryption for all connections.\n• PCI-DSS compliance for payment industry standards.\n• No storage of customer payment card information.\n• Server-side price confirmation — cannot be altered client-side.\n• Automatic anomalous transaction detection system."
             },
             "notes": {
                 "title": "Important Notes",
                 "content": "• Ticket prices displayed on the website include VAT where applicable.\n• Counter payment orders are valid for a maximum of 24 hours from placement.\n• If a payment is declined, please check your account balance or contact your bank.\n• For transaction disputes, contact ask@bduckcifyfuns.com.vn with your order ID and proof of payment."
             }
         },
-        "footerNote": "B.Duck Cityfuns is committed to providing the safest and most convenient payment experience for our customers."
+        "footerNote": "B.Duck Cityfuns Vietnam is committed to providing the safest and most convenient payment experience for our customers."
     },
     "returnPolicy": {
-        "metaTitle": "Warranty & Return Policy — B.Duck Cityfuns",
-        "metaDescription": "B.Duck Cityfuns e-ticket refund and exchange policy. Transparent, fair, and customer-first.",
+        "metaTitle": "Warranty & Return Policy — B.Duck Cityfuns Vietnam",
+        "metaDescription": "B.Duck Cityfuns Vietnam e-ticket refund and exchange policy. Transparent, fair, and customer-first.",
         "heroTitle": "Warranty & Return Policy",
         "heroSubtitle": "We are committed to transparency and protecting our customers' rights in every situation.",
         "lastUpdated": "Last updated: April 1, 2026",
-        "intro": "B.Duck Cityfuns respects customer rights and maintains a clear policy on e-ticket exchanges and refunds. Due to the digital nature of e-tickets, the return policy has specific conditions outlined below.",
+        "intro": "B.Duck Cityfuns Vietnam respects customer rights and maintains a clear policy on e-ticket exchanges and refunds. Due to the digital nature of e-tickets, the return policy has specific conditions outlined below.",
         "sections": {
             "conditions": {
                 "title": "Refund Eligibility",
-                "content": "You may request a refund in the following cases:\n\n✅ System technical error: Ticket was not generated after a successful charge.\n✅ Ticket sent to wrong email: Due to a system error (not caused by the customer entering incorrect details).\n✅ Event cancelled by B.Duck Cityfuns: A full 100% refund will be issued.\n✅ Incorrect ticket pricing: The difference between the displayed price and actual price will be refunded."
+                "content": "You may request a refund in the following cases:\n\n✅ System technical error: Ticket was not generated after a successful charge.\n✅ Ticket sent to wrong email: Due to a system error (not caused by the customer entering incorrect details).\n✅ Event cancelled by B.Duck Cityfuns Vietnam: A full 100% refund will be issued.\n✅ Incorrect ticket pricing: The difference between the displayed price and actual price will be refunded."
             },
             "process": {
                 "title": "Refund Request Process",
@@ -426,7 +426,7 @@
         "heroTitle1": "Find your",
         "heroTitleHighlight": "perfect",
         "heroTitle2": "ticket",
-        "heroSubtitle": "Secure checkout, instant QR e-tickets. Get ready for an unforgettable adventure at B.Duck Cityfuns.",
+        "heroSubtitle": "Secure checkout, instant QR e-tickets. Get ready for an unforgettable adventure at B.Duck Cityfuns Vietnam.",
         "searchPlaceholder": "Search attractions, combos...",
         "filterAll": "All",
         "sortNewest": "Newest",
@@ -451,7 +451,7 @@
         "emptySubtitle": "Your cart is empty",
         "backToShop": "Home",
         "emptyTitle": "Your cart is empty",
-        "emptyDescription": "Discover exciting tickets and combos at B.Duck Cityfuns!",
+        "emptyDescription": "Discover exciting tickets and combos at B.Duck Cityfuns Vietnam!",
         "shopNow": "Shop Now",
         "orderSummary": "Order Summary",
         "subtotal": "Subtotal",
@@ -542,7 +542,7 @@
         "counterQrHint": "Scan this QR code or read out the code below at the cashier",
         "counterItemsLabel": "Order Details",
         "counterStepsTitle": "How to Pay at Counter",
-        "counterStep1": "Bring this QR code (or the order number) to the B.Duck Cityfuns cashier",
+        "counterStep1": "Bring this QR code (or the order number) to the B.Duck Cityfuns Vietnam cashier",
         "counterStep2": "Staff will scan the code and display your order details",
         "counterStep3": "Pay directly — e-tickets will be sent to your email right after",
         "counterExpired": "This order has expired (over 24 hours). Please place a new order.",

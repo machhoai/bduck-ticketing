@@ -99,14 +99,14 @@ export const Footer: React.FC = () => {
                         <div className="flex items-center gap-3">
                             <Image
                                 src="/images/avt_bduck-cityfuns.png"
-                                alt="B.Duck Cityfuns"
+                                alt="B.Duck Cityfuns Vietnam"
                                 width={44}
                                 height={44}
                                 className="rounded-2xl ring-2 ring-white/10"
                             />
                             <div>
                                 <p className="font-[var(--font-heading)] font-extrabold text-white text-base leading-tight">
-                                    B.Duck Cityfuns
+                                    B.Duck Cityfuns Vietnam
                                 </p>
                                 <p className="text-[10px] text-white/30 mt-0.5">Joy World Entertainment</p>
                             </div>

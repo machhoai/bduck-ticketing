@@ -1,12 +1,12 @@
-// E-ticket wallet page — RSC fetch + serialize, Client QR render
+// E-ticket wallet page — shows ALL passes from the same order
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/client";
-import { PassCard } from "@/components/customer/PassCard";
+import { PassCard, type SerializedPass } from "@/components/customer/PassCard";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ShieldCheck, Smartphone, Eye } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Smartphone, Eye, Ticket } from "lucide-react";
 
 export const dynamic = "force-dynamic"; // always fresh — no cache for tickets
 
@@ -22,22 +22,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
 }
 
-export default async function ETicketPage({ params }: PageProps) {
-    const { locale, passId } = await params;
-    setRequestLocale(locale);
+// Serialize Firestore Timestamps → ISO strings for client component
+const toISO = (ts: { toDate?: () => Date } | undefined) =>
+    ts?.toDate ? ts.toDate().toISOString() : undefined;
 
-    const t = await getTranslations({ locale, namespace: "ticketWallet" });
-
-    const doc = await adminDb.collection(COLLECTIONS.PASSES).doc(passId).get();
-    if (!doc.exists) notFound();
-
+function serializePass(doc: FirebaseFirestore.DocumentSnapshot): SerializedPass {
     const raw = doc.data()!;
-
-    // Serialize Firestore Timestamps → ISO strings for client component
-    const toISO = (ts: { toDate?: () => Date } | undefined) =>
-        ts?.toDate ? ts.toDate().toISOString() : undefined;
-
-    const pass = {
+    return {
         id: doc.id,
         orderId: raw.orderId,
         orderNumber: raw.orderNumber,
@@ -59,6 +50,37 @@ export default async function ETicketPage({ params }: PageProps) {
         createdAt: toISO(raw.createdAt),
         usedAt: toISO(raw.usedAt),
     };
+}
+
+export default async function ETicketPage({ params }: PageProps) {
+    const { locale, passId } = await params;
+    setRequestLocale(locale);
+
+    const t = await getTranslations({ locale, namespace: "ticketWallet" });
+
+    // 1. Load the requested pass
+    const doc = await adminDb.collection(COLLECTIONS.PASSES).doc(passId).get();
+    if (!doc.exists) notFound();
+
+    const primaryPass = serializePass(doc);
+
+    // 2. Load ALL sibling passes from the same order
+    let allPasses: SerializedPass[] = [primaryPass];
+
+    if (primaryPass.orderId) {
+        const siblingSnap = await adminDb
+            .collection(COLLECTIONS.PASSES)
+            .where("orderId", "==", primaryPass.orderId)
+            .orderBy("createdAt", "asc")
+            .get();
+
+        if (!siblingSnap.empty) {
+            allPasses = siblingSnap.docs.map(serializePass);
+        }
+    }
+
+    // Find index of the primary pass for highlighting
+    const primaryIndex = allPasses.findIndex((p) => p.id === passId);
 
     return (
         <main className="min-h-screen bg-gradient-to-b pt-20 from-[#F8F6F0] to-[#F0EDE6]">
@@ -91,8 +113,43 @@ export default async function ETicketPage({ params }: PageProps) {
                     </p>
                 </div>
 
-                {/* ── Pass card ─────────────────────────────────────────── */}
-                <PassCard pass={pass} locale={locale} />
+                {/* ── Order info badge ─────────────────────────────────── */}
+                {allPasses.length > 1 && (
+                    <div className="flex items-center justify-center gap-2 py-2">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-200 shadow-sm">
+                            <Ticket className="h-4 w-4 text-[#F5C842]" />
+                            <span className="text-sm font-semibold text-[#1A1A2E]">
+                                {allPasses.length} vé
+                            </span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-500 font-mono">
+                                {primaryPass.orderNumber}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── All pass cards ───────────────────────────────────── */}
+                <div className="space-y-6">
+                    {allPasses.map((pass, index) => (
+                        <div key={pass.id} className="relative">
+                            {/* Ticket counter */}
+                            {allPasses.length > 1 && (
+                                <div className="flex items-center justify-between mb-2 px-1">
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        Vé {index + 1}/{allPasses.length}
+                                    </span>
+                                    {index === primaryIndex && (
+                                        <span className="text-[10px] font-semibold px-2 py-0.5 bg-[#F5C842]/20 text-[#B8860B] rounded-full">
+                                            Đang xem
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            <PassCard pass={pass} locale={locale} />
+                        </div>
+                    ))}
+                </div>
 
                 {/* ── Usage tips ───────────────────────────────────────── */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
