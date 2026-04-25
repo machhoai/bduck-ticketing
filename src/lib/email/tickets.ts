@@ -45,7 +45,7 @@ function formatVND(amount: number): string {
  * Attached as a CID inline attachment — not embedded as SVG or data URI.
  */
 async function buildQrBuffer(passId: string): Promise<Buffer> {
-    const qrValue = `BDUCK-PASS-${passId}`;
+    const qrValue = `${passId}`;
     return QRCode.toBuffer(qrValue, {
         errorCorrectionLevel: "H",
         width: 200,
@@ -245,7 +245,7 @@ export async function sendTicketEmail(
     try {
         // Generate QR PNG buffers for all passes in parallel
         const qrBuffers = await Promise.all(
-            params.passIds.map((id) => buildQrBuffer(id))
+            params.passIds.map((id) => buildQrBuffer(id.slice(-12).toUpperCase()))
         );
 
         // Build CID attachments — one per pass
