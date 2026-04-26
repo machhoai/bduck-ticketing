@@ -5,11 +5,33 @@
 
 import type { DealSectionDocument } from "@/types/firestore";
 
+/** Vietnam timezone — used for all deal time-gate calculations */
+const VN_TZ = "Asia/Ho_Chi_Minh";
+
+/**
+ * Get current hours and minutes in Vietnam timezone.
+ * Works correctly on Vercel (UTC) and local dev alike.
+ */
+function getVietnamTime(): { hours: number; minutes: number } {
+    const now = new Date();
+    // Intl.DateTimeFormat gives us the correct local time parts in any TZ
+    const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: VN_TZ,
+        hour: "numeric",
+        minute: "numeric",
+        hour12: false,
+    }).formatToParts(now);
+
+    const hours = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+    const minutes = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+    return { hours, minutes };
+}
+
 /**
  * Check whether a deal section's daily time gate is currently open.
  * Returns { isOpen, opensAt } — opensAt is null if no time gate configured.
  *
- * ⚠️ Requires TZ=Asia/Ho_Chi_Minh in Vercel env for correct server-time math.
+ * Uses Vietnam timezone (Asia/Ho_Chi_Minh) explicitly — works on Vercel (UTC).
  */
 export function checkDealSectionTimeGate(section: DealSectionDocument): {
     isOpen: boolean;
@@ -19,11 +41,11 @@ export function checkDealSectionTimeGate(section: DealSectionDocument): {
         return { isOpen: true, opensAt: null };
     }
 
-    const now = new Date();
+    const { hours, minutes } = getVietnamTime();
     const openHour = section.dailyOpenHour;
     const openMinute = section.dailyOpenMinute ?? 0;
 
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const nowMinutes = hours * 60 + minutes;
     const openMinutes = openHour * 60 + openMinute;
 
     const opensAt = `${String(openHour).padStart(2, "0")}:${String(openMinute).padStart(2, "0")}`;

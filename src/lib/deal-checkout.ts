@@ -12,6 +12,7 @@ import type {
 } from "@/types/firestore";
 import { checkDealSectionTimeGate } from "@/lib/dealUtils";
 import { registerEventCustomer } from "@/lib/event-gacha";
+import { sendVoucherNotificationEmail, type IssuedVoucherInfo } from "@/lib/email/voucher-notification";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -245,6 +246,7 @@ export async function issueVouchersForOrder(
     resolved: Map<string, ResolvedDealItem>
 ): Promise<string[]> {
     const issuedIds: string[] = [];
+    const issuedVouchers: IssuedVoucherInfo[] = [];
     const now = Timestamp.now();
 
     for (const [productId, deal] of resolved) {
@@ -322,6 +324,18 @@ export async function issueVouchersForOrder(
                     await voucherRef.set(voucherData);
                     issuedIds.push(voucherRef.id);
 
+                    // Collect for email notification
+                    issuedVouchers.push({
+                        templateName: template.name,
+                        voucherType: "event_gacha",
+                        code: `GACHA-${order.orderNumber}-${i + 1}`,
+                        gachaSpinsRemaining: result.success ? result.spinsRemaining : undefined,
+                        gachaMessage: result.success ? (result.message || "Đăng ký thành công!") : undefined,
+                        gachaPlayUrl: template.eventGachaConfig?.apiBaseUrl
+                            ? `${template.eventGachaConfig.apiBaseUrl}/event/${template.eventGachaConfig.eventId}`
+                            : undefined,
+                    });
+
                     // Increment template counter
                     await adminDb.collection(COLLECTIONS.VOUCHER_TEMPLATES).doc(template.id).update({
                         totalIssued: FieldValue.increment(1),
@@ -357,6 +371,14 @@ export async function issueVouchersForOrder(
                     await voucherRef.set(voucherData);
                     issuedIds.push(voucherRef.id);
 
+                    // Collect for email notification
+                    issuedVouchers.push({
+                        templateName: template.name,
+                        voucherType: "standard",
+                        code,
+                        expiresAt: new Date(expiresAt.toMillis()).toISOString(),
+                    });
+
                     // Increment template counter
                     await adminDb.collection(COLLECTIONS.VOUCHER_TEMPLATES).doc(template.id).update({
                         totalIssued: FieldValue.increment(1),
@@ -366,6 +388,18 @@ export async function issueVouchersForOrder(
                 console.error(`[deal-checkout] Failed to issue voucher for ${productId}:`, err);
             }
         }
+    }
+
+    // ── Send voucher notification email ──
+    if (issuedVouchers.length > 0 && order.customerEmail) {
+        sendVoucherNotificationEmail({
+            to: order.customerEmail,
+            customerName: order.customerName,
+            orderNumber: order.orderNumber,
+            vouchers: issuedVouchers,
+        }).catch((err) =>
+            console.error("[deal-checkout] Voucher email failed (non-fatal):", err)
+        );
     }
 
     return issuedIds;

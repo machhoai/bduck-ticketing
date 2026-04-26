@@ -6,10 +6,11 @@
 
 import React from "react";
 import Image from "next/image";
-import { Zap, Clock, Package } from "lucide-react";
+import { Zap, Package } from "lucide-react";
 import { getActiveDealSections } from "@/actions/dealSections";
 import { checkDealSectionTimeGate } from "@/lib/dealUtils";
 import { DealCard } from "./DealCard";
+import { DealStatusPill } from "./DealStatusPill";
 import type { DealSectionDocument } from "@/types/firestore";
 
 // ─── Stickers for section headers ─────────────────────────────────────────────
@@ -29,29 +30,6 @@ const HEADER_ACCENTS = [
 ] as const;
 
 // ─── Section sub-components ───────────────────────────────────────────────────
-
-interface StatusPillProps {
-    isOpen: boolean;
-    opensAt: string | null;
-}
-
-function StatusPill({ isOpen, opensAt }: StatusPillProps) {
-    if (!opensAt) return null;
-    if (isOpen) {
-        return (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Đang mở bán
-            </span>
-        );
-    }
-    return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200">
-            <Clock className="h-3 w-3" />
-            Mở lúc {opensAt}
-        </span>
-    );
-}
 
 interface SectionBannerProps {
     section: DealSectionDocument;
@@ -109,7 +87,7 @@ function SectionBanner({ section, isOpen, opensAt, sIdx }: SectionBannerProps) {
 
                 {/* Right: status */}
                 <div className="flex-shrink-0">
-                    <StatusPill isOpen={isOpen} opensAt={opensAt} />
+                    <DealStatusPill initialIsOpen={isOpen} opensAt={opensAt} />
                 </div>
             </div>
         </div>
