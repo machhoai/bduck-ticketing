@@ -34,7 +34,7 @@ export default async function HomePage({ params, searchParams }: PageProps) {
             <Attractions />
 
             {/* ── Deal Sections (time-gated promos) ── */}
-            <Suspense fallback={
+            {/* <Suspense fallback={
                 <section className="py-10 bg-[#0F0F1A]">
                     <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-8">
                         <Skeleton className="h-12 w-64 mx-auto rounded-2xl bg-white/5" />
@@ -45,7 +45,7 @@ export default async function HomePage({ params, searchParams }: PageProps) {
                 </section>
             }>
                 <DealSection locale={locale} />
-            </Suspense>
+            </Suspense> */}
 
             {/* ── Ticket Listing Section ── */}
             <section
