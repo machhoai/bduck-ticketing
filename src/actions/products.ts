@@ -35,6 +35,8 @@ export const getProductGroups = unstable_cache(
 // ─── Get Products ─────────────────────────────────────────────────────────────
 /**
  * Fetches active products, optionally filtered by groupId.
+ * Excludes deal-exclusive products (those with dealSectionId) — they only appear
+ * inside their deal section on the homepage.
  * Cached per groupId for 60 seconds.
  */
 export const getProducts = unstable_cache(
@@ -49,10 +51,12 @@ export const getProducts = unstable_cache(
 
     const snap = await query.orderBy("createdAt", "desc").get();
 
-    return snap.docs.map((doc) => ({
-      id: doc.id,
-      ...JSON.parse(JSON.stringify(doc.data())),
-    })) as ProductDocument[];
+    return snap.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...JSON.parse(JSON.stringify(doc.data())),
+      }))
+      .filter((p: ProductDocument) => !p.dealSectionId) as ProductDocument[];
   },
   [PRODUCT_CACHE_TAG],
   { tags: [PRODUCT_CACHE_TAG], revalidate: 60 }
