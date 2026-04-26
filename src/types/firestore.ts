@@ -313,6 +313,8 @@ export interface CartItemInput {
   /** If this item was added from a deal section, include these for server-side validation */
   dealSectionId?: string;
   dealItemId?: string;
+  /** Selected option within a multi-option deal item */
+  dealOptionId?: string;
 }
 
 /** Document ID = auto-generated Firestore ID */
@@ -648,6 +650,20 @@ export interface GiftVoucherConfig {
 }
 
 /**
+ * A pricing option within a deal item (e.g. "Gói Bạc", "Gói Vàng", "Gói Kim Cương").
+ * All options share the parent deal item's dealType + discountValue.
+ */
+export interface DealItemOption {
+  id: string;           // UUID
+  label: string;        // Vietnamese label, e.g. "Gói Bạc"
+  labelLocales?: Record<string, string>;  // { en: "Silver Package" }
+  description?: string;       // Vietnamese description for this option
+  descriptionLocales?: Record<string, string>;
+  originalPrice: number;      // VND — before deal discount
+  effectivePrice: number;     // pre-calculated with deal discount
+}
+
+/**
  * An item inside a DealSection — embedded array (max ~20 items).
  * Can either link to an existing bduck_products document or be a standalone deal.
  */
@@ -662,10 +678,23 @@ export interface DealItemDocument {
   thumbnailUrl: string;
   productType: ProductType;
 
-  originalPrice: number;   // VND — before deal discount
+  /** Localized display names. Fallback chain: nameLocales[locale] → name */
+  nameLocales?: Record<string, string>;
+  /** Localized descriptions. Fallback chain: descriptionLocales[locale] → description */
+  descriptionLocales?: Record<string, string>;
+
+  originalPrice: number;   // VND — before deal discount (or first option's price)
   dealType: DealType;
   discountValue: number;   // percentage (0-100) or VND amount
   effectivePrice: number;  // pre-calculated: stored for display, re-validated server-side
+
+  /**
+   * Multi-option pricing — e.g. "Gói Bạc / Gói Vàng / Gói Kim Cương".
+   * Each option has its own price and description but shares dealType + discountValue.
+   * When present, top-level originalPrice/effectivePrice match the first option.
+   * undefined = single-price item (backward compatible).
+   */
+  options?: DealItemOption[];
 
   /** Membership config — copied (denormalized) from linked product if applicable */
   membershipConfig?: MembershipConfig;

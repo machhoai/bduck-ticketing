@@ -41,10 +41,23 @@ export interface CreateDealItemInput {
     description?: string;
     thumbnailUrl: string;
     productType: ProductType;
+    /** i18n — follows existing ProductDocument pattern */
+    nameLocales?: Record<string, string>;
+    descriptionLocales?: Record<string, string>;
     originalPrice: number;
     dealType: DealType;
     discountValue: number;
     effectivePrice: number;
+    /** Multi-option pricing (e.g. Gói Bạc / Vàng / Kim Cương) */
+    options?: Array<{
+        id: string;
+        label: string;
+        labelLocales?: Record<string, string>;
+        description?: string;
+        descriptionLocales?: Record<string, string>;
+        originalPrice: number;
+        effectivePrice: number;
+    }>;
     membershipConfig?: MembershipConfig;
     membershipBonusOverride?: DealBonusOverride;
     giftVoucher?: GiftVoucherConfig;
@@ -212,6 +225,9 @@ export async function addDealItem(
         // Optional fields — only include when defined
         if (input.linkedProductId) newItem.linkedProductId = input.linkedProductId;
         if (input.description?.trim()) newItem.description = input.description.trim();
+        if (input.nameLocales && Object.keys(input.nameLocales).length > 0) newItem.nameLocales = input.nameLocales;
+        if (input.descriptionLocales && Object.keys(input.descriptionLocales).length > 0) newItem.descriptionLocales = input.descriptionLocales;
+        if (input.options && input.options.length > 0) newItem.options = input.options;
         if (input.membershipConfig) newItem.membershipConfig = input.membershipConfig;
         if (input.membershipBonusOverride) newItem.membershipBonusOverride = input.membershipBonusOverride;
         if (input.giftVoucher) newItem.giftVoucher = input.giftVoucher;
@@ -253,7 +269,26 @@ export async function updateDealItem(
         if (itemIndex === -1) return { success: false, error: "Item không tồn tại." };
 
         const updatedItems = [...section.items];
-        updatedItems[itemIndex] = { ...updatedItems[itemIndex], ...input };
+        const existing = updatedItems[itemIndex];
+
+        // Merge with explicit clearing of optional fields when they become undefined
+        updatedItems[itemIndex] = {
+            ...existing,
+            ...input,
+            // Explicitly handle clearable fields (spread won't clear undefined → null)
+            giftVoucher: input.giftVoucher ?? null,
+            giftMerch: input.giftMerch ?? null,
+            membershipConfig: input.membershipConfig ?? existing.membershipConfig ?? null,
+            membershipBonusOverride: input.membershipBonusOverride ?? existing.membershipBonusOverride ?? null,
+            totalStock: input.totalStock ?? null,
+            // i18n — clear empty objects
+            nameLocales: (input.nameLocales && Object.keys(input.nameLocales).length > 0)
+                ? input.nameLocales : (existing.nameLocales ?? null),
+            descriptionLocales: (input.descriptionLocales && Object.keys(input.descriptionLocales).length > 0)
+                ? input.descriptionLocales : (existing.descriptionLocales ?? null),
+            // Multi-option — clear if empty array
+            options: (input.options && input.options.length > 0) ? input.options : null,
+        } as DealItemDocument;
 
         await col().doc(sectionId).update({
             items: updatedItems,

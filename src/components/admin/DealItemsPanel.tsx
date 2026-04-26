@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { addDealItem, removeDealItem, createDealProduct } from "@/actions/admin/dealSections";
+import { addDealItem, removeDealItem, createDealProduct, updateDealItem } from "@/actions/admin/dealSections";
 import { uploadThumbnail } from "@/actions/admin/products";
 import type { DealItemDocument, DealSectionDocument, ProductType, DealType } from "@/types/firestore";
-import { Plus, Loader2, Trash2, Package, ChevronDown, ChevronUp, Upload, ImageIcon, Sparkles } from "lucide-react";
+import { Plus, Loader2, Trash2, Package, ChevronDown, ChevronUp, Upload, ImageIcon, Sparkles, Pencil, X, Save, Globe } from "lucide-react";
 
 interface DealItemsPanelProps {
     section: DealSectionDocument;
@@ -244,7 +244,7 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
             {/* Existing items */}
             <div className="space-y-2">
                 {section.items.sort((a, b) => a.order - b.order).map((item) => (
-                    <DealItemRow key={item.id} item={item} sectionId={section.id} formatVND={formatVND} resetTimeLabel={resetTimeLabel} />
+                    <DealItemRow key={item.id} item={item} sectionId={section.id} formatVND={formatVND} resetTimeLabel={resetTimeLabel} voucherTemplates={voucherTemplates} />
                 ))}
                 {section.items.length === 0 && (
                     <div className="text-center py-8 text-gray-400 text-sm">
@@ -495,23 +495,387 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
     );
 }
 
-// ─── Individual deal item row ──────────────────────────────────────────────────
+// ─── Individual deal item row (with inline edit) ───────────────────────────────
 
-function DealItemRow({ item, sectionId, formatVND, resetTimeLabel }: {
+function DealItemRow({ item, sectionId, formatVND, resetTimeLabel, voucherTemplates }: {
     item: DealItemDocument;
     sectionId: string;
     formatVND: (v: number) => string;
     resetTimeLabel: string;
+    voucherTemplates: { id: string; name: string }[];
 }) {
     const [isPending, startTransition] = useTransition();
+    const [isEditing, setIsEditing] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
 
     const stockPct = item.totalStock ? Math.min(100, (item.soldCount / item.totalStock) * 100) : 0;
     const soldOut = item.totalStock ? item.soldCount >= item.totalStock : false;
+
+    // Edit form state — pre-filled from the item
+    const [edit, setEdit] = useState(() => ({
+        name: item.name,
+        nameEn: item.nameLocales?.en ?? "",
+        description: item.description ?? "",
+        descriptionEn: item.descriptionLocales?.en ?? "",
+        productType: item.productType as ProductType,
+        originalPrice: item.originalPrice,
+        dealType: item.dealType as DealType,
+        discountValue: item.discountValue,
+        totalStock: item.totalStock?.toString() ?? "",
+        stockResetPeriod: (item.stockResetPeriod ?? "none") as "daily" | "none",
+        maxQtyPerOrder: item.maxQtyPerOrder,
+        isActive: item.isActive,
+        giftVoucherTemplateId: item.giftVoucher?.templateId ?? "",
+        giftVoucherDistribution: (item.giftVoucher?.distribution ?? "perOrder") as "perProduct" | "perOrder",
+        giftMerch: item.giftMerch ?? "",
+        membershipBasePoints: item.membershipConfig?.basePoints ?? 0,
+        membershipBonusPoints: item.membershipConfig?.bonusPoints ?? 0,
+        membershipMerch: item.membershipConfig?.merch ?? "",
+        hasOptions: !!(item.options && item.options.length > 0),
+        options: (item.options ?? []).map((o) => ({
+            id: o.id, label: o.label, labelEn: o.labelLocales?.en ?? "",
+            description: o.description ?? "", descriptionEn: o.descriptionLocales?.en ?? "",
+            originalPrice: o.originalPrice,
+        })),
+    }));
+
+    function setE(key: string, value: unknown) {
+        setEdit((prev) => ({ ...prev, [key]: value }));
+    }
 
     function handleRemove() {
         startTransition(async () => {
             await removeDealItem(sectionId, item.id);
         });
+    }
+
+    function handleStartEdit() {
+        setEdit({
+            name: item.name,
+            nameEn: item.nameLocales?.en ?? "",
+            description: item.description ?? "",
+            descriptionEn: item.descriptionLocales?.en ?? "",
+            productType: item.productType as ProductType,
+            originalPrice: item.originalPrice,
+            dealType: item.dealType as DealType,
+            discountValue: item.discountValue,
+            totalStock: item.totalStock?.toString() ?? "",
+            stockResetPeriod: (item.stockResetPeriod ?? "none") as "daily" | "none",
+            maxQtyPerOrder: item.maxQtyPerOrder,
+            isActive: item.isActive,
+            giftVoucherTemplateId: item.giftVoucher?.templateId ?? "",
+            giftVoucherDistribution: (item.giftVoucher?.distribution ?? "perOrder") as "perProduct" | "perOrder",
+            giftMerch: item.giftMerch ?? "",
+            membershipBasePoints: item.membershipConfig?.basePoints ?? 0,
+            membershipBonusPoints: item.membershipConfig?.bonusPoints ?? 0,
+            membershipMerch: item.membershipConfig?.merch ?? "",
+            hasOptions: !!(item.options && item.options.length > 0),
+            options: (item.options ?? []).map((o) => ({
+                id: o.id, label: o.label, labelEn: o.labelLocales?.en ?? "",
+                description: o.description ?? "", descriptionEn: o.descriptionLocales?.en ?? "",
+                originalPrice: o.originalPrice,
+            })),
+        });
+        setIsEditing(true);
+        setEditError(null);
+    }
+
+    function handleSave(e: React.FormEvent) {
+        e.preventDefault();
+        setEditError(null);
+
+        const voucherTemplate = voucherTemplates.find((t) => t.id === edit.giftVoucherTemplateId);
+        const effectivePrice = edit.hasOptions && edit.options.length > 0
+            ? calcEffectivePrice(edit.options[0].originalPrice, edit.dealType, edit.discountValue)
+            : calcEffectivePrice(edit.originalPrice, edit.dealType, edit.discountValue);
+        const resolvedOriginalPrice = edit.hasOptions && edit.options.length > 0
+            ? edit.options[0].originalPrice : edit.originalPrice;
+
+        // Build options with effectivePrice calculated
+        const resolvedOptions = edit.hasOptions ? edit.options.map((o) => ({
+            id: o.id,
+            label: o.label,
+            labelLocales: o.labelEn ? { en: o.labelEn } : undefined,
+            description: o.description || undefined,
+            descriptionLocales: o.descriptionEn ? { en: o.descriptionEn } : undefined,
+            originalPrice: o.originalPrice,
+            effectivePrice: calcEffectivePrice(o.originalPrice, edit.dealType, edit.discountValue),
+        })) : undefined;
+
+        // Build i18n
+        const nameLocales = edit.nameEn ? { en: edit.nameEn } : undefined;
+        const descriptionLocales = edit.descriptionEn ? { en: edit.descriptionEn } : undefined;
+
+        startTransition(async () => {
+            const result = await updateDealItem(sectionId, item.id, {
+                name: edit.name,
+                description: edit.description || undefined,
+                productType: edit.productType,
+                nameLocales,
+                descriptionLocales,
+                originalPrice: resolvedOriginalPrice,
+                dealType: edit.dealType,
+                discountValue: edit.discountValue,
+                effectivePrice,
+                options: resolvedOptions,
+                totalStock: edit.totalStock !== "" ? Number(edit.totalStock) : undefined,
+                stockResetPeriod: edit.stockResetPeriod,
+                maxQtyPerOrder: edit.maxQtyPerOrder,
+                isActive: edit.isActive,
+                membershipConfig: edit.productType === "membership" ? {
+                    packageName: edit.name,
+                    basePoints: edit.membershipBasePoints,
+                    bonusPoints: edit.membershipBonusPoints,
+                    merch: edit.membershipMerch || undefined,
+                } : undefined,
+                giftVoucher: edit.giftVoucherTemplateId ? {
+                    templateId: edit.giftVoucherTemplateId,
+                    templateName: voucherTemplate?.name ?? "",
+                    distribution: edit.giftVoucherDistribution,
+                } : undefined,
+                giftMerch: edit.giftMerch || undefined,
+            });
+            if (result.success) {
+                setIsEditing(false);
+            } else {
+                setEditError(result.error);
+            }
+        });
+    }
+
+    const editEffectivePrice = calcEffectivePrice(edit.originalPrice, edit.dealType, edit.discountValue);
+
+    // Option helpers
+    function addOption() {
+        setEdit((prev) => ({
+            ...prev,
+            options: [...prev.options, { id: crypto.randomUUID(), label: "", labelEn: "", description: "", descriptionEn: "", originalPrice: 0 }],
+        }));
+    }
+    function removeOption(idx: number) {
+        setEdit((prev) => ({ ...prev, options: prev.options.filter((_, i) => i !== idx) }));
+    }
+    function setOption(idx: number, key: string, value: unknown) {
+        setEdit((prev) => ({
+            ...prev,
+            options: prev.options.map((o, i) => i === idx ? { ...o, [key]: value } : o),
+        }));
+    }
+
+    if (isEditing) {
+        return (
+            <form onSubmit={handleSave} className="border border-blue-200 rounded-xl bg-blue-50/30 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">✏️ Chỉnh sửa: {item.name}</p>
+                    <button type="button" onClick={() => setIsEditing(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                    {/* Product type + Name */}
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Loại sản phẩm</label>
+                        <select value={edit.productType} onChange={(e) => setE("productType", e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+                            {PRODUCT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tên deal</label>
+                        <input required value={edit.name} onChange={(e) => setE("name", e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                    </div>
+                    <div className="space-y-1 col-span-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mô tả</label>
+                        <textarea value={edit.description} onChange={(e) => setE("description", e.target.value)} rows={2} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
+                    </div>
+                </div>
+
+                {/* 🌐 i18n English */}
+                <details className="border border-indigo-100 rounded-xl bg-indigo-50/30">
+                    <summary className="px-3 py-2 cursor-pointer text-xs font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5">
+                        <Globe className="h-3.5 w-3.5" /> English (i18n)
+                    </summary>
+                    <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-3">
+                        <div className="space-y-1 col-span-2">
+                            <label className="text-xs text-gray-500">Name (EN)</label>
+                            <input value={edit.nameEn} onChange={(e) => setE("nameEn", e.target.value)} placeholder="English name" className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                        </div>
+                        <div className="space-y-1 col-span-2">
+                            <label className="text-xs text-gray-500">Description (EN)</label>
+                            <textarea value={edit.descriptionEn} onChange={(e) => setE("descriptionEn", e.target.value)} rows={2} placeholder="English description" className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none" />
+                        </div>
+                    </div>
+                </details>
+
+                {/* Deal type + discount */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Loại deal</label>
+                        <select value={edit.dealType} onChange={(e) => setE("dealType", e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+                            {DEAL_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                    </div>
+                    {edit.dealType !== "buy1get1" && (
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                Giá trị giảm {edit.dealType === "percentage" ? "(%)" : "(VND)"}
+                            </label>
+                            <input type="number" min={0} value={edit.discountValue} onChange={(e) => setE("discountValue", Number(e.target.value))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                        </div>
+                    )}
+                </div>
+
+                {/* Multi-option toggle */}
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={edit.hasOptions} onChange={(e) => {
+                        const on = e.target.checked;
+                        setEdit((prev) => ({
+                            ...prev,
+                            hasOptions: on,
+                            options: on && prev.options.length === 0
+                                ? [{ id: crypto.randomUUID(), label: "Gói Bạc", labelEn: "", description: "", descriptionEn: "", originalPrice: prev.originalPrice }]
+                                : prev.options,
+                        }));
+                    }} className="rounded border-gray-300" />
+                    <span className="text-xs font-semibold text-gray-600">Sản phẩm có nhiều option giá</span>
+                </label>
+
+                {/* Options builder or single price */}
+                {edit.hasOptions ? (
+                    <div className="space-y-2 border border-emerald-100 rounded-xl bg-emerald-50/30 p-3">
+                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">📦 Các option giá</p>
+                        {edit.options.map((opt, idx) => (
+                            <div key={opt.id} className="grid grid-cols-12 gap-2 items-start bg-white rounded-lg border border-gray-100 p-2">
+                                <div className="col-span-3 space-y-1">
+                                    <label className="text-xs text-gray-400">Tên option</label>
+                                    <input required value={opt.label} onChange={(e) => setOption(idx, "label", e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-gray-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300" />
+                                </div>
+                                <div className="col-span-2 space-y-1">
+                                    <label className="text-xs text-gray-400">EN</label>
+                                    <input value={opt.labelEn} onChange={(e) => setOption(idx, "labelEn", e.target.value)} placeholder="EN" className="w-full px-2 py-1.5 rounded-lg border border-gray-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                                </div>
+                                <div className="col-span-2 space-y-1">
+                                    <label className="text-xs text-gray-400">Giá gốc</label>
+                                    <input type="number" min={0} value={opt.originalPrice} onChange={(e) => setOption(idx, "originalPrice", Number(e.target.value))} className="w-full px-2 py-1.5 rounded-lg border border-gray-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                                </div>
+                                <div className="col-span-2 space-y-1">
+                                    <label className="text-xs text-gray-400">Sau deal</label>
+                                    <p className="px-2 py-1.5 text-xs font-bold text-amber-700">{formatVND(calcEffectivePrice(opt.originalPrice, edit.dealType, edit.discountValue))}</p>
+                                </div>
+                                <div className="col-span-2 space-y-1">
+                                    <label className="text-xs text-gray-400">Mô tả</label>
+                                    <input value={opt.description} onChange={(e) => setOption(idx, "description", e.target.value)} placeholder="Mô tả option" className="w-full px-2 py-1.5 rounded-lg border border-gray-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                                </div>
+                                <div className="col-span-1 pt-5">
+                                    <button type="button" onClick={() => removeOption(idx)} disabled={edit.options.length <= 1} className="p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-400 disabled:opacity-30">
+                                        <Trash2 className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                        <button type="button" onClick={addOption} className="flex items-center gap-1 text-xs text-emerald-600 font-semibold hover:text-emerald-700">
+                            <Plus className="h-3 w-3" /> Thêm option
+                        </button>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Giá gốc (VND)</label>
+                            <input type="number" min={0} value={edit.originalPrice} onChange={(e) => setE("originalPrice", Number(e.target.value))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                        </div>
+                        <div className="flex items-end gap-2 px-3 py-2 bg-amber-50 rounded-xl border border-amber-100">
+                            <span className="text-xs text-amber-600">Sau deal:</span>
+                            <span className="font-bold text-amber-700 text-sm">{formatVND(editEffectivePrice)}</span>
+                            {edit.originalPrice > 0 && edit.originalPrice !== editEffectivePrice && (
+                                <span className="text-xs line-through text-gray-400">{formatVND(edit.originalPrice)}</span>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Stock */}
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Số lượng</label>
+                        <input type="number" min={1} value={edit.totalStock} onChange={(e) => setE("totalStock", e.target.value)} placeholder="∞" className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Reset tồn kho</label>
+                        <select value={edit.stockResetPeriod} onChange={(e) => setE("stockResetPeriod", e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+                            <option value="none">Không reset</option>
+                            <option value="daily">Mỗi ngày (lúc {resetTimeLabel} GMT+7)</option>
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tối đa/đơn</label>
+                        <input type="number" min={1} value={edit.maxQtyPerOrder} onChange={(e) => setE("maxQtyPerOrder", Number(e.target.value))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                    </div>
+                </div>
+
+                {/* Gift voucher */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tặng voucher</label>
+                        <select value={edit.giftVoucherTemplateId} onChange={(e) => setE("giftVoucherTemplateId", e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+                            <option value="">— Không —</option>
+                            {voucherTemplates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                    </div>
+                    {edit.giftVoucherTemplateId && (
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Phát voucher</label>
+                            <select value={edit.giftVoucherDistribution} onChange={(e) => setE("giftVoucherDistribution", e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+                                <option value="perOrder">1 voucher/đơn</option>
+                                <option value="perProduct">1 voucher/sản phẩm</option>
+                            </select>
+                        </div>
+                    )}
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Quà merch (tùy chọn)</label>
+                        <input value={edit.giftMerch} onChange={(e) => setE("giftMerch", e.target.value)} placeholder="1 merch B.Duck" className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                    </div>
+                </div>
+
+                {/* Membership config */}
+                {item.productType === "membership" && (
+                    <div className="grid grid-cols-3 gap-3 border border-amber-100 bg-amber-50/50 rounded-xl p-3">
+                        <p className="col-span-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Thẻ thành viên</p>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-500">Điểm gốc</label>
+                            <input type="number" min={0} value={edit.membershipBasePoints} onChange={(e) => setE("membershipBasePoints", Number(e.target.value))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-500">Điểm thưởng</label>
+                            <input type="number" min={0} value={edit.membershipBonusPoints} onChange={(e) => setE("membershipBonusPoints", Number(e.target.value))} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-500">Quà merch kèm</label>
+                            <input value={edit.membershipMerch} onChange={(e) => setE("membershipMerch", e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                        </div>
+                    </div>
+                )}
+
+                {/* Active toggle */}
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={edit.isActive} onChange={(e) => setE("isActive", e.target.checked)} className="rounded border-gray-300" />
+                    <span className="text-xs font-semibold text-gray-600">Hiện trên trang khách hàng</span>
+                </label>
+
+                {editError && (
+                    <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-xl">
+                        <p className="text-xs text-red-600">{editError}</p>
+                    </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                    <button type="submit" disabled={isPending} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-xl text-sm hover:bg-blue-700 transition-colors disabled:opacity-60">
+                        {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                        Lưu thay đổi
+                    </button>
+                    <button type="button" onClick={() => setIsEditing(false)} className="text-sm text-gray-400 hover:text-gray-600">Huỷ</button>
+                </div>
+            </form>
+        );
     }
 
     return (
@@ -524,8 +888,15 @@ function DealItemRow({ item, sectionId, formatVND, resetTimeLabel }: {
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-[#1A1A2E] text-sm truncate">{item.name}</span>
+                    <span className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-md">{item.productType === "membership" ? "Thẻ thành viên" : item.productType === "combo" ? "Combo" : "Vé"}</span>
                     {!item.isActive && <span className="text-xs text-gray-400">Ẩn</span>}
                     {soldOut && <span className="text-xs font-bold text-red-500">HẾT</span>}
+                    {item.options && item.options.length > 0 && (
+                        <span className="text-xs px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-md">📦 {item.options.length} options</span>
+                    )}
+                    {item.nameLocales?.en && (
+                        <span className="text-xs px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-md">🌐 EN</span>
+                    )}
                     {item.giftVoucher && (
                         <span className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md">🎟 Voucher</span>
                     )}
@@ -556,11 +927,16 @@ function DealItemRow({ item, sectionId, formatVND, resetTimeLabel }: {
                 </div>
             </div>
 
-            <form action={handleRemove}>
-                <button type="submit" disabled={isPending} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-400 transition-colors disabled:opacity-40">
-                    {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            <div className="flex items-center gap-1">
+                <button type="button" onClick={handleStartEdit} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-300 hover:text-blue-500 transition-colors" title="Chỉnh sửa">
+                    <Pencil className="h-3.5 w-3.5" />
                 </button>
-            </form>
+                <form action={handleRemove}>
+                    <button type="submit" disabled={isPending} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-400 transition-colors disabled:opacity-40" title="Xoá">
+                        {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                </form>
+            </div>
         </div>
     );
 }

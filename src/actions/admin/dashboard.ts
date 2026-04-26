@@ -27,6 +27,14 @@ export interface RangeStats {
   passes: number;
   avgOrderValue: number;
   dailyRevenue: Array<{ date: string; revenue: number; orders: number }>;
+  recentOrders: Array<{
+    id: string;
+    orderNumber: string;
+    customerName: string;
+    finalAmount: number;
+    status: string;
+    createdAt: string; // ISO string for client serialization
+  }>;
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -143,5 +151,26 @@ export async function getDashboardStatsByRange(
     cursor.setDate(cursor.getDate() + 1);
   }
 
-  return { revenue, orders, passes, avgOrderValue, dailyRevenue };
+  // Recent orders (newest first, max 10) — from the SAME date-filtered set
+  const recentOrders = snap.docs
+    .slice()
+    .sort((a, b) => {
+      const ta = (a.data().createdAt as Timestamp).toMillis();
+      const tb = (b.data().createdAt as Timestamp).toMillis();
+      return tb - ta;
+    })
+    .slice(0, 10)
+    .map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        orderNumber: d.orderNumber as string,
+        customerName: d.customerName as string,
+        finalAmount: (d.finalAmount ?? 0) as number,
+        status: d.status as string,
+        createdAt: new Date((d.createdAt as Timestamp).toMillis()).toISOString(),
+      };
+    });
+
+  return { revenue, orders, passes, avgOrderValue, dailyRevenue, recentOrders };
 }

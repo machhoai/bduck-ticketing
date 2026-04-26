@@ -147,6 +147,7 @@ interface DealCardProps {
     opensAt: string | null;
     index?: number;
     locale?: string;
+    /** Locale string for i18n fallback e.g. 'en' */
 }
 
 // ─── Main DealCard ────────────────────────────────────────────────────────────
@@ -157,11 +158,13 @@ export const DealCard = React.memo(function DealCard({
     isOpen,
     opensAt,
     index = 0,
+    locale,
 }: DealCardProps) {
     const t = useTranslations("deals");
     const [added, setAdded] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const [pending, startTransition] = useTransition();
+    const [selectedOptionIdx, setSelectedOptionIdx] = useState(0);
     const addItem = useCartStore((s) => s.addItem);
 
     const accent = ACCENTS[index % ACCENTS.length];
@@ -169,27 +172,39 @@ export const DealCard = React.memo(function DealCard({
     const isSoldOut = item.totalStock !== undefined && item.soldCount >= item.totalStock;
     const isLocked = !isOpen;
     const isDisabled = isLocked || isSoldOut;
+    const hasOptions = item.options && item.options.length > 1;
+    const selectedOption = hasOptions ? item.options![selectedOptionIdx] : null;
+
+    // Locale-aware text
+    const loc = locale ?? "vi";
+    const displayName = (loc !== "vi" && item.nameLocales?.[loc]) || item.name;
+    const displayDesc = selectedOption
+        ? ((loc !== "vi" && selectedOption.descriptionLocales?.[loc]) || selectedOption.description || (loc !== "vi" && item.descriptionLocales?.[loc]) || item.description)
+        : ((loc !== "vi" && item.descriptionLocales?.[loc]) || item.description);
+    const displayPrice = selectedOption ? selectedOption.effectivePrice : item.effectivePrice;
+    const displayOriginal = selectedOption ? selectedOption.originalPrice : item.originalPrice;
 
     const handleAddToCart = useCallback(() => {
         if (isDisabled || added || pending) return;
         startTransition(() => {
             addItem({
                 id: item.linkedProductId ?? item.id,
-                name: item.name,
+                name: displayName + (selectedOption ? ` (${selectedOption.label})` : ""),
                 thumbnailUrl: item.thumbnailUrl,
-                price: item.effectivePrice,
+                price: displayPrice,
                 type: item.productType,
                 soldCount: item.soldCount,
                 status: "active",
-                description: item.description,
+                description: displayDesc,
                 dealSectionId: sectionId,
                 dealItemId: item.id,
+                dealOptionId: selectedOption?.id,
                 giftVoucherName: item.giftVoucher?.templateName,
             } as Parameters<typeof addItem>[0]);
             setAdded(true);
             setTimeout(() => setAdded(false), 2_000);
         });
-    }, [isDisabled, added, pending, addItem, item, sectionId]);
+    }, [isDisabled, added, pending, addItem, item, sectionId, displayName, displayPrice, displayDesc, selectedOption]);
 
     const discountText =
         item.dealType === "percentage" ? `-${item.discountValue}%`
@@ -265,8 +280,32 @@ export const DealCard = React.memo(function DealCard({
             <div className="flex flex-col flex-1 p-4 gap-2.5">
                 {/* Title — always visible */}
                 <h3 className="font-extrabold text-[#1A1A2E] text-base leading-tight line-clamp-2">
-                    {item.name}
+                    {displayName}
                 </h3>
+
+                {/* Option radio selector */}
+                {hasOptions && (
+                    <div className="flex flex-wrap gap-1.5">
+                        {item.options!.map((opt, idx) => {
+                            const optLabel = (loc !== "vi" && opt.labelLocales?.[loc]) || opt.label;
+                            return (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setSelectedOptionIdx(idx); }}
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all duration-200 ${
+                                        idx === selectedOptionIdx
+                                            ? "text-white shadow-md"
+                                            : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                                    }`}
+                                    style={idx === selectedOptionIdx ? { background: `linear-gradient(135deg, ${accent.highlight}, ${accent.highlight}cc)`, borderColor: accent.highlight } : undefined}
+                                >
+                                    {optLabel}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
 
                 {/* Perk badges — always visible */}
                 {(item.giftVoucher || item.giftMerch || item.membershipBonusOverride || item.membershipConfig) && (
@@ -296,13 +335,13 @@ export const DealCard = React.memo(function DealCard({
                 )}
 
                 {/* Description preview / toggle */}
-                {item.description && (
+                {displayDesc && (
                     <div
                         className="cursor-pointer"
                         onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
                     >
                         <p className={`text-gray-500 text-xs leading-relaxed ${expanded ? "" : "line-clamp-2"}`}>
-                            {item.description}
+                            {displayDesc}
                         </p>
                         <span className="text-[10px] font-semibold mt-0.5 inline-block" style={{ color: accent.highlight }}>
                             {expanded ? t("collapseDetails") : t("expandDetails")}
@@ -370,11 +409,11 @@ export const DealCard = React.memo(function DealCard({
                             className="text-xl font-extrabold leading-none"
                             style={{ color: accent.highlight }}
                         >
-                            {vnd(item.effectivePrice)}
+                            {vnd(displayPrice)}
                         </span>
-                        {item.effectivePrice < item.originalPrice && (
+                        {displayPrice < displayOriginal && (
                             <span className="text-[11px] text-gray-400 line-through mt-0.5">
-                                {vnd(item.originalPrice)}
+                                {vnd(displayOriginal)}
                             </span>
                         )}
                     </div>
@@ -382,7 +421,7 @@ export const DealCard = React.memo(function DealCard({
                     <button
                         onClick={handleAddToCart}
                         disabled={isDisabled || pending}
-                        aria-label={t("addToCartAria", { name: item.name })}
+                        aria-label={t("addToCartAria", { name: displayName })}
                         className="btn-bounce flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         style={
                             added

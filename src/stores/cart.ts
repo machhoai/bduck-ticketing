@@ -22,6 +22,8 @@ export interface CartItem {
   /** Deal section info — set when item was added from a deal card */
   dealSectionId?: string;
   dealItemId?: string;
+  /** Selected option within a multi-option deal item */
+  dealOptionId?: string;
   /** Gift voucher display name — shown as a badge in the cart */
   giftVoucherName?: string;
 }
@@ -54,8 +56,10 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (product) => {
         set((state) => {
+          // Dedup key: productId + dealOptionId (different options = separate cart entries)
+          const dedupeKey = product.id + (product.dealOptionId ? `_${product.dealOptionId}` : "");
           const existing = state.items.find(
-            (i) => i.productId === product.id
+            (i) => (i.productId + (i.dealOptionId ? `_${i.dealOptionId}` : "")) === dedupeKey
           );
 
           const effectivePrice = product.flashSale
@@ -70,7 +74,7 @@ export const useCartStore = create<CartStore>()(
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.productId === product.id
+                (i.productId + (i.dealOptionId ? `_${i.dealOptionId}` : "")) === dedupeKey
                   ? { ...i, quantity: i.quantity + 1 }
                   : i
               ),
@@ -90,6 +94,7 @@ export const useCartStore = create<CartStore>()(
                 type: product.type,
                 dealSectionId: product.dealSectionId,
                 dealItemId: product.dealItemId,
+                dealOptionId: product.dealOptionId,
                 giftVoucherName: product.giftVoucherName,
               },
             ],

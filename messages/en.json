@@ -210,7 +210,10 @@
         "privacy": "Privacy Policy",
         "contactUs": "Buy Tickets",
         "bctNote": "Compliant with Vietnam Ministry of Industry and Trade",
-        "socialHeading": "Connect with us"
+        "socialHeading": "Connect with us",
+        "hqAddress": "154A Nguyen Thi Thap, Tan Thuan Ward,\nHo Chi Minh City",
+        "storeName": "B.Duck Cityfuns Landmark 81",
+        "storeAddress": "720A Nguyen Huu Canh,\nThanh My Tay Ward,\nHo Chi Minh City"
     },
     "privacyPolicy": {
         "metaTitle": "Privacy Policy — B.Duck Cityfuns Vietnam",

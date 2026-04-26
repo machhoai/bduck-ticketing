@@ -211,7 +211,9 @@ export const Footer: React.FC = () => {
                             <div>
                                 <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1">{t("hqLabel")}</p>
                                 <p className="text-[11px] text-white/50 leading-relaxed">
-                                    154A Nguyễn Thị Thập, P. Tân Thuận,<br />TP. Hồ Chí Minh
+                                    {t("hqAddress").split("\n").map((line, i, arr) => (
+                                        <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+                                    ))}
                                 </p>
                             </div>
                         </div>
@@ -226,12 +228,12 @@ export const Footer: React.FC = () => {
                             <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#FFD100]/70" />
                             <div>
                                 <p className="text-[12px] font-semibold text-white/65 mb-1">
-                                    B.Duck Cityfuns Landmark 81
+                                    {t("storeName")}
                                 </p>
                                 <p className="text-[11px] text-white/45 leading-relaxed">
-                                    720A Nguyễn Hữu Cảnh,<br />
-                                    P. Thạnh Mỹ Tây (Mới), P. 22,<br />
-                                    Q. Bình Thạnh, TP. HCM
+                                    {t("storeAddress").split("\n").map((line, i, arr) => (
+                                        <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+                                    ))}
                                 </p>
                             </div>
                         </div>

@@ -36,6 +36,7 @@ export interface ClientProduct {
   groupId?: string;
   dealSectionId?: string;
   dealItemId?: string;
+  dealOptionId?: string;
   soldCount: number;
   totalStock?: number;
   stockResetPeriod?: "none" | "daily" | "monthly";
