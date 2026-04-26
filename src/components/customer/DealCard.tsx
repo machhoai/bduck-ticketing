@@ -217,11 +217,11 @@ export const DealCard = React.memo(function DealCard({
                 </div>
 
                 {/* Daily badge */}
-                {item.stockResetPeriod === "daily" && (
+                {/* {item.stockResetPeriod === "daily" && (
                     <div className="absolute top-3 right-3 px-2 py-1 rounded-full text-[9px] font-bold bg-white/90 text-gray-500 shadow">
                         ⟳ mỗi ngày
                     </div>
-                )}
+                )} */}
 
                 {/* Locked overlay */}
                 {isLocked && (
@@ -348,9 +348,9 @@ export const DealCard = React.memo(function DealCard({
                 )}
 
                 {/* Stock bar */}
-                {item.totalStock !== undefined && item.stockResetPeriod === "daily" && (
+                {/* {item.totalStock !== undefined && item.stockResetPeriod === "daily" && (
                     <StockBar totalStock={item.totalStock} soldCount={item.soldCount} highlight={accent.highlight} />
-                )}
+                )} */}
 
                 {item.maxQtyPerOrder === 1 && (
                     <p className="text-[10px] text-gray-400 italic">⚠ Tối đa 1 sp/đơn</p>
