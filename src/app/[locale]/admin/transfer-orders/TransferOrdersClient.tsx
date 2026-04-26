@@ -14,6 +14,10 @@ import {
     Banknote,
     StickyNote,
     RefreshCw,
+    CalendarDays,
+    UserCheck,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {
@@ -45,6 +49,8 @@ interface SerializedOrder {
         providerData?: {
             qrDescription?: string;
             approvedBy?: string;
+            approvedByName?: string;
+            approvedAt?: string;
             note?: string;
         };
     };
@@ -69,6 +75,23 @@ function formatTime(iso: string | undefined): string {
         hour: "2-digit",
         minute: "2-digit",
     });
+}
+
+function toDateStr(iso: string): string {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function todayStr(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function formatDateLabel(dateStr: string): string {
+    if (!dateStr) return "";
+    const [y, m, d] = dateStr.split("-");
+    return `${d}/${m}/${y}`;
 }
 
 function isExpired(expiresAt?: string): boolean {
@@ -219,6 +242,20 @@ function TransferOrderCard({
                             )}
                         </div>
                         <p className="text-xs text-gray-400">{formatTime(order.createdAt)}</p>
+                        {/* Approver info for paid orders */}
+                        {order.status === "paid" && order.paymentDetails?.providerData?.approvedByName && (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <UserCheck className="h-3 w-3 text-green-500" />
+                                <span className="text-[11px] text-green-600 font-medium">
+                                    {order.paymentDetails.providerData.approvedByName}
+                                </span>
+                                {order.paymentDetails.providerData.approvedAt && (
+                                    <span className="text-[10px] text-gray-400">
+                                        — {formatTime(order.paymentDetails.providerData.approvedAt)}
+                                    </span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -410,20 +447,61 @@ export function TransferOrdersClient({
     orders: SerializedOrder[];
 }) {
     const router = useRouter();
-    const [filter, setFilter] = useState<"all" | "pending" | "paid" | "cancelled">("all");
+    const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "paid" | "cancelled">("all");
+    const [dateFilter, setDateFilter] = useState(todayStr());
+    const [showAllDates, setShowAllDates] = useState(false);
 
-    const filtered =
-        filter === "all"
-            ? initialOrders
-            : initialOrders.filter((o) => o.status === filter);
+    // ── Filtering ──
+    const filtered = initialOrders.filter((o) => {
+        // Status filter
+        if (statusFilter !== "all" && o.status !== statusFilter) return false;
+        // Date filter
+        if (!showAllDates && dateFilter) {
+            const orderDate = toDateStr(o.createdAt);
+            if (orderDate !== dateFilter) return false;
+        }
+        return true;
+    });
 
-    const pendingCount = initialOrders.filter((o) => o.status === "pending").length;
-    const expiredCount = initialOrders.filter(
+    // ── Sorting: pending first (expired top), then paid, then cancelled, each by time desc ──
+    const sorted = [...filtered].sort((a, b) => {
+        const statusOrder = { pending: 0, paid: 1, cancelled: 2 };
+        const aS = statusOrder[a.status] ?? 3;
+        const bS = statusOrder[b.status] ?? 3;
+        if (aS !== bS) return aS - bS;
+
+        // Within pending: expired first
+        if (a.status === "pending" && b.status === "pending") {
+            const aExp = isExpired(a.expiresAt);
+            const bExp = isExpired(b.expiresAt);
+            if (aExp && !bExp) return -1;
+            if (!aExp && bExp) return 1;
+        }
+
+        // By createdAt desc
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    // ── Counts (for current date filter) ──
+    const dateOrders = showAllDates ? initialOrders : initialOrders.filter((o) => toDateStr(o.createdAt) === dateFilter);
+    const pendingCount = dateOrders.filter((o) => o.status === "pending").length;
+    const paidCount = dateOrders.filter((o) => o.status === "paid").length;
+    const cancelledCount = dateOrders.filter((o) => o.status === "cancelled").length;
+    const expiredCount = dateOrders.filter(
         (o) => o.status === "pending" && isExpired(o.expiresAt)
     ).length;
 
+    // ── Date navigation ──
+    const shiftDate = (days: number) => {
+        const d = new Date(dateFilter);
+        d.setDate(d.getDate() + days);
+        setDateFilter(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+        setShowAllDates(false);
+    };
+    const isToday = dateFilter === todayStr();
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -452,39 +530,104 @@ export function TransferOrdersClient({
                 </Button>
             </div>
 
-            {/* Filters */}
+            {/* Date Filter */}
+            <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <button
+                        onClick={() => shiftDate(-1)}
+                        className="px-2.5 py-2 hover:bg-gray-50 transition-colors"
+                    >
+                        <ChevronLeft className="h-4 w-4 text-gray-500" />
+                    </button>
+                    <div className="flex items-center gap-2 px-3 py-2 border-x border-gray-100">
+                        <CalendarDays className="h-4 w-4 text-blue-500" />
+                        <input
+                            type="date"
+                            value={dateFilter}
+                            onChange={(e) => {
+                                setDateFilter(e.target.value);
+                                setShowAllDates(false);
+                            }}
+                            className="text-sm font-medium text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+                        />
+                    </div>
+                    <button
+                        onClick={() => shiftDate(1)}
+                        className="px-2.5 py-2 hover:bg-gray-50 transition-colors"
+                        disabled={isToday}
+                    >
+                        <ChevronRight className={`h-4 w-4 ${isToday ? "text-gray-200" : "text-gray-500"}`} />
+                    </button>
+                </div>
+
+                {!isToday && (
+                    <button
+                        onClick={() => { setDateFilter(todayStr()); setShowAllDates(false); }}
+                        className="px-3 py-2 rounded-xl text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                    >
+                        Hôm nay
+                    </button>
+                )}
+
+                <button
+                    onClick={() => setShowAllDates(!showAllDates)}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                        showAllDates
+                            ? "bg-[#0D47A1] text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                >
+                    Tất cả ngày
+                </button>
+            </div>
+
+            {/* Status Filters */}
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
                 {(["all", "pending", "paid", "cancelled"] as const).map((f) => (
                     <button
                         key={f}
-                        onClick={() => setFilter(f)}
-                        className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${filter === f
+                        onClick={() => setStatusFilter(f)}
+                        className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${statusFilter === f
                             ? "bg-[#0D47A1] text-white shadow-sm"
                             : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                             }`}
                     >
                         {f === "all"
-                            ? `Tất cả (${initialOrders.length})`
+                            ? `Tất cả (${dateOrders.length})`
                             : f === "pending"
                                 ? `Chờ duyệt (${pendingCount})`
                                 : f === "paid"
-                                    ? `Đã duyệt (${initialOrders.filter((o) => o.status === "paid").length})`
-                                    : `Đã hủy (${initialOrders.filter((o) => o.status === "cancelled").length})`}
+                                    ? `Đã duyệt (${paidCount})`
+                                    : `Đã hủy (${cancelledCount})`}
                     </button>
                 ))}
             </div>
 
+            {/* Date label */}
+            {!showAllDates && (
+                <p className="text-xs text-gray-400">
+                    Hiển thị đơn hàng ngày {formatDateLabel(dateFilter)}
+                    {isToday && " (hôm nay)"}
+                    {" — "}{sorted.length} kết quả
+                </p>
+            )}
+
             {/* Order List */}
             <div className="space-y-4">
-                {filtered.length === 0 && (
+                {sorted.length === 0 && (
                     <div className="text-center py-16 text-gray-400">
                         <Banknote className="h-12 w-12 mx-auto mb-3 opacity-30" />
                         <p className="text-lg font-medium">Không có đơn hàng</p>
-                        <p className="text-sm mt-1">Đơn chuyển khoản sẽ hiển thị tại đây</p>
+                        <p className="text-sm mt-1">
+                            {showAllDates
+                                ? "Không có đơn chuyển khoản nào"
+                                : `Không có đơn nào ngày ${formatDateLabel(dateFilter)}`
+                            }
+                        </p>
                     </div>
                 )}
 
-                {filtered.map((order) => (
+                {sorted.map((order) => (
                     <TransferOrderCard
                         key={order.id}
                         order={order}

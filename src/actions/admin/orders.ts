@@ -359,32 +359,30 @@ export async function approveBankTransferOrder(
     const updatedSnap = await orderRef.get();
     const updated = { id: updatedSnap.id, ...updatedSnap.data() } as OrderDocument;
 
-    // Fire-and-forget: issue vouchers first, then send combined ticket+voucher email
-    (async () => {
-      try {
-        const { vouchers } = await issueVouchersFromOrderItems(updated);
+    // Issue vouchers + send ticket email (awaited for Server Actions)
+    try {
+      const { vouchers } = await issueVouchersFromOrderItems(updated);
 
-        await sendTicketEmail({
-          to: updated.customerEmail,
-          customerName: updated.customerName,
-          orderId,
-          orderNumber: updated.orderNumber,
-          items: updated.items.map((i) => ({
-            productName: i.productName,
-            productType: i.productType,
-            quantity: i.quantity,
-            unitPrice: i.unitPrice,
-            subtotal: i.subtotal,
-          })),
-          finalAmount: updated.finalAmount,
-          discountAmount: updated.discountAmount,
-          passIds,
-          vouchers: vouchers.length > 0 ? vouchers : undefined,
-        });
-      } catch (err) {
-        console.error("[approveBankTransferOrder] Email/voucher failed (non-fatal):", err);
-      }
-    })();
+      await sendTicketEmail({
+        to: updated.customerEmail,
+        customerName: updated.customerName,
+        orderId,
+        orderNumber: updated.orderNumber,
+        items: updated.items.map((i) => ({
+          productName: i.productName,
+          productType: i.productType,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          subtotal: i.subtotal,
+        })),
+        finalAmount: updated.finalAmount,
+        discountAmount: updated.discountAmount,
+        passIds,
+        vouchers: vouchers.length > 0 ? vouchers : undefined,
+      });
+    } catch (err) {
+      console.error("[approveBankTransferOrder] Email/voucher failed (non-fatal):", err);
+    }
 
     return { success: true, data: { passIds } };
   } catch (err) {
