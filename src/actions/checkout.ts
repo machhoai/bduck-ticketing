@@ -21,6 +21,8 @@ import { sendTransferReservationEmail } from "@/lib/email/transfer-reservation";
 import {
   validateDealItems,
   validateDealSectionConstraints,
+  updateDealStock,
+  updateDealStockInTransaction,
   type ResolvedDealItem,
 } from "@/lib/deal-checkout";
 
@@ -429,6 +431,15 @@ export async function createOrder(
     .collection(COLLECTIONS.ORDERS)
     .add(orderData);
 
+  // ── Step 5.5: Update deal item stock ──
+  if (resolvedDeals.size > 0) {
+    const qtyMap = new Map<string, number>();
+    for (const item of items) qtyMap.set(item.productId, item.quantity);
+    updateDealStock(resolvedDeals, qtyMap).catch((err) =>
+      console.error("[createOrder] Deal stock update failed (non-fatal):", err)
+    );
+  }
+
   // ── Step 6: Build mock payment URL ──
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -705,6 +716,15 @@ export async function createCounterOrder(
   });
 
   const orderRef = await adminDb.collection(COLLECTIONS.ORDERS).add(orderData);
+
+  // ── Step 6.5: Update deal item stock ──
+  if (resolvedDeals.size > 0) {
+    const qtyMap = new Map<string, number>();
+    for (const item of items) qtyMap.set(item.productId, item.quantity);
+    updateDealStock(resolvedDeals, qtyMap).catch((err) =>
+      console.error("[createCounterOrder] Deal stock update failed (non-fatal):", err)
+    );
+  }
 
   // ── Step 7: Send confirmation email (fire-and-forget) ──
   // Non-blocking: email failure never aborts the order creation.
@@ -1000,6 +1020,14 @@ export async function createBankTransferOrder(
       });
 
       tx.set(orderRef, orderData);
+
+      // Update deal item stock inside the same transaction
+      if (resolvedDeals.size > 0) {
+        const qtyMap = new Map<string, number>();
+        for (const item of items) qtyMap.set(item.productId, item.quantity);
+        await updateDealStockInTransaction(tx, resolvedDeals, qtyMap);
+      }
+
       return orderRef.id;
     });
   } catch (err) {

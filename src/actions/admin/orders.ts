@@ -357,7 +357,7 @@ export async function approveBankTransferOrder(
 
     // Fire-and-forget: send ticket email
     const updatedSnap = await orderRef.get();
-    const updated = updatedSnap.data() as OrderDocument;
+    const updated = { id: updatedSnap.id, ...updatedSnap.data() } as OrderDocument;
 
     sendTicketEmail({
       to: updated.customerEmail,

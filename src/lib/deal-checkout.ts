@@ -299,7 +299,7 @@ export async function issueVouchersForOrder(
                         customerEmail: order.customerEmail,
                         customerPhone: order.customerPhone || "",
                         customerName: order.customerName,
-                        orderId: order.id,
+                        orderId: order.id || "",
                         orderNumber: order.orderNumber,
                         dealSectionId: deal.sectionId,
                         dealItemId: deal.item.id,
@@ -357,7 +357,7 @@ export async function issueVouchersForOrder(
                         customerEmail: order.customerEmail,
                         customerPhone: order.customerPhone || "",
                         customerName: order.customerName,
-                        orderId: order.id,
+                        orderId: order.id || "",
                         orderNumber: order.orderNumber,
                         dealSectionId: deal.sectionId,
                         dealItemId: deal.item.id,
@@ -453,6 +453,37 @@ export async function updateDealStockInTransaction(
             updatedAt: FieldValue.serverTimestamp(),
         });
     }
+}
+
+/**
+ * Standalone convenience wrapper: runs deal stock update in its own transaction.
+ * Use this from checkout flows that don't already have a Firestore transaction.
+ */
+export async function updateDealStock(
+    resolved: Map<string, ResolvedDealItem>,
+    cartQuantities: Map<string, number>
+): Promise<void> {
+    if (resolved.size === 0) return;
+    await adminDb.runTransaction(async (tx) => {
+        // Re-read sections inside the transaction for consistency
+        const freshResolved = new Map<string, ResolvedDealItem>();
+        const sectionCache = new Map<string, DealSectionDocument>();
+
+        for (const [productId, deal] of resolved) {
+            if (!sectionCache.has(deal.sectionId)) {
+                const sectionRef = adminDb.collection(COLLECTIONS.DEAL_SECTIONS).doc(deal.sectionId);
+                const snap = await tx.get(sectionRef);
+                if (!snap.exists) continue;
+                sectionCache.set(deal.sectionId, { id: snap.id, ...snap.data() } as DealSectionDocument);
+            }
+            const freshSection = sectionCache.get(deal.sectionId)!;
+            const freshItem = freshSection.items.find((i) => i.id === deal.item.id);
+            if (!freshItem) continue;
+            freshResolved.set(productId, { sectionId: deal.sectionId, section: freshSection, item: freshItem });
+        }
+
+        await updateDealStockInTransaction(tx, freshResolved, cartQuantities);
+    });
 }
 
 // ─── Issue Vouchers From Order Items ──────────────────────────────────────────
