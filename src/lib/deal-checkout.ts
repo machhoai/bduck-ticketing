@@ -288,6 +288,8 @@ export async function issueVouchersForOrder(
             try {
                 if (template.voucherType === "event_gacha" && template.eventGachaConfig) {
                     // ── Event Gacha: register + roll to get actual voucher code ──
+                    console.log(`[deal-checkout] 🎰 Calling gacha for product ${productId} | eventId=${template.eventGachaConfig.eventId} | phone=${order.customerPhone || "(empty)"}`);
+
                     const result = await registerAndClaimVoucher({
                         apiBaseUrl: template.eventGachaConfig.apiBaseUrl,
                         eventId: template.eventGachaConfig.eventId,
@@ -299,6 +301,8 @@ export async function issueVouchersForOrder(
                         },
                         source: template.eventGachaConfig.source,
                     });
+
+                    console.log(`[deal-checkout] 🎰 Gacha result: success=${result.success} status=${result.status} code=${result.voucherCode || "none"} error=${result.error || "none"}`);
 
                     // Use real voucher code if won, otherwise placeholder
                     const voucherCode = result.success && result.voucherCode
@@ -503,10 +507,13 @@ export async function updateDealStock(
 export async function issueVouchersFromOrderItems(
     order: OrderDocument
 ): Promise<{ issuedIds: string[]; vouchers: VoucherEmailInfo[] }> {
+    console.log(`[deal-checkout] issueVouchersFromOrderItems called for order: ${order.id}, items: ${order.items.length}`);
+
     // Rebuild resolved map from order items
     const resolved = new Map<string, ResolvedDealItem>();
 
     for (const item of order.items) {
+        console.log(`[deal-checkout] Item: ${item.productName} | isDealItem=${item.isDealItem} | dealSectionId=${item.dealSectionId} | dealItemId=${item.dealItemId}`);
         if (!item.isDealItem || !item.dealSectionId || !item.dealItemId) continue;
 
         // Fetch section if not already cached
@@ -516,16 +523,28 @@ export async function issueVouchersFromOrderItems(
                 .doc(item.dealSectionId)
                 .get();
 
-            if (!sectionDoc.exists) continue;
+            if (!sectionDoc.exists) {
+                console.error(`[deal-checkout] Section not found: ${item.dealSectionId}`);
+                continue;
+            }
 
             const section = { id: sectionDoc.id, ...sectionDoc.data() } as DealSectionDocument;
             const dealItem = section.items.find((di) => di.id === item.dealItemId);
-            if (!dealItem) continue;
+            if (!dealItem) {
+                console.error(`[deal-checkout] DealItem not found in section: ${item.dealItemId}`);
+                continue;
+            }
 
+            console.log(`[deal-checkout] Resolved deal item: ${dealItem.name} | giftVoucher=${JSON.stringify(dealItem.giftVoucher || null)}`);
             resolved.set(item.productId, { sectionId: item.dealSectionId, section, item: dealItem });
         }
     }
 
-    if (resolved.size === 0) return { issuedIds: [], vouchers: [] };
+    if (resolved.size === 0) {
+        console.log("[deal-checkout] No deal items with voucher config found — returning empty");
+        return { issuedIds: [], vouchers: [] };
+    }
+
+    console.log(`[deal-checkout] Proceeding with ${resolved.size} resolved deal items`);
     return issueVouchersForOrder(order, resolved);
 }

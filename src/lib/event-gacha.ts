@@ -105,89 +105,78 @@ export interface GachaRollResult {
     error?: string;
 }
 
-// ─── Register + Gacha Roll ────────────────────────────────────────────────────
+// ─── Register + REST Gacha ────────────────────────────────────────────────────
 
 /**
- * Full flow: register customer → execute gacha roll → return voucher code.
+ * Full flow: register customer via REST → run gacha via REST.
  *
- * Since executeGacha is a Server Action in the ERP app, but both apps share
- * the same Firebase project, we call the REST API endpoint for the gacha roll.
- *
- * Flow:
- *  1. POST /api/v1/events/register → ensure customer exists + gets spins
- *  2. POST /api/v1/events/gacha   → execute the spin → get voucherCode
- *
- * If API returns LUCK_NEXT_TIME (rare per user's config), we return a placeholder.
+ * Both REST endpoints live on the ERP server (employee.joyworld.vn).
+ * The ticketing app uses a DIFFERENT Firebase project from ERP,
+ * so direct Firestore access won't work — we must call the ERP's
+ * REST API wrapper around executeGacha.
  */
 export async function registerAndClaimVoucher(
     input: EventRegisterInput
 ): Promise<GachaRollResult> {
-    // Step 1: Register customer
+    // Step 1: Register customer via REST API (creates participation + grants spins)
     const regResult = await registerEventCustomer(input);
     if (!regResult.success) {
-        return {
-            success: false,
-            status: "ERROR",
-            error: regResult.error || "Registration failed",
-        };
+        console.error("[event-gacha] Registration failed:", regResult.error);
+        // Don't abort — try gacha anyway (customer might already exist)
     }
 
-    // Step 2: Execute gacha roll via REST API
-    const gachaUrl = `${input.apiBaseUrl.replace(/\/$/, "")}/api/v1/events/gacha`;
-    const gachaPayload = {
+    // Step 2: Execute gacha roll via REST API on ERP server
+    const url = `${input.apiBaseUrl.replace(/\/$/, "")}/api/v1/events/gacha`;
+
+    const payload = {
         eventId: input.eventId,
         customer: {
             phone: input.customer.phone,
-            name: input.customer.fullName,
+            fullName: input.customer.fullName,
             dob: input.customer.dob || "2000-01-01",
             email: input.customer.email,
         },
+        source: input.source || "bduck_ticketing",
     };
 
     for (let attempt = 0; attempt < 2; attempt++) {
         try {
-            const res = await fetch(gachaUrl, {
+            console.log(`[event-gacha] Calling gacha REST API: ${url} (attempt ${attempt + 1})`);
+
+            const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(gachaPayload),
-                signal: AbortSignal.timeout(15_000), // 15s — gacha may be slower
+                body: JSON.stringify(payload),
+                signal: AbortSignal.timeout(15_000), // 15s timeout (gacha transaction can be slow)
             });
 
             const data = await res.json();
+            console.log(`[event-gacha] Gacha API response:`, JSON.stringify(data));
 
             if (!res.ok) {
-                console.error(`[event-gacha] Gacha API error (${res.status}):`, data);
                 return {
                     success: false,
                     status: "ERROR",
-                    error: data.error || `Gacha API trả về lỗi ${res.status}`,
+                    error: data.error || `HTTP ${res.status}`,
                 };
             }
 
-            // Successful gacha roll
-            if (data.status === "WON_VOUCHER" && data.prizeData) {
-                return {
-                    success: true,
-                    status: "WON_VOUCHER",
-                    voucherCode: data.prizeData.voucherCode,
-                    campaignName: data.prizeData.campaignName,
-                    rewardType: data.prizeData.rewardType,
-                    rewardValue: data.prizeData.rewardValue,
-                    message: data.message,
-                };
-            }
-
-            // LUCK_NEXT_TIME or NO_SPINS_LEFT — return placeholder
+            // Map ERP's GachaResult to our GachaRollResult
             return {
-                success: false,
-                status: data.status || "LUCK_NEXT_TIME",
-                message: data.message,
-                error: "Không nhận được voucher. Vui lòng đến quầy để được hỗ trợ.",
+                success: data.success ?? false,
+                status: data.status || "ERROR",
+                voucherCode: data.prizeData?.voucherCode || undefined,
+                campaignName: data.prizeData?.campaignName || undefined,
+                rewardType: data.prizeData?.rewardType || undefined,
+                rewardValue: data.prizeData?.rewardValue || undefined,
+                message: data.message || undefined,
+                error: data.error || data.message || undefined,
             };
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            console.error(`[event-gacha] Gacha network error (attempt ${attempt + 1}/2):`, msg);
-            if (attempt === 0) continue;
+            console.error(`[event-gacha] REST gacha attempt ${attempt + 1} failed:`, msg);
+
+            if (attempt === 0) continue; // retry once
 
             return {
                 success: false,
@@ -197,5 +186,7 @@ export async function registerAndClaimVoucher(
         }
     }
 
+    // Unreachable, but TypeScript needs it
     return { success: false, status: "ERROR", error: "Unexpected error" };
 }
+

@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse, after } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/client";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
@@ -176,15 +176,17 @@ export async function GET(request: NextRequest) {
       });
     });
 
-    // Fire-and-forget: issue vouchers first, then send combined ticket+voucher email
-    (async () => {
-      try {
-        // Issue vouchers (may call external gacha API)
-        const { vouchers } = await issueVouchersFromOrderItems(
-          { ...order, id: orderId! } as OrderDocument
-        );
+    // ── Issue vouchers + send ticket email (after response) ──
+    // Use after() to keep function alive after redirect on Vercel
+    const orderForVoucher = { ...order, id: orderId! } as OrderDocument;
+    const capturedPassIds = [...passIds];
 
-        // Send ticket email WITH voucher info embedded
+    after(async () => {
+      console.log("[mock-pay] after() started — issuing vouchers for order:", orderId);
+      try {
+        const { vouchers, issuedIds } = await issueVouchersFromOrderItems(orderForVoucher);
+        console.log(`[mock-pay] Voucher result: ${issuedIds.length} issued, ${vouchers.length} for email`);
+
         await sendTicketEmail({
           to: order.customerEmail,
           customerName: order.customerName,
@@ -199,13 +201,14 @@ export async function GET(request: NextRequest) {
           })),
           finalAmount: order.finalAmount,
           discountAmount: order.discountAmount,
-          passIds,
+          passIds: capturedPassIds,
           vouchers: vouchers.length > 0 ? vouchers : undefined,
         });
+        console.log("[mock-pay] Ticket email sent successfully");
       } catch (err) {
-        console.error("[mock-pay] Voucher/email failed (non-fatal):", err);
+        console.error("[mock-pay] after() voucher/email error:", err);
       }
-    })();
+    });
 
     return NextResponse.redirect(`${resultUrl}&status=success`);
   } catch (error) {
