@@ -18,6 +18,11 @@ import { verifySession } from "@/lib/auth/session";
 import { sendCounterOrderEmail } from "@/lib/email/counter-order";
 import { sendTransferNotificationEmail } from "@/lib/email/transfer-notification";
 import { sendTransferReservationEmail } from "@/lib/email/transfer-reservation";
+import {
+  validateDealItems,
+  validateDealSectionConstraints,
+  type ResolvedDealItem,
+} from "@/lib/deal-checkout";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -145,6 +150,51 @@ export async function validatePromoCode(
   };
 }
 
+// ─── Deal Validation Helper ───────────────────────────────────────────────────
+
+/**
+ * Shared helper: extract deal items from cart, validate time gates, stock,
+ * section constraints, and return resolved deal mappings.
+ */
+async function runDealValidation(
+  items: CartItemInput[]
+): Promise<
+  | { valid: true; resolved: Map<string, ResolvedDealItem> }
+  | { valid: false; errorKey: string; message?: string }
+> {
+  // Build maps for deal items only
+  const dealMap = new Map<string, { sectionId: string; dealItemId: string }>();
+  const qtyMap = new Map<string, number>();
+
+  for (const item of items) {
+    qtyMap.set(item.productId, item.quantity);
+    if (item.dealSectionId && item.dealItemId) {
+      dealMap.set(item.productId, {
+        sectionId: item.dealSectionId,
+        dealItemId: item.dealItemId,
+      });
+    }
+  }
+
+  if (dealMap.size === 0) {
+    return { valid: true, resolved: new Map() };
+  }
+
+  // Validate individual deal items (time gate, stock, maxQtyPerOrder)
+  const { errors, resolved } = await validateDealItems(dealMap, qtyMap);
+  if (errors.length > 0) {
+    return { valid: false, errorKey: errors[0].errorKey, message: errors[0].message };
+  }
+
+  // Validate section-level constraints
+  const sectionErrors = await validateDealSectionConstraints(resolved, qtyMap);
+  if (sectionErrors.length > 0) {
+    return { valid: false, errorKey: sectionErrors[0].errorKey, message: sectionErrors[0].message };
+  }
+
+  return { valid: true, resolved };
+}
+
 // ─── Create Order ─────────────────────────────────────────────────────────────
 /**
  * Creates a pending order in Firestore.
@@ -177,6 +227,13 @@ export async function createOrder(
   if (!items.length) {
     return { success: false, errorKey: "order.empty_cart" };
   }
+
+  // ── Step 0.5: Validate deal items (time gate, stock, constraints) ──
+  const dealResult = await runDealValidation(items);
+  if (!dealResult.valid) {
+    return { success: false, errorKey: dealResult.errorKey, message: dealResult.message };
+  }
+  const resolvedDeals = dealResult.resolved;
 
   // ── Step 1: Re-fetch all product prices server-side (D5) ──
   const orderItems: OrderItem[] = [];
@@ -221,7 +278,9 @@ export async function createOrder(
       };
     }
 
-    const unitPrice = getEffectivePrice(product);
+    // Use deal effective price if this is a deal item, else product price
+    const deal = resolvedDeals.get(cartItem.productId);
+    const unitPrice = deal ? deal.item.effectivePrice : getEffectivePrice(product);
     const itemSubtotal = unitPrice * cartItem.quantity;
     subtotal += itemSubtotal;
 
@@ -238,6 +297,31 @@ export async function createOrder(
 
     if (product.comboItems !== undefined) {
       orderItem.comboItems = product.comboItems;
+    }
+
+    // Enrich with deal context
+    if (deal) {
+      orderItem.isDealItem = true;
+      orderItem.dealSectionId = deal.sectionId;
+      orderItem.dealItemId = deal.item.id;
+
+      // Membership points from deal item
+      if (deal.item.membershipConfig) {
+        const mc = deal.item.membershipConfig;
+        let bonusPoints = mc.bonusPoints ?? 0;
+        if (deal.item.membershipBonusOverride) {
+          const ov = deal.item.membershipBonusOverride;
+          if (ov.applyTo === "bonusOnly") {
+            bonusPoints = bonusPoints * ov.multiplier;
+          } else {
+            bonusPoints = ((mc.basePoints ?? 0) + bonusPoints) * ov.multiplier - (mc.basePoints ?? 0);
+          }
+        }
+        orderItem.membershipPoints = mc.basePoints ?? 0;
+        orderItem.bonusPoints = Math.round(bonusPoints);
+        orderItem.totalPoints = (mc.basePoints ?? 0) + Math.round(bonusPoints);
+        orderItem.merch = mc.merch;
+      }
     }
 
     orderItems.push(orderItem);
@@ -394,6 +478,13 @@ export async function createCounterOrder(
     return { success: false, errorKey: "order.empty_cart" };
   }
 
+  // ── Step 0.5: Validate deal items ──
+  const dealResult = await runDealValidation(items);
+  if (!dealResult.valid) {
+    return { success: false, errorKey: dealResult.errorKey, message: dealResult.message };
+  }
+  const resolvedDeals = dealResult.resolved;
+
   // ── Step 1: Re-fetch all product prices server-side (D5) ──
   const orderItems: OrderItem[] = [];
   let subtotal = 0;
@@ -436,7 +527,8 @@ export async function createCounterOrder(
       };
     }
 
-    const unitPrice = getEffectivePrice(product);
+    const deal = resolvedDeals.get(cartItem.productId);
+    const unitPrice = deal ? deal.item.effectivePrice : getEffectivePrice(product);
     const itemSubtotal = unitPrice * cartItem.quantity;
     subtotal += itemSubtotal;
 
@@ -453,6 +545,27 @@ export async function createCounterOrder(
     if (product.comboItems !== undefined) {
       orderItem.comboItems = product.comboItems;
     }
+
+    // Enrich with deal context
+    if (deal) {
+      orderItem.isDealItem = true;
+      orderItem.dealSectionId = deal.sectionId;
+      orderItem.dealItemId = deal.item.id;
+      if (deal.item.membershipConfig) {
+        const mc = deal.item.membershipConfig;
+        let bonusPoints = mc.bonusPoints ?? 0;
+        if (deal.item.membershipBonusOverride) {
+          const ov = deal.item.membershipBonusOverride;
+          if (ov.applyTo === "bonusOnly") bonusPoints = bonusPoints * ov.multiplier;
+          else bonusPoints = ((mc.basePoints ?? 0) + bonusPoints) * ov.multiplier - (mc.basePoints ?? 0);
+        }
+        orderItem.membershipPoints = mc.basePoints ?? 0;
+        orderItem.bonusPoints = Math.round(bonusPoints);
+        orderItem.totalPoints = (mc.basePoints ?? 0) + Math.round(bonusPoints);
+        orderItem.merch = mc.merch;
+      }
+    }
+
     orderItems.push(orderItem);
   }
 
@@ -658,6 +771,13 @@ export async function createBankTransferOrder(
     return { success: false, errorKey: "order.empty_cart" };
   }
 
+  // ── Step 0.5: Validate deal items ──
+  const dealResult = await runDealValidation(items);
+  if (!dealResult.valid) {
+    return { success: false, errorKey: dealResult.errorKey, message: dealResult.message };
+  }
+  const resolvedDeals = dealResult.resolved;
+
   // ── Step 1: Re-fetch all product prices server-side ──
   const orderItems: OrderItem[] = [];
   let subtotal = 0;
@@ -702,7 +822,8 @@ export async function createBankTransferOrder(
       };
     }
 
-    const unitPrice = getEffectivePrice(product);
+    const deal = resolvedDeals.get(cartItem.productId);
+    const unitPrice = deal ? deal.item.effectivePrice : getEffectivePrice(product);
     const itemSubtotal = unitPrice * cartItem.quantity;
     subtotal += itemSubtotal;
 
@@ -719,6 +840,27 @@ export async function createBankTransferOrder(
     if (product.comboItems !== undefined) {
       orderItem.comboItems = product.comboItems;
     }
+
+    // Enrich with deal context
+    if (deal) {
+      orderItem.isDealItem = true;
+      orderItem.dealSectionId = deal.sectionId;
+      orderItem.dealItemId = deal.item.id;
+      if (deal.item.membershipConfig) {
+        const mc = deal.item.membershipConfig;
+        let bonusPoints = mc.bonusPoints ?? 0;
+        if (deal.item.membershipBonusOverride) {
+          const ov = deal.item.membershipBonusOverride;
+          if (ov.applyTo === "bonusOnly") bonusPoints = bonusPoints * ov.multiplier;
+          else bonusPoints = ((mc.basePoints ?? 0) + bonusPoints) * ov.multiplier - (mc.basePoints ?? 0);
+        }
+        orderItem.membershipPoints = mc.basePoints ?? 0;
+        orderItem.bonusPoints = Math.round(bonusPoints);
+        orderItem.totalPoints = (mc.basePoints ?? 0) + Math.round(bonusPoints);
+        orderItem.merch = mc.merch;
+      }
+    }
+
     orderItems.push(orderItem);
     productQuantities.push({ productId: product.id, quantity: cartItem.quantity });
   }

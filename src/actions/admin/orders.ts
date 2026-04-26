@@ -9,6 +9,7 @@ import type { CounterPayData, BankTransferPayData, OrderDocument, PassDocument }
 import { generatePassesInTransaction } from "@/lib/pass-generation";
 import { sendTicketEmail } from "@/lib/email/tickets";
 import { sendTransferCancelEmail } from "@/lib/email/transfer-cancel";
+import { issueVouchersFromOrderItems } from "@/lib/deal-checkout";
 
 export type AdminActionResult<T = void> =
   | { success: true; data?: T }
@@ -279,6 +280,13 @@ export async function confirmCounterPayment(
       });
     });
 
+    // Fire-and-forget: issue deal vouchers
+    const updatedSnap = await orderRef.get();
+    const updatedOrder = { id: updatedSnap.id, ...updatedSnap.data() } as OrderDocument;
+    issueVouchersFromOrderItems(updatedOrder).catch((err) =>
+      console.error("[confirmCounterPayment] Voucher issuance failed (non-fatal):", err)
+    );
+
     return { success: true, data: { orderId } };
   } catch (err) {
     const message = err instanceof Error ? err.message : "UNKNOWN";
@@ -368,6 +376,11 @@ export async function approveBankTransferOrder(
       passIds,
     }).catch((err) =>
       console.error("[approveBankTransferOrder] Ticket email failed:", err)
+    );
+
+    // Fire-and-forget: issue deal vouchers
+    issueVouchersFromOrderItems(updated as OrderDocument).catch((err) =>
+      console.error("[approveBankTransferOrder] Voucher issuance failed (non-fatal):", err)
     );
 
     return { success: true, data: { passIds } };

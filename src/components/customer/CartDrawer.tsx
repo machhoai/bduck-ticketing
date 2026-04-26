@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { X, ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
+import { X, ShoppingCart, Trash2, Plus, Minus, Gift } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCartStore, rehydrateCart } from "@/stores/cart";
@@ -126,6 +126,12 @@ export function CartDrawer({ isOpen, onClose, locale }: CartDrawerProps) {
                   <p className="text-[#F5C842] font-bold text-sm mt-1">
                     {formatVND(item.price)}
                   </p>
+                  {item.giftVoucherName && (
+                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold ring-1 ring-emerald-200/60">
+                      <Gift className="h-3 w-3" />
+                      🎁 Tặng: {item.giftVoucherName}
+                    </span>
+                  )}
                   {/* Quantity controls */}
                   <div className="flex items-center gap-2 mt-2">
                     <button

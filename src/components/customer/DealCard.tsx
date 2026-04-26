@@ -150,6 +150,7 @@ interface DealCardProps {
 
 export const DealCard = React.memo(function DealCard({
     item,
+    sectionId,
     isOpen,
     opensAt,
     index = 0,
@@ -177,11 +178,14 @@ export const DealCard = React.memo(function DealCard({
                 soldCount: item.soldCount,
                 status: "active",
                 description: item.description,
+                dealSectionId: sectionId,
+                dealItemId: item.id,
+                giftVoucherName: item.giftVoucher?.templateName,
             } as Parameters<typeof addItem>[0]);
             setAdded(true);
             setTimeout(() => setAdded(false), 2_000);
         });
-    }, [isDisabled, added, pending, addItem, item]);
+    }, [isDisabled, added, pending, addItem, item, sectionId]);
 
     const discountText =
         item.dealType === "percentage" ? `-${item.discountValue}%`

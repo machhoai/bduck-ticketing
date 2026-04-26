@@ -19,6 +19,11 @@ export interface CartItem {
   originalPrice: number;
   quantity: number;
   type: "ticket" | "combo" | "membership";
+  /** Deal section info — set when item was added from a deal card */
+  dealSectionId?: string;
+  dealItemId?: string;
+  /** Gift voucher display name — shown as a badge in the cart */
+  giftVoucherName?: string;
 }
 
 interface CartStore {
@@ -83,6 +88,9 @@ export const useCartStore = create<CartStore>()(
                 originalPrice: product.price,
                 quantity: 1,
                 type: product.type,
+                dealSectionId: product.dealSectionId,
+                dealItemId: product.dealItemId,
+                giftVoucherName: product.giftVoucherName,
               },
             ],
           };

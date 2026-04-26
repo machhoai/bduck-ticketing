@@ -4,6 +4,7 @@ import { COLLECTIONS } from "@/lib/firebase/client";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { OrderDocument, PassDocument } from "@/types/firestore";
 import { sendTicketEmail } from "@/lib/email/tickets";
+import { issueVouchersFromOrderItems } from "@/lib/deal-checkout";
 
 /**
  * Mock Payment Webhook — simulates VNPay IPN behavior.
@@ -192,6 +193,11 @@ export async function GET(request: NextRequest) {
       discountAmount: order.discountAmount,
       passIds,
     }).catch(() => {}); // logged inside sendTicketEmail
+
+    // Fire-and-forget: issue deal vouchers (event gacha + standard)
+    issueVouchersFromOrderItems({ ...order, id: orderId! } as OrderDocument).catch((err) =>
+      console.error("[mock-pay] Voucher issuance failed (non-fatal):", err)
+    );
 
     return NextResponse.redirect(`${resultUrl}&status=success`);
   } catch (error) {

@@ -18,6 +18,7 @@ import {
     Tag,
     ShieldCheck,
     Package,
+    Gift,
 } from "lucide-react";
 import { useCartStore, rehydrateCart } from "@/stores/cart";
 import { Button } from "@/components/ui/Button";
@@ -193,6 +194,16 @@ export default function CartPage() {
                                                     </span>
                                                 )}
                                             </div>
+
+                                            {/* Gift voucher badge */}
+                                            {item.giftVoucherName && (
+                                                <div className="flex items-center gap-1.5 mt-1.5">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold ring-1 ring-emerald-200/60">
+                                                        <Gift className="h-3 w-3" />
+                                                        🎁 Tặng: {item.giftVoucherName}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Quantity controls */}

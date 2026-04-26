@@ -243,6 +243,8 @@ export default function CheckoutPage() {
       items: items.map((i) => ({
         productId: i.productId,
         quantity: i.quantity,
+        dealSectionId: i.dealSectionId,
+        dealItemId: i.dealItemId,
       })),
       customerName: data.customerName,
       customerEmail: data.customerEmail,
@@ -257,8 +259,12 @@ export default function CheckoutPage() {
         "order.product_unavailable": "Sản phẩm đã ngưng bán",
         "order.stock_exhausted": "Vé đã hết",
         "order.code_generation_failed": "Không thể tạo mã, vui lòng thử lại",
+        "deal.not_open_yet": "Deal chưa mở bán",
+        "deal.stock_exhausted": "Deal đã hết hàng",
+        "deal.max_qty_exceeded": "Vượt quá số lượng tối đa",
+        "deal.section_max_items": "Vượt giới hạn deal/đơn",
       };
-      setServerError(errorMessages[result.errorKey] ?? "Có lỗi xảy ra. Vui lòng thử lại.");
+      setServerError(errorMessages[result.errorKey] ?? result.message ?? "Có lỗi xảy ra. Vui lòng thử lại.");
       setSubmitting(false);
       return;
     }
@@ -282,6 +288,8 @@ export default function CheckoutPage() {
       items: items.map((i) => ({
         productId: i.productId,
         quantity: i.quantity,
+        dealSectionId: i.dealSectionId,
+        dealItemId: i.dealItemId,
       })),
       customerName: data.customerName,
       customerEmail: data.customerEmail,
@@ -296,8 +304,12 @@ export default function CheckoutPage() {
         "order.product_unavailable": "Sản phẩm đã ngưng bán",
         "order.stock_exhausted": "Vé đã hết",
         "order.creation_failed": "Không thể tạo đơn, vui lòng thử lại",
+        "deal.not_open_yet": "Deal chưa mở bán",
+        "deal.stock_exhausted": "Deal đã hết hàng",
+        "deal.max_qty_exceeded": "Vượt quá số lượng tối đa",
+        "deal.section_max_items": "Vượt giới hạn deal/đơn",
       };
-      setServerError(errorMessages[result.errorKey] ?? "Có lỗi xảy ra. Vui lòng thử lại.");
+      setServerError(errorMessages[result.errorKey] ?? result.message ?? "Có lỗi xảy ra. Vui lòng thử lại.");
       setSubmitting(false);
       return;
     }
@@ -318,6 +330,8 @@ export default function CheckoutPage() {
       items: items.map((i) => ({
         productId: i.productId,
         quantity: i.quantity,
+        dealSectionId: i.dealSectionId,
+        dealItemId: i.dealItemId,
       })),
       customerName: data.customerName,
       customerEmail: data.customerEmail,
@@ -331,9 +345,13 @@ export default function CheckoutPage() {
         "order.product_not_found": "Sản phẩm không tồn tại",
         "order.product_unavailable": "Sản phẩm đã ngừng bán",
         "order.stock_exhausted": "Vé đã hết",
+        "deal.not_open_yet": "Deal chưa mở bán",
+        "deal.stock_exhausted": "Deal đã hết hàng",
+        "deal.max_qty_exceeded": "Vượt quá số lượng tối đa",
+        "deal.section_max_items": "Vượt giới hạn deal/đơn",
       };
       setServerError(
-        errorMessages[result.errorKey] ?? "Có lỗi xảy ra. Vui lòng thử lại."
+        errorMessages[result.errorKey] ?? result.message ?? "Có lỗi xảy ra. Vui lòng thử lại."
       );
       setSubmitting(false);
       return;

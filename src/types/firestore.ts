@@ -310,6 +310,9 @@ export type OrderStatus = "pending" | "paid" | "cancelled";
 export interface CartItemInput {
   productId: string;
   quantity: number;
+  /** If this item was added from a deal section, include these for server-side validation */
+  dealSectionId?: string;
+  dealItemId?: string;
 }
 
 /** Document ID = auto-generated Firestore ID */

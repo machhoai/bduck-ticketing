@@ -35,12 +35,15 @@ export interface ClientProduct {
   status: ProductStatus;
   groupId?: string;
   dealSectionId?: string;
+  dealItemId?: string;
   soldCount: number;
   totalStock?: number;
   stockResetPeriod?: "none" | "daily" | "monthly";
   commissionRate?: number;
   tags?: string[];
   flashSale?: ClientFlashSale;
+  /** Display name of attached gift voucher (from deal item giftVoucher.templateName) */
+  giftVoucherName?: string;
 }
 
 // ─── Serializer ───────────────────────────────────────────────────────────────
