@@ -218,7 +218,7 @@ export function Navbar() {
                                             {/* User info */}
                                             <div className="px-4 py-2 border-b border-gray-100">
                                                 <p className="text-xs font-semibold text-text-primary truncate">
-                                                    {user.displayName ?? "Tài khoản"}
+                                                    {user.displayName ?? t("accountFallback")}
                                                 </p>
                                                 <p className="text-xs text-text-secondary truncate">{user.email}</p>
                                             </div>
@@ -233,7 +233,7 @@ export function Navbar() {
                                                         onClick={() => setIsUserOpen(false)}
                                                     >
                                                         <ShieldCheck className="h-4 w-4" />
-                                                        Quản lý Admin
+                                                        {t("adminPanel")}
                                                     </Link>
                                                     <div className="mx-3 my-1 h-px bg-gray-100" />
                                                 </>
@@ -247,7 +247,7 @@ export function Navbar() {
                                                 className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-text-secondary hover:bg-surface-100 transition-colors"
                                             >
                                                 <Ticket className="h-4 w-4" />
-                                                Đơn hàng của tôi
+                                                {t("myOrders")}
                                             </button>
 
                                             <button
@@ -255,7 +255,7 @@ export function Navbar() {
                                                 className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
                                             >
                                                 <LogOut className="h-4 w-4" />
-                                                Đăng xuất
+                                                {t("logout")}
                                             </button>
                                         </div>
                                     )}
@@ -399,21 +399,21 @@ export function Navbar() {
                                 <li>
                                     {user ? (
                                         <div className="px-4 py-2">
-                                            <p className="text-xs text-text-secondary mb-1.5">
-                                                Đang đăng nhập: <strong>{user.displayName ?? user.email}</strong>
-                                            </p>
+                                                <p className="text-xs text-text-secondary mb-1.5">
+                                                    {t("loggedInAs", { name: user.displayName ?? user.email ?? "" })}
+                                                </p>
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={() => { setIsMobileMenuOpen(false); router.push("/orders"); }}
                                                     className="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
                                                 >
-                                                    Đơn hàng
+                                                    {t("orders")}
                                                 </button>
                                                 <button
                                                     onClick={() => { setIsMobileMenuOpen(false); handleSignOut(); }}
                                                     className="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
                                                 >
-                                                    Đăng xuất
+                                                    {t("logout")}
                                                 </button>
                                             </div>
                                         </div>

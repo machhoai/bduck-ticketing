@@ -8,7 +8,13 @@
         "account": "Tài khoản",
         "cart": "Giỏ hàng",
         "language": "Ngôn ngữ",
-        "myTickets": "Vé của tôi"
+        "myTickets": "Vé của tôi",
+        "accountFallback": "Tài khoản",
+        "adminPanel": "Quản lý Admin",
+        "myOrders": "Đơn hàng của tôi",
+        "orders": "Đơn hàng",
+        "logout": "Đăng xuất",
+        "loggedInAs": "Đang đăng nhập: {name}"
     },
     "hero": {
         "badge": "Khu vui chơi quốc tế hàng đầu Việt Nam",

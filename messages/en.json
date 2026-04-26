@@ -8,7 +8,13 @@
         "account": "Account",
         "cart": "Cart",
         "language": "Language",
-        "myTickets": "My Tickets"
+        "myTickets": "My Tickets",
+        "accountFallback": "Account",
+        "adminPanel": "Admin Panel",
+        "myOrders": "My Orders",
+        "orders": "Orders",
+        "logout": "Sign Out",
+        "loggedInAs": "Signed in as: {name}"
     },
     "auth": {
         "loginTab": "Sign In",
