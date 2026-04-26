@@ -410,9 +410,9 @@ function TransferOrderCard({
                                         <div className="flex gap-2">
                                             <Button
                                                 type="button"
-                                                variant="secondary"
+                                                variant="danger"
                                                 size="sm"
-                                                className="flex-1 bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                                                className="flex-1"
                                                 onClick={handleCancel}
                                                 loading={loading === "cancel"}
                                                 disabled={!!loading}

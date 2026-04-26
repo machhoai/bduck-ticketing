@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getAdminOrders } from "@/actions/admin/orders";
 import { Search } from "lucide-react";
 import { OrdersExportButton } from "@/components/admin/OrdersExportButton";
+import { OrdersAdvancedFilter } from "@/components/admin/OrdersAdvancedFilter";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Đơn hàng" };
@@ -13,9 +15,26 @@ const STATUS_STYLE: Record<string, { label: string; style: string }> = {
   cancelled: { label: "Đã hủy", style: "bg-red-50 text-red-500" },
 };
 
+const PROVIDER_LABELS: Record<string, string> = {
+  counter: "Quầy",
+  bank_transfer: "CK",
+  vnpay: "VNPay",
+  mock: "Mock",
+};
+
 interface PageProps {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ status?: string; q?: string; cursor?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    q?: string;
+    cursor?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    provider?: string;
+    amountMin?: string;
+    amountMax?: string;
+    productName?: string;
+  }>;
 }
 
 function formatVND(v: number) {
@@ -33,16 +52,34 @@ function tsToISO(ts: unknown): string {
 }
 
 export default async function AdminOrdersPage({ searchParams }: PageProps) {
-  const { status, q, cursor } = await searchParams;
+  const { status, q, cursor, dateFrom, dateTo, provider, amountMin, amountMax, productName } =
+    await searchParams;
 
   const { orders, hasMore } = await getAdminOrders({
     status: status as "pending" | "paid" | "cancelled" | undefined,
     search: q,
     startAfter: cursor,
     limit: 25,
+    dateFrom,
+    dateTo,
+    provider,
+    amountMin: amountMin ? Number(amountMin) : undefined,
+    amountMax: amountMax ? Number(amountMax) : undefined,
+    productName,
   });
 
   const statusTabs = ["", "paid", "pending", "cancelled"];
+
+  // Build the current filter query string (excluding cursor and status for tab links)
+  const filterParams = new URLSearchParams();
+  if (q) filterParams.set("q", q);
+  if (dateFrom) filterParams.set("dateFrom", dateFrom);
+  if (dateTo) filterParams.set("dateTo", dateTo);
+  if (provider) filterParams.set("provider", provider);
+  if (amountMin) filterParams.set("amountMin", amountMin);
+  if (amountMax) filterParams.set("amountMax", amountMax);
+  if (productName) filterParams.set("productName", productName);
+  const filterQS = filterParams.toString();
 
   // Serialize for client export component (strip Firestore Timestamps)
   const exportOrders = orders.map((o) => ({
@@ -75,22 +112,27 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         <OrdersExportButton orders={exportOrders} statusFilter={status ?? ""} />
       </div>
 
-      {/* Filters */}
+      {/* Status Tabs + Search */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1">
-          {statusTabs.map((s) => (
-            <Link
-              key={s}
-              href={`?${s ? `status=${s}` : ""}${q ? `&q=${q}` : ""}`}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                (status ?? "") === s
-                  ? "bg-[#1A1A2E] text-white"
-                  : "text-gray-500 hover:text-[#1A1A2E]"
-              }`}
-            >
-              {s === "" ? "Tất cả" : STATUS_STYLE[s]?.label ?? s}
-            </Link>
-          ))}
+          {statusTabs.map((s) => {
+            const tabParams = new URLSearchParams(filterQS);
+            if (s) tabParams.set("status", s);
+            const href = `?${tabParams.toString()}`;
+            return (
+              <Link
+                key={s}
+                href={href}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  (status ?? "") === s
+                    ? "bg-[#1A1A2E] text-white"
+                    : "text-gray-500 hover:text-[#1A1A2E]"
+                }`}
+              >
+                {s === "" ? "Tất cả" : STATUS_STYLE[s]?.label ?? s}
+              </Link>
+            );
+          })}
         </div>
 
         <form className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 flex-1 min-w-52">
@@ -102,8 +144,21 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
             className="text-sm flex-1 outline-none bg-transparent"
           />
           {status && <input type="hidden" name="status" value={status} />}
+          {dateFrom && <input type="hidden" name="dateFrom" value={dateFrom} />}
+          {dateTo && <input type="hidden" name="dateTo" value={dateTo} />}
+          {provider && <input type="hidden" name="provider" value={provider} />}
+          {amountMin && <input type="hidden" name="amountMin" value={amountMin} />}
+          {amountMax && <input type="hidden" name="amountMax" value={amountMax} />}
+          {productName && <input type="hidden" name="productName" value={productName} />}
         </form>
       </div>
+
+      {/* Advanced Filters */}
+      <Suspense>
+        <OrdersAdvancedFilter
+          currentFilters={{ status, q, dateFrom, dateTo, provider, amountMin, amountMax, productName }}
+        />
+      </Suspense>
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -111,7 +166,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-400 uppercase tracking-wider">
               <tr>
-                {["Mã đơn", "Khách hàng", "Email", "Tổng tiền", "Trạng thái", "Ngày", ""].map((h) => (
+                {["Mã đơn", "Khách hàng", "Email", "Tổng tiền", "Trạng thái", "PT Thanh toán", "Ngày", ""].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>
                 ))}
               </tr>
@@ -119,6 +174,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
             <tbody className="divide-y divide-gray-50">
               {orders.map((order) => {
                 const st = STATUS_STYLE[order.status] ?? STATUS_STYLE.pending;
+                const providerLabel = PROVIDER_LABELS[(order.paymentDetails as any)?.provider ?? ""] ?? "";
                 return (
                   <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">{order.orderNumber}</td>
@@ -129,6 +185,13 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${st.style}`}>
                         {st.label}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {providerLabel && (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                          {providerLabel}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-400 text-xs">{formatDate(order.createdAt as any)}</td>
                     <td className="px-4 py-3">
@@ -153,7 +216,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         {hasMore && orders.length > 0 && (
           <div className="px-4 py-3 border-t border-gray-100 text-center">
             <Link
-              href={`?${status ? `status=${status}&` : ""}${q ? `q=${q}&` : ""}cursor=${orders[orders.length - 1].id}`}
+              href={`?${status ? `status=${status}&` : ""}${q ? `q=${q}&` : ""}${filterQS ? `${filterQS}&` : ""}cursor=${orders[orders.length - 1].id}`}
               className="text-sm text-[#1A1A2E] font-semibold hover:underline"
             >
               Xem thêm →

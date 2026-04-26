@@ -47,22 +47,31 @@ export function OrdersExportButton({ orders, statusFilter }: Props) {
             // Dynamic import — keeps xlsx out of initial bundle
             const XLSX = await import("xlsx").then((m) => m.default || m);
 
-            // ── Build rows ──
-            const rows = orders.map((o, idx) => ({
-                "STT": idx + 1,
-                "Mã đơn hàng": o.orderNumber,
-                "Khách hàng": o.customerName,
-                "Email": o.customerEmail,
-                "SĐT": o.customerPhone || "",
-                "Sản phẩm": o.items.map((i) => `${i.productName} x${i.quantity}`).join("; "),
-                "Tạm tính": o.subtotal,
-                "Giảm giá": o.discountAmount,
-                "Thành tiền": o.finalAmount,
-                "Trạng thái": STATUS_LABELS[o.status] || o.status,
-                "Phương thức": PAYMENT_LABELS[o.paymentProvider ?? ""] || o.paymentProvider || "",
-                "Ngày tạo": o.createdAt ? formatDateExcel(o.createdAt) : "",
-                "Ngày TT": o.paidAt ? formatDateExcel(o.paidAt) : "",
-            }));
+            // ── Build rows — 1 row per product item ──
+            let stt = 0;
+            const rows = orders.flatMap((o) =>
+                o.items.map((item) => {
+                    stt++;
+                    return {
+                        "STT": stt,
+                        "Mã đơn hàng": o.orderNumber,
+                        "Khách hàng": o.customerName,
+                        "Email": o.customerEmail,
+                        "SĐT": o.customerPhone || "",
+                        "Sản phẩm": item.productName,
+                        "Số lượng": item.quantity,
+                        "Đơn giá": item.unitPrice,
+                        "Thành tiền SP": item.subtotal,
+                        "Tạm tính đơn": o.subtotal,
+                        "Giảm giá đơn": o.discountAmount,
+                        "Tổng đơn hàng": o.finalAmount,
+                        "Trạng thái": STATUS_LABELS[o.status] || o.status,
+                        "Phương thức": PAYMENT_LABELS[o.paymentProvider ?? ""] || o.paymentProvider || "",
+                        "Ngày tạo": o.createdAt ? formatDateExcel(o.createdAt) : "",
+                        "Ngày TT": o.paidAt ? formatDateExcel(o.paidAt) : "",
+                    };
+                })
+            );
 
             const ws = XLSX.utils.json_to_sheet(rows);
 
@@ -73,10 +82,13 @@ export function OrdersExportButton({ orders, statusFilter }: Props) {
                 { wch: 22 },  // Khách hàng
                 { wch: 28 },  // Email
                 { wch: 14 },  // SĐT
-                { wch: 40 },  // Sản phẩm
-                { wch: 14 },  // Tạm tính
-                { wch: 12 },  // Giảm giá
-                { wch: 14 },  // Thành tiền
+                { wch: 30 },  // Sản phẩm
+                { wch: 10 },  // Số lượng
+                { wch: 14 },  // Đơn giá
+                { wch: 14 },  // Thành tiền SP
+                { wch: 14 },  // Tạm tính đơn
+                { wch: 12 },  // Giảm giá đơn
+                { wch: 14 },  // Tổng đơn hàng
                 { wch: 16 },  // Trạng thái
                 { wch: 14 },  // Phương thức
                 { wch: 18 },  // Ngày tạo

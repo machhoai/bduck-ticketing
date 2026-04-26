@@ -20,6 +20,13 @@ export interface AdminOrderFilters {
   search?: string; // orderNumber or email
   limit?: number;
   startAfter?: string; // last doc ID for cursor pagination
+  // Advanced filters
+  dateFrom?: string; // ISO date string e.g. "2025-04-01"
+  dateTo?: string;   // ISO date string e.g. "2025-04-30"
+  provider?: string; // "counter" | "bank_transfer" | "vnpay" | "mock"
+  amountMin?: number;
+  amountMax?: number;
+  productName?: string; // filter by product name in items
 }
 
 export type AdminOrderWithPasses = OrderDocument & { passes: PassDocument[] };
@@ -40,6 +47,18 @@ export async function getAdminOrders(
     query = query.where("status", "==", status) as typeof query;
   }
 
+  // Firestore-level date range filter (createdAt is the orderBy field)
+  if (filters.dateFrom) {
+    const from = new Date(filters.dateFrom);
+    from.setHours(0, 0, 0, 0);
+    query = query.where("createdAt", ">=", Timestamp.fromDate(from)) as typeof query;
+  }
+  if (filters.dateTo) {
+    const to = new Date(filters.dateTo);
+    to.setHours(23, 59, 59, 999);
+    query = query.where("createdAt", "<=", Timestamp.fromDate(to)) as typeof query;
+  }
+
   if (startAfter) {
     const cursorDoc = await adminDb
       .collection(COLLECTIONS.ORDERS)
@@ -50,12 +69,13 @@ export async function getAdminOrders(
     }
   }
 
-  const snap = await query.limit(limit + 1).get();
+  // When advanced filters are active, fetch more docs to compensate for client-side filtering
+  const hasAdvancedFilters = filters.search || filters.provider || filters.amountMin || filters.amountMax || filters.productName;
+  const fetchLimit = hasAdvancedFilters ? Math.max(limit * 4, 100) : limit;
 
-  const hasMore = snap.docs.length > limit;
-  const docs = hasMore ? snap.docs.slice(0, limit) : snap.docs;
+  const snap = await query.limit(fetchLimit + 1).get();
 
-  const orders = docs.map((doc) => ({
+  let allDocs = snap.docs.map((doc) => ({
     id: doc.id,
     ...(doc.data() as Omit<OrderDocument, "id">),
   }));
@@ -63,14 +83,39 @@ export async function getAdminOrders(
   // Client-side search filter (Firestore doesn't support full-text search natively)
   if (filters.search) {
     const q = filters.search.toLowerCase();
-    const filtered = orders.filter(
+    allDocs = allDocs.filter(
       (o) =>
         o.orderNumber?.toLowerCase().includes(q) ||
         o.customerEmail?.toLowerCase().includes(q) ||
         o.customerName?.toLowerCase().includes(q)
     );
-    return { orders: filtered, hasMore };
   }
+
+  // Client-side provider filter
+  if (filters.provider) {
+    allDocs = allDocs.filter(
+      (o) => o.paymentDetails?.provider === filters.provider
+    );
+  }
+
+  // Client-side amount range filter
+  if (filters.amountMin !== undefined && filters.amountMin > 0) {
+    allDocs = allDocs.filter((o) => o.finalAmount >= filters.amountMin!);
+  }
+  if (filters.amountMax !== undefined && filters.amountMax > 0) {
+    allDocs = allDocs.filter((o) => o.finalAmount <= filters.amountMax!);
+  }
+
+  // Client-side product name filter
+  if (filters.productName) {
+    const pn = filters.productName.toLowerCase();
+    allDocs = allDocs.filter((o) =>
+      o.items.some((item) => item.productName.toLowerCase().includes(pn))
+    );
+  }
+
+  const hasMore = allDocs.length > limit;
+  const orders = hasMore ? allDocs.slice(0, limit) : allDocs;
 
   return { orders, hasMore };
 }
@@ -451,13 +496,14 @@ export async function cancelBankTransferOrder(
       }
 
       // Update order
-      tx.update(orderRef, {
+      const updateData: Record<string, unknown> = {
         status: "cancelled",
         cancelledAt: now,
         cancelReason: reason || "bank_transfer_expired",
-        adminNotes: adminNote || undefined,
         updatedAt: now,
-      });
+      };
+      if (adminNote) updateData.adminNotes = adminNote;
+      tx.update(orderRef, updateData);
     });
 
     // Fire-and-forget: send cancel email to customer
