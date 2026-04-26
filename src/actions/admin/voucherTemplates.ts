@@ -8,6 +8,7 @@ import type {
     VoucherTemplateDocument,
     VoucherType,
     OnlineDiscountConfig,
+    EventGachaConfig,
 } from "@/types/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -27,6 +28,8 @@ export interface CreateVoucherTemplateInput {
     // instore
     instoreDescription?: string;
     instorePoints?: number;
+    // event_gacha
+    eventGachaConfig?: EventGachaConfig;
     isActive: boolean;
 }
 
@@ -63,27 +66,46 @@ export async function createVoucherTemplate(
         const admin = await requireAdmin();
         const now = FieldValue.serverTimestamp();
 
-        const payload: Omit<VoucherTemplateDocument, "id"> = {
+        const isGacha = input.voucherType === "event_gacha";
+
+        const raw: Record<string, unknown> = {
             name: input.name.trim(),
-            description: input.description?.trim(),
-            imageUrl: input.imageUrl?.trim() || undefined,
             voucherType: input.voucherType,
-            codePrefix: input.codePrefix?.trim().toUpperCase() || undefined,
-            codeSuffix: input.codeSuffix?.trim().toUpperCase() || undefined,
-            codeLength: input.codeLength,
-            validDays: input.validDays,
-            onlineDiscount: input.voucherType === "online_discount" ? input.onlineDiscount : undefined,
-            instoreDescription: input.voucherType !== "online_discount" ? input.instoreDescription?.trim() : undefined,
-            instorePoints: input.voucherType === "instore_points" ? input.instorePoints : undefined,
             isActive: input.isActive,
             totalIssued: 0,
             totalRedeemed: 0,
             createdBy: admin.uid,
-            createdAt: now as any,
-            updatedAt: now as any,
+            createdAt: now,
+            updatedAt: now,
         };
 
-        const ref = await col().add(payload);
+        // Optional text fields
+        if (input.description?.trim()) raw.description = input.description.trim();
+        if (input.imageUrl?.trim()) raw.imageUrl = input.imageUrl.trim();
+
+        // Code generation — skip for event_gacha (codes come from external API)
+        if (!isGacha) {
+            if (input.codePrefix?.trim()) raw.codePrefix = input.codePrefix.trim().toUpperCase();
+            if (input.codeSuffix?.trim()) raw.codeSuffix = input.codeSuffix.trim().toUpperCase();
+            raw.codeLength = input.codeLength;
+            raw.validDays = input.validDays;
+        }
+
+        // Type-specific config
+        if (input.voucherType === "online_discount" && input.onlineDiscount) {
+            raw.onlineDiscount = input.onlineDiscount;
+        }
+        if ((input.voucherType === "instore_gift" || input.voucherType === "instore_points") && input.instoreDescription?.trim()) {
+            raw.instoreDescription = input.instoreDescription.trim();
+        }
+        if (input.voucherType === "instore_points" && input.instorePoints != null) {
+            raw.instorePoints = input.instorePoints;
+        }
+        if (isGacha && input.eventGachaConfig) {
+            raw.eventGachaConfig = input.eventGachaConfig;
+        }
+
+        const ref = await col().add(raw);
         revalidatePath("/admin/voucher-templates");
         return { success: true, id: ref.id };
     } catch (err) {
@@ -116,6 +138,7 @@ export async function updateVoucherTemplate(
         if (input.instoreDescription !== undefined) updates.instoreDescription = input.instoreDescription.trim();
         if (input.instorePoints !== undefined) updates.instorePoints = input.instorePoints;
         if (input.isActive !== undefined) updates.isActive = input.isActive;
+        if (input.eventGachaConfig !== undefined) updates.eventGachaConfig = input.eventGachaConfig;
 
         await col().doc(id).update(updates);
         revalidatePath("/admin/voucher-templates");

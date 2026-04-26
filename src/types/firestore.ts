@@ -168,6 +168,8 @@ export interface ProductDocument {
 
   /** Reference to bduck_productGroups — admin assigns at product creation */
   groupId?: string;
+  /** When product is created exclusively for a deal section (mutually exclusive with groupId) */
+  dealSectionId?: string;
 
   status: ProductStatus;
   tags?: string[]; // e.g. ['weekend', 'family', 'vip']
@@ -738,7 +740,7 @@ export interface DealSectionDocument {
 // bduck_voucherTemplates
 // ─────────────────────────────────────────────
 
-export type VoucherType = "online_discount" | "instore_points" | "instore_gift";
+export type VoucherType = "online_discount" | "instore_points" | "instore_gift" | "event_gacha";
 
 /** Config for online_discount vouchers — works like a PromotionDocument at checkout */
 export interface OnlineDiscountConfig {
@@ -747,6 +749,16 @@ export interface OnlineDiscountConfig {
   minOrderValue?: number;
   maxDiscountAmount?: number;  // cap for percentage type
   applicableProductIds?: string[]; // empty = applicable to all products
+}
+
+/**
+ * Config for event_gacha vouchers — calls external JoyWorld ERP API
+ * to register customer and grant gacha spins.
+ */
+export interface EventGachaConfig {
+  eventId: string;          // e.g. "m8zgdK13Z1kllXgBv3vb"
+  apiBaseUrl: string;       // e.g. "https://employee.joyworld.vn"
+  source?: string;          // tracking source, default "bduck_ticketing"
 }
 
 /**
@@ -777,6 +789,9 @@ export interface VoucherTemplateDocument {
   /** Only when voucherType = 'instore_gift' or 'instore_points' */
   instoreDescription?: string; // "1 lượt chơi game tại khu vui chơi"
   instorePoints?: number;      // extra points to load if instore_points
+
+  /** Only when voucherType = 'event_gacha' */
+  eventGachaConfig?: EventGachaConfig;
 
   isActive: boolean;
 

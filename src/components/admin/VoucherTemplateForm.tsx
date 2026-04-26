@@ -15,6 +15,7 @@ const VOUCHER_TYPES: { value: VoucherType; label: string; hint: string }[] = [
     { value: "online_discount", label: "Giảm giá online", hint: "Khách dùng code này khi checkout để được giảm giá trên website" },
     { value: "instore_points", label: "Điểm thưởng cửa hàng", hint: "Nhân viên quét code để cộng thêm điểm cho thẻ của khách" },
     { value: "instore_gift", label: "Quà tặng tại quầy", hint: "Nhân viên quét code để xác nhận và đổi quà cho khách" },
+    { value: "event_gacha", label: "🎰 Event Gacha (API)", hint: "Gọi API JoyWorld để đăng ký khách hàng và cấp lượt quay thưởng" },
 ];
 
 export function VoucherTemplateForm({ template, locale }: VoucherTemplateFormProps) {
@@ -40,6 +41,10 @@ export function VoucherTemplateForm({ template, locale }: VoucherTemplateFormPro
         // instore
         instoreDescription: template?.instoreDescription ?? "",
         instorePoints: template?.instorePoints ?? 0,
+        // event_gacha
+        egEventId: template?.eventGachaConfig?.eventId ?? "",
+        egApiBaseUrl: template?.eventGachaConfig?.apiBaseUrl ?? "https://employee.joyworld.vn",
+        egSource: template?.eventGachaConfig?.source ?? "bduck_ticketing",
         isActive: template?.isActive ?? true,
     });
 
@@ -68,8 +73,13 @@ export function VoucherTemplateForm({ template, locale }: VoucherTemplateFormPro
                     maxDiscountAmount: form.odMax || undefined,
                     applicableProductIds: [],
                 } : undefined,
-                instoreDescription: form.voucherType !== "online_discount" ? form.instoreDescription : undefined,
+                instoreDescription: (form.voucherType === "instore_gift" || form.voucherType === "instore_points") ? form.instoreDescription : undefined,
                 instorePoints: form.voucherType === "instore_points" ? form.instorePoints : undefined,
+                eventGachaConfig: form.voucherType === "event_gacha" ? {
+                    eventId: form.egEventId.trim(),
+                    apiBaseUrl: form.egApiBaseUrl.trim(),
+                    source: form.egSource.trim() || undefined,
+                } : undefined,
                 isActive: form.isActive,
             };
 
@@ -116,6 +126,7 @@ export function VoucherTemplateForm({ template, locale }: VoucherTemplateFormPro
                     />
                 </div>
 
+                {form.voucherType !== "event_gacha" && (
                 <div className="space-y-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Hình ảnh voucher (URL)</label>
                     <input
@@ -125,6 +136,7 @@ export function VoucherTemplateForm({ template, locale }: VoucherTemplateFormPro
                         className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C842]/40 focus:border-[#F5C842]"
                     />
                 </div>
+                )}
 
                 <div className="flex items-center gap-3">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</label>
@@ -227,9 +239,53 @@ export function VoucherTemplateForm({ template, locale }: VoucherTemplateFormPro
                         )}
                     </div>
                 )}
+
+                {/* Event Gacha config */}
+                {form.voucherType === "event_gacha" && (
+                    <div className="mt-4 space-y-3 border-t border-gray-50 pt-4">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Cấu hình Event Gacha (API bên ngoài)</p>
+                        <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
+                            <p className="text-xs text-amber-700">
+                                🎰 Khi khách mua sản phẩm deal có tặng voucher loại này, hệ thống sẽ tự động gọi API để đăng ký khách hàng và cấp lượt quay.
+                                Dữ liệu khách hàng (họ tên, SĐT, email) được lấy từ đơn hàng.
+                            </p>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400">Event ID (bắt buộc)</label>
+                            <input
+                                required
+                                value={form.egEventId}
+                                onChange={(e) => set("egEventId", e.target.value)}
+                                placeholder="m8zgdK13Z1kllXgBv3vb"
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#F5C842]/40"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400">API Base URL</label>
+                            <input
+                                required
+                                value={form.egApiBaseUrl}
+                                onChange={(e) => set("egApiBaseUrl", e.target.value)}
+                                placeholder="https://employee.joyworld.vn"
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#F5C842]/40"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400">Source (tracking)</label>
+                            <input
+                                value={form.egSource}
+                                onChange={(e) => set("egSource", e.target.value)}
+                                placeholder="bduck_ticketing"
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C842]/40"
+                            />
+                            <p className="text-[10px] text-gray-400">Dùng để tracking nguồn đăng ký trong ERP</p>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Code generation */}
+            {/* Code generation — hidden for event_gacha */}
+            {form.voucherType !== "event_gacha" && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
                 <h2 className="font-bold text-[#1A1A2E] text-base">Cấu hình mã code</h2>
 
@@ -282,6 +338,7 @@ export function VoucherTemplateForm({ template, locale }: VoucherTemplateFormPro
                     <p className="text-xs text-gray-400">Code sẽ hết hạn {form.validDays} ngày sau khi được tạo</p>
                 </div>
             </div>
+            )}
 
             {/* Error */}
             {error && (

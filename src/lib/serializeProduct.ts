@@ -34,6 +34,7 @@ export interface ClientProduct {
   thumbnailUrl: string;
   status: ProductStatus;
   groupId?: string;
+  dealSectionId?: string;
   soldCount: number;
   totalStock?: number;
   stockResetPeriod?: "none" | "daily" | "monthly";
@@ -60,6 +61,7 @@ export function serializeProduct(p: ProductDocument): ClientProduct {
     thumbnailUrl: p.thumbnailUrl,
     status: p.status,
     groupId: p.groupId,
+    dealSectionId: p.dealSectionId,
     soldCount: p.soldCount,
     totalStock: p.totalStock,
     stockResetPeriod: p.stockResetPeriod,

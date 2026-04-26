@@ -143,7 +143,13 @@ export function ProductsListClient({ products, locale }: ProductsListClientProps
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{product.groupId ? "—" : "—"}</td>
+                    <td className="px-4 py-3 text-xs">
+                      {product.dealSectionId ? (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-semibold">⚡ Deal</span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                         product.type === "combo" ? "bg-purple-50 text-purple-600" : "bg-blue-50 text-blue-600"

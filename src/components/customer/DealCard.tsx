@@ -155,6 +155,7 @@ export const DealCard = React.memo(function DealCard({
     index = 0,
 }: DealCardProps) {
     const [added, setAdded] = useState(false);
+    const [expanded, setExpanded] = useState(false);
     const [pending, startTransition] = useTransition();
     const addItem = useCartStore((s) => s.addItem);
 
@@ -254,15 +255,12 @@ export const DealCard = React.memo(function DealCard({
 
             {/* ── Body ─────────────────────────────────────── */}
             <div className="flex flex-col flex-1 p-4 gap-2.5">
-                {/* Title */}
+                {/* Title — always visible */}
                 <h3 className="font-extrabold text-[#1A1A2E] text-base leading-tight line-clamp-2">
                     {item.name}
                 </h3>
-                {item.description && (
-                    <p className="text-gray-400 text-xs line-clamp-2 leading-relaxed">{item.description}</p>
-                )}
 
-                {/* Perk badges */}
+                {/* Perk badges — always visible */}
                 {(item.giftVoucher || item.giftMerch || item.membershipBonusOverride || item.membershipConfig) && (
                     <div className="flex flex-wrap gap-1.5">
                         {item.giftVoucher && (
@@ -285,6 +283,62 @@ export const DealCard = React.memo(function DealCard({
                                 <Crown className="h-2.5 w-2.5" />
                                 {(item.membershipConfig.basePoints ?? 0) + (item.membershipConfig.bonusPoints ?? 0)} điểm
                             </span>
+                        )}
+                    </div>
+                )}
+
+                {/* Description preview / toggle */}
+                {item.description && (
+                    <div
+                        className="cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+                    >
+                        <p className={`text-gray-500 text-xs leading-relaxed ${expanded ? "" : "line-clamp-2"}`}>
+                            {item.description}
+                        </p>
+                        <span className="text-[10px] font-semibold mt-0.5 inline-block" style={{ color: accent.highlight }}>
+                            {expanded ? "Thu gọn ▲" : "Xem thêm ▼"}
+                        </span>
+                    </div>
+                )}
+
+                {/* Expanded details */}
+                {expanded && (
+                    <div className="space-y-2 text-xs animate-in fade-in slide-in-from-top-2 duration-200">
+                        {/* Voucher detail */}
+                        {item.giftVoucher && (
+                            <div className="flex items-start gap-2 p-2 rounded-lg bg-violet-50 border border-violet-100">
+                                <Tag className="h-3.5 w-3.5 text-violet-500 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="font-bold text-violet-700">Tặng voucher: {item.giftVoucher.templateName}</p>
+                                    <p className="text-violet-500 text-[10px]">
+                                        {item.giftVoucher.distribution === "perProduct" ? "1 voucher/sản phẩm mua" : "1 voucher/đơn hàng"}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Membership detail */}
+                        {item.membershipConfig && (
+                            <div className="flex items-start gap-2 p-2 rounded-lg bg-yellow-50 border border-yellow-100">
+                                <Crown className="h-3.5 w-3.5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="font-bold text-yellow-800">Thẻ thành viên</p>
+                                    <p className="text-yellow-600 text-[10px]">
+                                        {item.membershipConfig.basePoints ?? 0} điểm gốc
+                                        {(item.membershipConfig.bonusPoints ?? 0) > 0 && ` + ${item.membershipConfig.bonusPoints} bonus`}
+                                        {item.membershipConfig.merch && ` · Quà: ${item.membershipConfig.merch}`}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Merch gift detail */}
+                        {item.giftMerch && (
+                            <div className="flex items-start gap-2 p-2 rounded-lg bg-pink-50 border border-pink-100">
+                                <Gift className="h-3.5 w-3.5 text-pink-500 mt-0.5 flex-shrink-0" />
+                                <p className="font-bold text-pink-700">Quà tặng: {item.giftMerch}</p>
+                            </div>
                         )}
                     </div>
                 )}

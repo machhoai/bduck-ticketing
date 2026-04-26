@@ -142,12 +142,12 @@ export async function DealSection({ locale = "vi" }: DealSectionProps) {
                 {/* ── Global heading ─────────────────────────────────── */}
                 <div className="text-center">
                     {/* Eyebrow */}
-                    <div className="flex justify-center mb-4">
+                    {/* <div className="flex justify-center mb-4">
                         <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#FFD100] animate-pulse" />
                             Ưu đãi có giới hạn
                         </span>
-                    </div>
+                    </div> */}
 
                     <h2
                         id="deals-heading"

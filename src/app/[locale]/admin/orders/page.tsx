@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAdminOrders } from "@/actions/admin/orders";
 import { Search } from "lucide-react";
+import { OrdersExportButton } from "@/components/admin/OrdersExportButton";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Đơn hàng" };
@@ -23,6 +24,13 @@ function formatVND(v: number) {
 function formatDate(ts: { toDate(): Date }) {
   return ts.toDate().toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
+function tsToISO(ts: unknown): string {
+  if (!ts) return "";
+  if (typeof ts === "object" && ts !== null && "toDate" in ts) {
+    return (ts as { toDate(): Date }).toDate().toISOString();
+  }
+  return "";
+}
 
 export default async function AdminOrdersPage({ searchParams }: PageProps) {
   const { status, q, cursor } = await searchParams;
@@ -36,11 +44,35 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
 
   const statusTabs = ["", "paid", "pending", "cancelled"];
 
+  // Serialize for client export component (strip Firestore Timestamps)
+  const exportOrders = orders.map((o) => ({
+    orderNumber: o.orderNumber,
+    customerName: o.customerName,
+    customerEmail: o.customerEmail,
+    customerPhone: o.customerPhone,
+    items: o.items.map((i) => ({
+      productName: i.productName,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+      subtotal: i.subtotal,
+    })),
+    subtotal: o.subtotal,
+    discountAmount: o.discountAmount,
+    finalAmount: o.finalAmount,
+    status: o.status,
+    paymentProvider: (o.paymentDetails as any)?.provider,
+    createdAt: tsToISO(o.createdAt),
+    paidAt: tsToISO(o.paidAt),
+  }));
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-[#1A1A2E]">📦 Đơn hàng</h1>
-        <p className="text-sm text-gray-400 mt-1">{orders.length} kết quả</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-[#1A1A2E]">📦 Đơn hàng</h1>
+          <p className="text-sm text-gray-400 mt-1">{orders.length} kết quả</p>
+        </div>
+        <OrdersExportButton orders={exportOrders} statusFilter={status ?? ""} />
       </div>
 
       {/* Filters */}

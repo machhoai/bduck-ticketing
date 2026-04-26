@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { addDealItem, removeDealItem } from "@/actions/admin/dealSections";
+import { useState, useTransition, useRef } from "react";
+import { addDealItem, removeDealItem, createDealProduct } from "@/actions/admin/dealSections";
+import { uploadThumbnail } from "@/actions/admin/products";
 import type { DealItemDocument, DealSectionDocument, ProductType, DealType } from "@/types/firestore";
-import { Plus, Loader2, Trash2, Package, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Loader2, Trash2, Package, ChevronDown, ChevronUp, Upload, ImageIcon, Sparkles } from "lucide-react";
 
 interface DealItemsPanelProps {
     section: DealSectionDocument;
@@ -37,6 +38,14 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
     const [isPending, startTransition] = useTransition();
     const [showForm, setShowForm] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [mode, setMode] = useState<"link" | "create">("link");
+
+    // Image upload state (for "create" mode)
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
+    const [thumbnailPreview, setThumbnailPreview] = useState("");
+    const [compressionInfo, setCompressionInfo] = useState<{ before: number; after: number } | null>(null);
 
     const [form, setForm] = useState({
         linkedProductId: "",
@@ -47,6 +56,7 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
         originalPrice: 0,
         dealType: "percentage" as DealType,
         discountValue: 20,
+        validDaysFromPurchase: 365,
         // membership
         membershipBasePoints: 0,
         membershipBonusPoints: 0,
@@ -85,58 +95,147 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
         }
     }
 
+    // ── WebP conversion (client-side) ──
+    async function convertToWebP(file: File, quality = 0.85, maxDim = 1200): Promise<File> {
+        return new Promise((resolve, reject) => {
+            const img = new window.Image();
+            const objectUrl = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+                let { width, height } = img;
+                if (width > maxDim || height > maxDim) {
+                    if (width >= height) { height = Math.round((height / width) * maxDim); width = maxDim; }
+                    else { width = Math.round((width / height) * maxDim); height = maxDim; }
+                }
+                const canvas = document.createElement("canvas");
+                canvas.width = width; canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) { reject(new Error("Canvas not supported")); return; }
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    if (!blob) { reject(new Error("Conversion failed")); return; }
+                    resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".webp"), { type: "image/webp" }));
+                }, "image/webp", quality);
+            };
+            img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Failed to load")); };
+            img.src = objectUrl;
+        });
+    }
+
+    async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadError(null); setCompressionInfo(null);
+        if (file.size > 20 * 1024 * 1024) { setUploadError("Ảnh không được vượt quá 20MB"); return; }
+        const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
+        if (!ALLOWED.includes(file.type)) { setUploadError("Chỉ chấp nhận JPG, PNG, WebP, GIF, AVIF"); return; }
+        setIsUploading(true);
+        setThumbnailPreview(URL.createObjectURL(file));
+        try {
+            const webpFile = await convertToWebP(file);
+            setCompressionInfo({ before: file.size, after: webpFile.size });
+            const fd = new FormData(); fd.append("thumbnail", webpFile);
+            const result = await uploadThumbnail(fd);
+            if (result.success && result.data) { setF("thumbnailUrl", result.data.url); }
+            else { setUploadError((result as any).error ?? "Upload thất bại"); setThumbnailPreview(""); }
+        } catch { setUploadError("Không thể xử lý ảnh"); setThumbnailPreview(""); }
+        finally { setIsUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
+    }
+
     const effectivePrice = calcEffectivePrice(form.originalPrice, form.dealType, form.discountValue);
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError(null);
 
+        if (mode === "create" && !form.thumbnailUrl) {
+            setError("Vui lòng upload ảnh sản phẩm");
+            return;
+        }
+
         const voucherTemplate = voucherTemplates.find((t) => t.id === form.giftVoucherTemplateId);
 
         startTransition(async () => {
-            const result = await addDealItem(section.id, {
-                linkedProductId: form.linkedProductId || undefined,
-                name: form.name,
-                description: form.description || undefined,
-                thumbnailUrl: form.thumbnailUrl,
-                productType: form.productType,
-                originalPrice: form.originalPrice,
-                dealType: form.dealType,
-                discountValue: form.discountValue,
-                effectivePrice,
-                membershipConfig: form.productType === "membership" ? {
-                    packageName: form.name,
-                    basePoints: form.membershipBasePoints,
-                    bonusPoints: form.membershipBonusPoints,
-                    merch: form.membershipMerch || undefined,
-                } : undefined,
-                membershipBonusOverride: form.productType === "membership" && form.membershipBonusMultiplier > 1 ? {
-                    applyTo: form.membershipBonusApplyTo,
-                    multiplier: form.membershipBonusMultiplier,
-                } : undefined,
-                giftVoucher: form.giftVoucherTemplateId ? {
-                    templateId: form.giftVoucherTemplateId,
-                    templateName: voucherTemplate?.name ?? "",
-                    distribution: form.giftVoucherDistribution,
-                } : undefined,
-                giftMerch: form.giftMerch || undefined,
-                totalStock: form.totalStock !== "" ? Number(form.totalStock) : undefined,
-                stockResetPeriod: form.stockResetPeriod,
-                stockResetHour: form.stockResetPeriod === "daily" ? resetHour : undefined,
-                stockResetMinute: form.stockResetPeriod === "daily" ? resetMinute : undefined,
-                maxQtyPerOrder: form.maxQtyPerOrder,
-                isActive: form.isActive,
-                order: form.order,
-            });
-
-            if (!result.success) {
-                setError(result.error);
-                return;
+            if (mode === "create") {
+                // Create new ProductDocument + deal item
+                const result = await createDealProduct(section.id, {
+                    name: form.name,
+                    description: form.description || undefined,
+                    thumbnailUrl: form.thumbnailUrl,
+                    productType: form.productType,
+                    originalPrice: form.originalPrice,
+                    validDaysFromPurchase: form.validDaysFromPurchase,
+                    dealType: form.dealType,
+                    discountValue: form.discountValue,
+                    effectivePrice,
+                    totalStock: form.totalStock !== "" ? Number(form.totalStock) : undefined,
+                    stockResetPeriod: form.stockResetPeriod,
+                    stockResetHour: form.stockResetPeriod === "daily" ? resetHour : undefined,
+                    stockResetMinute: form.stockResetPeriod === "daily" ? resetMinute : undefined,
+                    maxQtyPerOrder: form.maxQtyPerOrder,
+                    membershipConfig: form.productType === "membership" ? {
+                        packageName: form.name,
+                        basePoints: form.membershipBasePoints,
+                        bonusPoints: form.membershipBonusPoints,
+                        merch: form.membershipMerch || undefined,
+                    } : undefined,
+                    membershipBonusOverride: form.productType === "membership" && form.membershipBonusMultiplier > 1 ? {
+                        applyTo: form.membershipBonusApplyTo,
+                        multiplier: form.membershipBonusMultiplier,
+                    } : undefined,
+                    giftVoucher: form.giftVoucherTemplateId ? {
+                        templateId: form.giftVoucherTemplateId,
+                        templateName: voucherTemplate?.name ?? "",
+                        distribution: form.giftVoucherDistribution,
+                    } : undefined,
+                    giftMerch: form.giftMerch || undefined,
+                    isActive: form.isActive,
+                    order: form.order,
+                });
+                if (!result.success) { setError(result.error); return; }
+            } else {
+                // Link existing product
+                const result = await addDealItem(section.id, {
+                    linkedProductId: form.linkedProductId || undefined,
+                    name: form.name,
+                    description: form.description || undefined,
+                    thumbnailUrl: form.thumbnailUrl,
+                    productType: form.productType,
+                    originalPrice: form.originalPrice,
+                    dealType: form.dealType,
+                    discountValue: form.discountValue,
+                    effectivePrice,
+                    membershipConfig: form.productType === "membership" ? {
+                        packageName: form.name,
+                        basePoints: form.membershipBasePoints,
+                        bonusPoints: form.membershipBonusPoints,
+                        merch: form.membershipMerch || undefined,
+                    } : undefined,
+                    membershipBonusOverride: form.productType === "membership" && form.membershipBonusMultiplier > 1 ? {
+                        applyTo: form.membershipBonusApplyTo,
+                        multiplier: form.membershipBonusMultiplier,
+                    } : undefined,
+                    giftVoucher: form.giftVoucherTemplateId ? {
+                        templateId: form.giftVoucherTemplateId,
+                        templateName: voucherTemplate?.name ?? "",
+                        distribution: form.giftVoucherDistribution,
+                    } : undefined,
+                    giftMerch: form.giftMerch || undefined,
+                    totalStock: form.totalStock !== "" ? Number(form.totalStock) : undefined,
+                    stockResetPeriod: form.stockResetPeriod,
+                    stockResetHour: form.stockResetPeriod === "daily" ? resetHour : undefined,
+                    stockResetMinute: form.stockResetPeriod === "daily" ? resetMinute : undefined,
+                    maxQtyPerOrder: form.maxQtyPerOrder,
+                    isActive: form.isActive,
+                    order: form.order,
+                });
+                if (!result.success) { setError(result.error); return; }
             }
 
             setShowForm(false);
-            // Reset form
-            setForm((prev) => ({ ...prev, name: "", linkedProductId: "", description: "", thumbnailUrl: "", originalPrice: 0, giftMerch: "", giftVoucherTemplateId: "", totalStock: "", order: section.items.length + 1 }));
+            setThumbnailPreview("");
+            setCompressionInfo(null);
+            setForm((prev) => ({ ...prev, name: "", linkedProductId: "", description: "", thumbnailUrl: "", originalPrice: 0, giftMerch: "", giftVoucherTemplateId: "", totalStock: "", order: section.items.length + 1, validDaysFromPurchase: 365 }));
         });
     }
 
@@ -171,28 +270,86 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
 
                 {showForm && (
                     <form onSubmit={handleSubmit} className="border-t border-gray-100 p-5 space-y-4 bg-gray-50/50">
-                        {/* Link to existing product */}
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Liên kết sản phẩm hiện có (tùy chọn)</label>
-                            <select
-                                value={form.linkedProductId}
-                                onChange={(e) => handleProductSelect(e.target.value)}
-                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F5C842]/40"
-                            >
-                                <option value="">— Không liên kết (deal standalone) —</option>
-                                {linkedProducts.map((p) => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.name} · {formatVND(p.price)}
-                                    </option>
-                                ))}
-                            </select>
+                        {/* Mode tabs */}
+                        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+                            <button type="button" onClick={() => setMode("link")}
+                                className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${mode === "link" ? "bg-white shadow-sm text-[#1A1A2E]" : "text-gray-500 hover:text-gray-700"}`}>
+                                🔗 Link sản phẩm có sẵn
+                            </button>
+                            <button type="button" onClick={() => setMode("create")}
+                                className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${mode === "create" ? "bg-white shadow-sm text-[#1A1A2E]" : "text-gray-500 hover:text-gray-700"}`}>
+                                ✨ Tạo vé mới cho deal
+                            </button>
                         </div>
+
+                        {/* Link mode — dropdown */}
+                        {mode === "link" && (
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Liên kết sản phẩm hiện có</label>
+                                <select
+                                    value={form.linkedProductId}
+                                    onChange={(e) => handleProductSelect(e.target.value)}
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F5C842]/40"
+                                >
+                                    <option value="">— Chọn sản phẩm —</option>
+                                    {linkedProducts.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name} · {formatVND(p.price)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {/* Create mode — image upload */}
+                        {mode === "create" && (
+                            <div className="space-y-2 border border-blue-100 bg-blue-50/30 rounded-xl p-4">
+                                <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">Ảnh sản phẩm *</p>
+                                <div className="flex items-start gap-3">
+                                    <div
+                                        className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-white flex-shrink-0 cursor-pointer"
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        {thumbnailPreview || form.thumbnailUrl ? (
+                                            <img src={thumbnailPreview || form.thumbnailUrl} alt="preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <ImageIcon className="h-6 w-6 text-gray-300" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 space-y-1.5">
+                                        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" className="hidden" onChange={handleFileChange} />
+                                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50">
+                                            {isUploading ? <><Loader2 className="h-3 w-3 animate-spin" /> Đang xử lý...</> : <><Upload className="h-3 w-3" /> Chọn ảnh</>}
+                                        </button>
+                                        <p className="text-[10px] text-gray-400">JPG, PNG, WebP · tối đa 20MB · tự nén WebP</p>
+                                        {compressionInfo && (
+                                            <p className="text-[10px] text-emerald-600 flex items-center gap-1">
+                                                <Sparkles className="h-2.5 w-2.5" />
+                                                {(compressionInfo.before / 1024).toFixed(0)}KB → {(compressionInfo.after / 1024).toFixed(0)}KB
+                                                {" "}(-{Math.round((1 - compressionInfo.after / compressionInfo.before) * 100)}%)
+                                            </p>
+                                        )}
+                                        {uploadError && <p className="text-[10px] text-red-500">{uploadError}</p>}
+                                        {form.thumbnailUrl && !uploadError && <p className="text-[10px] text-emerald-600">✓ Upload thành công</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1 col-span-2">
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tên deal *</label>
                                 <input required value={form.name} onChange={(e) => setF("name", e.target.value)} placeholder="Vé vào cổng giá 88k" className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F5C842]/40" />
                             </div>
+
+                            {/* Create mode — description */}
+                            {mode === "create" && (
+                                <div className="space-y-1 col-span-2">
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mô tả (tùy chọn)</label>
+                                    <textarea value={form.description} onChange={(e) => setF("description", e.target.value)} rows={2} placeholder="Mô tả ngắn..." className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F5C842]/40 resize-none" />
+                                </div>
+                            )}
 
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Loại sản phẩm</label>
@@ -288,6 +445,15 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
                             </div>
                         </div>
 
+                        {/* Validity config — only in create mode */}
+                        {mode === "create" && (
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Hiệu lực vé (số ngày từ khi mua)</label>
+                                <input type="number" min={1} value={form.validDaysFromPurchase} onChange={(e) => setF("validDaysFromPurchase", Number(e.target.value))} placeholder="365" className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F5C842]/40" />
+                                <p className="text-[10px] text-gray-400">VD: 365 = vé có hiệu lực 1 năm kể từ ngày mua</p>
+                            </div>
+                        )}
+
                         {/* Stock */}
                         <div className="grid grid-cols-3 gap-3">
                             <div className="space-y-1">
@@ -316,9 +482,9 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
                         )}
 
                         <div className="flex items-center gap-3">
-                            <button type="submit" disabled={isPending} className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white font-bold rounded-xl text-sm hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-60">
+                            <button type="submit" disabled={isPending || (mode === "create" && isUploading)} className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white font-bold rounded-xl text-sm hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-60">
                                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                                Thêm deal item
+                                {mode === "create" ? "Tạo vé & thêm vào deal" : "Thêm deal item"}
                             </button>
                             <button type="button" onClick={() => setShowForm(false)} className="text-sm text-gray-400 hover:text-gray-600">Huỷ</button>
                         </div>

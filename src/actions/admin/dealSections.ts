@@ -13,8 +13,11 @@ import type {
     MembershipConfig,
     ProductType,
 } from "@/types/firestore";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { randomUUID } from "crypto";
+import { PRODUCT_CACHE_TAG } from "@/actions/products";
+import { revalidateTag } from "next/cache";
+import type { ProductStatus, ValidityConfig } from "@/types/firestore";
 
 // ─── Input types ──────────────────────────────────────────────────────────────
 
@@ -288,6 +291,126 @@ export async function removeDealItem(
     } catch (err) {
         console.error("[dealSections] removeDealItem:", err);
         return { success: false, error: "Không thể xoá deal item." };
+    }
+}
+
+// ─── Create Deal-Exclusive Product ────────────────────────────────────────────
+
+export interface CreateDealProductInput {
+    // Product fields
+    name: string;
+    description?: string;
+    thumbnailUrl: string;
+    productType: ProductType;
+    originalPrice: number;
+    validDaysFromPurchase: number;
+    // Deal fields
+    dealType: DealType;
+    discountValue: number;
+    effectivePrice: number;
+    // Stock
+    totalStock?: number;
+    stockResetPeriod?: "daily" | "none";
+    stockResetHour?: number;
+    stockResetMinute?: number;
+    maxQtyPerOrder: number;
+    // Membership (optional)
+    membershipConfig?: MembershipConfig;
+    membershipBonusOverride?: DealBonusOverride;
+    // Gifts (optional)
+    giftVoucher?: GiftVoucherConfig;
+    giftMerch?: string;
+    // Position
+    isActive: boolean;
+    order: number;
+}
+
+/**
+ * Creates a real ProductDocument in bduck_products AND appends a deal item
+ * linked to it. The product gets dealSectionId instead of groupId.
+ */
+export async function createDealProduct(
+    sectionId: string,
+    input: CreateDealProductInput
+): Promise<{ success: true; productId: string } | { success: false; error: string }> {
+    try {
+        const admin = await requireAdmin();
+        const now = Timestamp.now();
+
+        // 1. Create the ProductDocument
+        const validityConfig: ValidityConfig = {
+            type: "open-dated",
+            validDaysFromPurchase: input.validDaysFromPurchase || 365,
+        };
+
+        const productPayload: Record<string, unknown> = {
+            name: input.name.trim(),
+            description: input.description?.trim() || "",
+            type: input.productType,
+            price: input.originalPrice,
+            thumbnailUrl: input.thumbnailUrl,
+            validityConfig,
+            dealSectionId: sectionId,
+            status: "active" as ProductStatus,
+            soldCount: 0,
+            createdBy: admin.uid,
+            createdAt: now,
+            updatedAt: now,
+        };
+
+        // Optional stock on the product level
+        if (input.totalStock !== undefined) {
+            productPayload.totalStock = input.totalStock;
+            productPayload.stockResetPeriod = input.stockResetPeriod ?? "none";
+        }
+
+        // Membership config
+        if (input.productType === "membership" && input.membershipConfig) {
+            productPayload.membershipConfig = input.membershipConfig;
+        }
+
+        const productRef = await adminDb.collection(COLLECTIONS.PRODUCTS).add(productPayload);
+        const productId = productRef.id;
+
+        // 2. Append deal item linked to new product
+        const dealItem: Record<string, unknown> = {
+            id: randomUUID(),
+            linkedProductId: productId,
+            name: input.name.trim(),
+            thumbnailUrl: input.thumbnailUrl,
+            productType: input.productType,
+            originalPrice: input.originalPrice,
+            dealType: input.dealType,
+            discountValue: input.discountValue,
+            effectivePrice: input.effectivePrice,
+            stockResetPeriod: input.stockResetPeriod ?? "none",
+            soldCount: 0,
+            maxQtyPerOrder: input.maxQtyPerOrder,
+            isActive: input.isActive,
+            order: input.order,
+        };
+
+        if (input.description?.trim()) dealItem.description = input.description.trim();
+        if (input.totalStock !== undefined) dealItem.totalStock = input.totalStock;
+        if (input.stockResetHour !== undefined) dealItem.stockResetHour = input.stockResetHour;
+        if (input.stockResetMinute !== undefined) dealItem.stockResetMinute = input.stockResetMinute;
+        if (input.membershipConfig) dealItem.membershipConfig = input.membershipConfig;
+        if (input.membershipBonusOverride) dealItem.membershipBonusOverride = input.membershipBonusOverride;
+        if (input.giftVoucher) dealItem.giftVoucher = input.giftVoucher;
+        if (input.giftMerch?.trim()) dealItem.giftMerch = input.giftMerch.trim();
+
+        await col().doc(sectionId).update({
+            items: FieldValue.arrayUnion(dealItem),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        revalidatePath(`/admin/deal-sections/${sectionId}`);
+        revalidateTag(PRODUCT_CACHE_TAG, "default");
+        return { success: true, productId };
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[dealSections] createDealProduct:", err);
+        return { success: false, error: `Lỗi tạo sản phẩm deal: ${message}` };
     }
 }
 

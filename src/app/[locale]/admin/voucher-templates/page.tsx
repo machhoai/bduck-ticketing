@@ -11,12 +11,14 @@ const VOUCHER_TYPE_LABELS: Record<VoucherTemplateDocument["voucherType"], string
     online_discount: "Giảm giá online",
     instore_points: "Điểm cửa hàng",
     instore_gift: "Quà tặng tại quầy",
+    event_gacha: "🎰 Event Gacha",
 };
 
 const VOUCHER_TYPE_COLORS: Record<VoucherTemplateDocument["voucherType"], string> = {
     online_discount: "bg-blue-50 text-blue-600",
     instore_points: "bg-amber-50 text-amber-600",
     instore_gift: "bg-emerald-50 text-emerald-600",
+    event_gacha: "bg-purple-50 text-purple-600",
 };
 
 export default async function AdminVoucherTemplatesPage() {
