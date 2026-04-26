@@ -669,6 +669,7 @@
         "buyNow": "Mua ngay",
         "statusOpen": "Đang mở bán",
         "opensIn": "Mở sau",
-        "opensAtTime": "Mở lúc {time}"
+        "opensAtTime": "Mở lúc {time}",
+        "choosePackage": "Chọn gói phù hợp với bạn"
     }
 }

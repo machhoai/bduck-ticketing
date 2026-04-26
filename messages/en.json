@@ -669,6 +669,7 @@
         "buyNow": "Buy now",
         "statusOpen": "On sale now",
         "opensIn": "Opens in",
-        "opensAtTime": "Opens at {time}"
+        "opensAtTime": "Opens at {time}",
+        "choosePackage": "Choose the package that suits you"
     }
 }

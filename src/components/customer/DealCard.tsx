@@ -22,10 +22,10 @@ const STICKERS = [
 
 // Accent colours — warm palette consistent with brand (#FFD100, #FF7900)
 const ACCENTS = [
-    { bg: "from-[#FFF9E6] to-[#FFFDF5]", highlight: "#F5C842", pill: "bg-amber-100 text-amber-800",    border: "border-amber-100" },
-    { bg: "from-[#FFF0F1] to-[#FFF5F6]", highlight: "#FF5F6D", pill: "bg-rose-100 text-rose-700",       border: "border-rose-100" },
-    { bg: "from-[#EDFAFA] to-[#F5FFFE]", highlight: "#0EA5B0", pill: "bg-teal-100 text-teal-700",       border: "border-teal-100" },
-    { bg: "from-[#F5F3FF] to-[#FAFAFF]", highlight: "#7C3AED", pill: "bg-violet-100 text-violet-700",   border: "border-violet-100" },
+    { bg: "from-[#FFF9E6] to-[#FFFDF5]", highlight: "#F5C842", pill: "bg-amber-100 text-amber-800", border: "border-amber-100" },
+    { bg: "from-[#FFF0F1] to-[#FFF5F6]", highlight: "#FF5F6D", pill: "bg-rose-100 text-rose-700", border: "border-rose-100" },
+    { bg: "from-[#EDFAFA] to-[#F5FFFE]", highlight: "#0EA5B0", pill: "bg-teal-100 text-teal-700", border: "border-teal-100" },
+    { bg: "from-[#F5F3FF] to-[#FAFAFF]", highlight: "#7C3AED", pill: "bg-violet-100 text-violet-700", border: "border-violet-100" },
 ] as const;
 
 type Accent = (typeof ACCENTS)[number];
@@ -208,8 +208,8 @@ export const DealCard = React.memo(function DealCard({
 
     const discountText =
         item.dealType === "percentage" ? `-${item.discountValue}%`
-        : item.dealType === "fixed"      ? `-${vnd(item.discountValue)}`
-        : t("buyOneGetOne");
+            : item.dealType === "fixed" ? `-${vnd(item.discountValue)}`
+                : t("buyOneGetOne");
 
     return (
         <article
@@ -285,25 +285,29 @@ export const DealCard = React.memo(function DealCard({
 
                 {/* Option radio selector */}
                 {hasOptions && (
-                    <div className="flex flex-wrap gap-1.5">
-                        {item.options!.map((opt, idx) => {
-                            const optLabel = (loc !== "vi" && opt.labelLocales?.[loc]) || opt.label;
-                            return (
-                                <button
-                                    key={opt.id}
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); setSelectedOptionIdx(idx); }}
-                                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all duration-200 ${
-                                        idx === selectedOptionIdx
+                    <div className="space-y-1.5">
+                        <div className="flex flex-wrap gap-1.5">
+                            {item.options!.map((opt, idx) => {
+                                const optLabel = (loc !== "vi" && opt.labelLocales?.[loc]) || opt.label;
+                                return (
+                                    <button
+                                        key={opt.id}
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setSelectedOptionIdx(idx); }}
+                                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all duration-200 ${idx === selectedOptionIdx
                                             ? "text-white shadow-md"
                                             : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
-                                    }`}
-                                    style={idx === selectedOptionIdx ? { background: `linear-gradient(135deg, ${accent.highlight}, ${accent.highlight}cc)`, borderColor: accent.highlight } : undefined}
-                                >
-                                    {optLabel}
-                                </button>
-                            );
-                        })}
+                                            }`}
+                                        style={idx === selectedOptionIdx ? { background: `linear-gradient(135deg, ${accent.highlight}, ${accent.highlight}cc)`, borderColor: accent.highlight } : undefined}
+                                    >
+                                        {optLabel}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <p className="text-[10px] font-semibold text-gray-400 flex items-center gap-1">
+                            <span>👆</span> {t("choosePackage")}
+                        </p>
                     </div>
                 )}
 
@@ -427,19 +431,19 @@ export const DealCard = React.memo(function DealCard({
                             added
                                 ? { background: "#10B981", color: "#fff", boxShadow: "0 4px 12px rgba(16,185,129,0.35)" }
                                 : isDisabled
-                                ? { background: "#F3F4F6", color: "#9CA3AF" }
-                                : {
-                                    background: `linear-gradient(135deg, ${accent.highlight}, ${accent.highlight}cc)`,
-                                    color: "#fff",
-                                    boxShadow: `0 4px 14px ${accent.highlight}44`,
-                                }
+                                    ? { background: "#F3F4F6", color: "#9CA3AF" }
+                                    : {
+                                        background: `linear-gradient(135deg, ${accent.highlight}, ${accent.highlight}cc)`,
+                                        color: "#fff",
+                                        boxShadow: `0 4px 14px ${accent.highlight}44`,
+                                    }
                         }
                     >
-                        {pending    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : added     ? <><Check className="h-3.5 w-3.5" /> {t("added")}</>
-                        : isSoldOut ? t("soldOut")
-                        : isLocked  ? <><Clock className="h-3.5 w-3.5" /> {opensAt}</>
-                        :             <><ShoppingCart className="h-3.5 w-3.5" /> {t("buyNow")}</>}
+                        {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : added ? <><Check className="h-3.5 w-3.5" /> {t("added")}</>
+                                : isSoldOut ? t("soldOut")
+                                    : isLocked ? <><Clock className="h-3.5 w-3.5" /> {opensAt}</>
+                                        : <><ShoppingCart className="h-3.5 w-3.5" /> {t("buyNow")}</>}
                     </button>
                 </div>
             </div>
