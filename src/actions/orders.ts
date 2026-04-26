@@ -130,10 +130,12 @@ export interface OrderStatusResult {
   passes: PassValidity[];
   /** Short QR code for counter payment (e.g. "BDK-A3F9X2") */
   orderCode?: string;
-  /** Payment provider — "counter" triggers the counter-pending UI */
+  /** Payment provider — "counter" / "bank_transfer" triggers specific UI */
   paymentProvider?: string;
-  /** ISO string — expiresAt for counter orders (24h window) */
+  /** ISO string — expiresAt for counter/bank_transfer orders */
   expiresAt?: string;
+  /** QR description for bank_transfer orders — displayed as transfer content */
+  qrDescription?: string;
 }
 
 export async function getOrderStatus(
@@ -197,5 +199,6 @@ export async function getOrderStatus(
     expiresAt: data.expiresAt?.toDate
       ? (data.expiresAt.toDate() as Date).toISOString()
       : undefined,
+    qrDescription: data.paymentDetails?.providerData?.qrDescription,
   };
 }

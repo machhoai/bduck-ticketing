@@ -7,6 +7,7 @@ import { getEffectivePrice } from "@/actions/products";
 import type {
   CartItemInput,
   CounterPayData,
+  BankTransferPayData,
   OrderDocument,
   OrderItem,
   ProductDocument,
@@ -15,6 +16,8 @@ import type {
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { verifySession } from "@/lib/auth/session";
 import { sendCounterOrderEmail } from "@/lib/email/counter-order";
+import { sendTransferNotificationEmail } from "@/lib/email/transfer-notification";
+import { sendTransferReservationEmail } from "@/lib/email/transfer-reservation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -615,5 +618,299 @@ export async function createCounterOrder(
   return {
     success: true,
     data: { orderId: orderRef.id, orderCode },
+  };
+}
+
+// ─── Create Bank Transfer Order ───────────────────────────────────────────────
+/**
+ * Tạo đơn hàng với phương thức "chuyển khoản ngân hàng" (VietQR).
+ *
+ * Khác createCounterOrder ở:
+ *   1. Dùng Firestore Transaction để atomic stock check + reserve (increment soldCount).
+ *   2. expiresAt = 30 phút (không phải 24h).
+ *   3. Sinh qrDescription = DDMMYYHHmm + amount/1000 + random 4-char.
+ *   4. Gửi 2 email: admin notification + customer reservation confirm (bilingual).
+ *   5. KHÔNG tự huỷ khi hết hạn — admin toàn quyền quyết định cancel.
+ *
+ * @returns orderId
+ */
+export async function createBankTransferOrder(
+  input: CreateOrderInput
+): Promise<ActionResult<{ orderId: string }>> {
+  const {
+    items,
+    customerName,
+    customerEmail,
+    customerPhone,
+    customerId: clientCustomerId = "",
+    promoCode,
+    affiliateCode,
+  } = input;
+
+  // Link to session user if available
+  let customerId = clientCustomerId;
+  if (!customerId) {
+    const session = await verifySession();
+    if (session?.uid) customerId = session.uid;
+  }
+
+  if (!items.length) {
+    return { success: false, errorKey: "order.empty_cart" };
+  }
+
+  // ── Step 1: Re-fetch all product prices server-side ──
+  const orderItems: OrderItem[] = [];
+  let subtotal = 0;
+  const productQuantities: { productId: string; quantity: number }[] = [];
+
+  for (const cartItem of items) {
+    const productDoc = await adminDb
+      .collection(COLLECTIONS.PRODUCTS)
+      .doc(cartItem.productId)
+      .get();
+
+    if (!productDoc.exists) {
+      return {
+        success: false,
+        errorKey: "order.product_not_found",
+        message: cartItem.productId,
+      };
+    }
+
+    const product = {
+      id: productDoc.id,
+      ...productDoc.data(),
+    } as ProductDocument;
+
+    if (product.status !== "active") {
+      return {
+        success: false,
+        errorKey: "order.product_unavailable",
+        message: product.name,
+      };
+    }
+
+    // Preliminary stock check (final check inside transaction)
+    if (
+      product.totalStock !== undefined &&
+      product.soldCount + cartItem.quantity > product.totalStock
+    ) {
+      return {
+        success: false,
+        errorKey: "order.stock_exhausted",
+        message: product.name,
+      };
+    }
+
+    const unitPrice = getEffectivePrice(product);
+    const itemSubtotal = unitPrice * cartItem.quantity;
+    subtotal += itemSubtotal;
+
+    const orderItem: OrderItem = {
+      productId: product.id,
+      productName: product.name,
+      productType: product.type,
+      thumbnailUrl: product.thumbnailUrl,
+      quantity: cartItem.quantity,
+      unitPrice,
+      subtotal: itemSubtotal,
+      validityConfig: product.validityConfig,
+    };
+    if (product.comboItems !== undefined) {
+      orderItem.comboItems = product.comboItems;
+    }
+    orderItems.push(orderItem);
+    productQuantities.push({ productId: product.id, quantity: cartItem.quantity });
+  }
+
+  // ── Step 2: Validate promo if provided ──
+  let discountAmount = 0;
+  let promotionId: string | undefined;
+  let promotionCode: string | undefined;
+
+  if (promoCode) {
+    const promoResult = await validatePromoCode(promoCode, items, customerEmail);
+    if (!promoResult.valid) {
+      return { success: false, errorKey: promoResult.errorKey ?? "promo.invalid" };
+    }
+    discountAmount = promoResult.discountAmount;
+    promotionId = promoResult.promotionId;
+    promotionCode = promoResult.promotionCode;
+  }
+
+  const finalAmount = subtotal - discountAmount;
+
+  // ── Step 3: Generate order number ──
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const randomSuffix = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const orderNumber = `BDUCK-${dateStr}-${randomSuffix}`;
+
+  // ── Step 4: Generate QR description ──
+  // Format: DDMMYYHHmm + amount/1000 + 4-char random
+  const nowDate = new Date();
+  const dd = String(nowDate.getDate()).padStart(2, "0");
+  const mm = String(nowDate.getMonth() + 1).padStart(2, "0");
+  const yy = String(nowDate.getFullYear()).slice(2);
+  const hh = String(nowDate.getHours()).padStart(2, "0");
+  const mi = String(nowDate.getMinutes()).padStart(2, "0");
+  const amountCode = Math.floor(finalAmount / 1000);
+  const randChars = Math.random().toString(36).slice(2, 6).toUpperCase();
+  const qrDescription = `${dd}${mm}${yy}${hh}${mi} ${amountCode} ${randChars}`;
+
+  // ── Step 5: Resolve affiliate ──
+  let affiliateId: string | undefined;
+  let affiliateCommissionAmount: number | undefined;
+
+  if (affiliateCode) {
+    const affSnap = await adminDb
+      .collection(COLLECTIONS.AFFILIATE_PROFILES)
+      .where("referralCode", "==", affiliateCode)
+      .where("applicationStatus", "==", "approved")
+      .limit(1)
+      .get();
+
+    if (!affSnap.empty) {
+      const affDoc = affSnap.docs[0];
+      affiliateId = affDoc.id;
+      const affData = affDoc.data();
+      let commissionRate = affData.defaultCommissionRate ?? 0;
+      for (const item of orderItems) {
+        const productDoc = await adminDb
+          .collection(COLLECTIONS.PRODUCTS)
+          .doc(item.productId)
+          .get();
+        const product = productDoc.data() as ProductDocument;
+        if (product.commissionRate !== undefined) {
+          commissionRate = product.commissionRate;
+          break;
+        }
+      }
+      affiliateCommissionAmount = Math.round(finalAmount * commissionRate);
+    }
+  }
+
+  // ── Step 6: Firestore Transaction — stock reserve + write order ──
+  // CRITICAL: Atomic stock check + increment to prevent overselling
+  const THIRTY_MINUTES_MS = 30 * 60 * 1000;
+  const now = Timestamp.now();
+  const expiresAt = Timestamp.fromMillis(now.toMillis() + THIRTY_MINUTES_MS);
+
+  const bankTransferPayData: BankTransferPayData = { qrDescription };
+
+  let orderId: string;
+
+  try {
+    orderId = await adminDb.runTransaction(async (tx) => {
+      // Re-check stock inside transaction for each product
+      for (const pq of productQuantities) {
+        const productRef = adminDb.collection(COLLECTIONS.PRODUCTS).doc(pq.productId);
+        const productSnap = await tx.get(productRef);
+        if (!productSnap.exists) throw new Error("PRODUCT_NOT_FOUND");
+
+        const productData = productSnap.data() as ProductDocument;
+        if (
+          productData.totalStock !== undefined &&
+          productData.soldCount + pq.quantity > productData.totalStock
+        ) {
+          throw new Error(`STOCK_EXHAUSTED:${productData.name}`);
+        }
+
+        // Reserve stock — increment soldCount NOW
+        tx.update(productRef, {
+          soldCount: FieldValue.increment(pq.quantity),
+        });
+      }
+
+      // Write order document
+      const orderRef = adminDb.collection(COLLECTIONS.ORDERS).doc();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const orderData: Record<string, any> = {
+        orderNumber,
+        expiresAt,
+        customerId,
+        isGuestOrder: !customerId,
+        customerEmail,
+        customerName,
+        customerPhone,
+        items: orderItems,
+        subtotal,
+        discountAmount,
+        finalAmount,
+        promotionId,
+        promotionCode,
+        affiliateId,
+        affiliateCode,
+        affiliateCommissionAmount,
+        status: "pending",
+        paymentDetails: {
+          provider: "bank_transfer" as const,
+          providerData: bankTransferPayData,
+        },
+        passIds: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Remove undefined fields
+      Object.keys(orderData).forEach((key) => {
+        if (orderData[key] === undefined) delete orderData[key];
+      });
+
+      tx.set(orderRef, orderData);
+      return orderRef.id;
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+    if (message.startsWith("STOCK_EXHAUSTED:")) {
+      return {
+        success: false,
+        errorKey: "order.stock_exhausted",
+        message: message.replace("STOCK_EXHAUSTED:", ""),
+      };
+    }
+    console.error("[createBankTransferOrder] Transaction failed:", err);
+    return { success: false, errorKey: "order.creation_failed" };
+  }
+
+  // ── Step 7: Fire-and-forget emails ──
+  const emailItems = orderItems.map((i) => ({
+    productName: i.productName,
+    quantity: i.quantity,
+    unitPrice: i.unitPrice,
+    subtotal: i.subtotal,
+  }));
+
+  // Email 1: Notify all admins
+  sendTransferNotificationEmail({
+    orderId,
+    orderNumber,
+    customerName,
+    customerEmail,
+    customerPhone,
+    items: emailItems,
+    finalAmount,
+    discountAmount,
+    qrDescription,
+  }).catch((err) =>
+    console.error("[createBankTransferOrder] Admin notification failed (non-fatal):", err)
+  );
+
+  // Email 2: Customer reservation confirmation (bilingual)
+  sendTransferReservationEmail({
+    to: customerEmail,
+    customerName,
+    orderNumber,
+    items: emailItems,
+    finalAmount,
+    discountAmount,
+    qrDescription,
+  }).catch((err) =>
+    console.error("[createBankTransferOrder] Customer reservation email failed (non-fatal):", err)
+  );
+
+  return {
+    success: true,
+    data: { orderId },
   };
 }

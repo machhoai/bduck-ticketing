@@ -65,6 +65,8 @@
             "affiliates": "Affiliates",
             "payouts": "Payouts",
             "accounts": "Admin Accounts",
+            "transferOrders": "Transfer Orders",
+            "paymentSettings": "Payment Settings",
             "viewWebsite": "View Website",
             "logout": "Logout"
         },
@@ -174,6 +176,8 @@
         "methodApplePayDesc": "Available on iPhone, iPad and MacBook with Touch ID / Face ID",
         "methodCounter": "Pay at counter",
         "methodCounterDesc": "Receive an order QR code, then pay cash or bank transfer at the cashier",
+        "methodBankTransfer": "Bank Transfer",
+        "methodBankTransferDesc": "Scan VietQR code to transfer directly, tickets sent via email after confirmation",
         "secureNote": "All transactions are SSL 256-bit encrypted and processed through payment gateways licensed by Vietnam's Ministry of Industry and Trade"
     },
     "footer": {

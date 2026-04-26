@@ -64,6 +64,11 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
         order: section.items.length,
     });
 
+    // Build reset time label from section's dailyOpenHour/Minute
+    const resetHour = section.dailyOpenHour ?? 0;
+    const resetMinute = section.dailyOpenMinute ?? 0;
+    const resetTimeLabel = `${String(resetHour).padStart(2, "0")}:${String(resetMinute).padStart(2, "0")}`;
+
     function setF(key: string, value: unknown) {
         setForm((prev) => ({ ...prev, [key]: value }));
     }
@@ -117,6 +122,8 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
                 giftMerch: form.giftMerch || undefined,
                 totalStock: form.totalStock !== "" ? Number(form.totalStock) : undefined,
                 stockResetPeriod: form.stockResetPeriod,
+                stockResetHour: form.stockResetPeriod === "daily" ? resetHour : undefined,
+                stockResetMinute: form.stockResetPeriod === "daily" ? resetMinute : undefined,
                 maxQtyPerOrder: form.maxQtyPerOrder,
                 isActive: form.isActive,
                 order: form.order,
@@ -138,7 +145,7 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
             {/* Existing items */}
             <div className="space-y-2">
                 {section.items.sort((a, b) => a.order - b.order).map((item) => (
-                    <DealItemRow key={item.id} item={item} sectionId={section.id} formatVND={formatVND} />
+                    <DealItemRow key={item.id} item={item} sectionId={section.id} formatVND={formatVND} resetTimeLabel={resetTimeLabel} />
                 ))}
                 {section.items.length === 0 && (
                     <div className="text-center py-8 text-gray-400 text-sm">
@@ -291,7 +298,7 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Reset tồn kho</label>
                                 <select value={form.stockResetPeriod} onChange={(e) => setF("stockResetPeriod", e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F5C842]/40">
                                     <option value="none">Không reset</option>
-                                    <option value="daily">Mỗi ngày (00:00 GMT+7)</option>
+                                    <option value="daily">Mỗi ngày (lúc {resetTimeLabel} GMT+7)</option>
                                 </select>
                             </div>
                             <div className="space-y-1">
@@ -324,10 +331,11 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
 
 // ─── Individual deal item row ──────────────────────────────────────────────────
 
-function DealItemRow({ item, sectionId, formatVND }: {
+function DealItemRow({ item, sectionId, formatVND, resetTimeLabel }: {
     item: DealItemDocument;
     sectionId: string;
     formatVND: (v: number) => string;
+    resetTimeLabel: string;
 }) {
     const [isPending, startTransition] = useTransition();
 
@@ -370,7 +378,13 @@ function DealItemRow({ item, sectionId, formatVND }: {
                                 <div className={`h-1 rounded-full ${soldOut ? "bg-red-400" : "bg-emerald-400"}`} style={{ width: `${stockPct}%` }} />
                             </div>
                             <span className="text-xs text-gray-400">{item.soldCount}/{item.totalStock}</span>
-                            {item.stockResetPeriod === "daily" && <span className="text-xs text-blue-400">· reset/ngày</span>}
+                            {item.stockResetPeriod === "daily" && (
+                                <span className="text-xs text-blue-400">
+                                    · reset lúc {item.stockResetHour !== undefined
+                                        ? `${String(item.stockResetHour).padStart(2, "0")}:${String(item.stockResetMinute ?? 0).padStart(2, "0")}`
+                                        : resetTimeLabel}
+                                </span>
+                            )}
                         </div>
                     )}
                 </div>

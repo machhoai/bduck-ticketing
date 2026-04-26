@@ -69,7 +69,7 @@ function buildTicketHTML(params: TicketEmailParams): string {
         locale = "vi",
     } = params;
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://bduck.vn";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.citfuns.joyworld.vn";
     const resultLink = `${appUrl}/${locale}/checkout/result?orderId=${orderId}&status=success`;
 
     const itemRows = items

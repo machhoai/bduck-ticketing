@@ -62,10 +62,19 @@ interface CheckoutResultClientProps {
     passes: PassValidity[];
     /** Counter payment — short QR code string e.g. "BDK-A3F9X2" */
     orderCode?: string;
-    /** "counter" | "mock" | etc. */
+    /** "counter" | "bank_transfer" | "mock" | etc. */
     paymentProvider?: string;
-    /** ISO string — 24h counter order expiry */
+    /** ISO string — 24h counter / 30min bank_transfer order expiry */
     expiresAt?: string;
+    /** QR description for bank_transfer orders */
+    qrDescription?: string;
+    /** Bank settings for QR generation */
+    bankSettings?: {
+        bankId: string;
+        accountNo: string;
+        template: string;
+        accountName: string;
+    };
 }
 
 function formatVND(amount: number) {
@@ -131,6 +140,8 @@ export function CheckoutResultClient({
     orderCode,
     paymentProvider,
     expiresAt,
+    qrDescription,
+    bankSettings,
 }: CheckoutResultClientProps) {
     const t = useTranslations("checkout");
 
@@ -158,7 +169,7 @@ export function CheckoutResultClient({
     const [expired, setExpired] = useState(false);
 
     useEffect(() => {
-        if (!expiresAt || paymentProvider !== "counter") return;
+        if (!expiresAt || (paymentProvider !== "counter" && paymentProvider !== "bank_transfer")) return;
         const target = new Date(expiresAt).getTime();
 
         const tick = () => {
@@ -183,14 +194,18 @@ export function CheckoutResultClient({
     const startTime = useRef(Date.now());
     const MAX_POLL_MS = 30_000;
 
-    // ── Polling for pending orders — only for online payment, NOT counter ──────
+    // ── Polling for pending orders — only for online payment AND bank_transfer ──
     useEffect(() => {
-        // Counter orders wait for admin confirmation — no point polling here
+        // Counter orders wait for admin confirmation at the counter — no point polling here
         if (paymentProvider === "counter") return;
         if (!orderId || status !== "pending") return;
 
+        // bank_transfer: poll for admin approval (longer interval)
+        const pollIntervalMs = paymentProvider === "bank_transfer" ? 5000 : 3000;
+        const maxPollMs = paymentProvider === "bank_transfer" ? 35 * 60 * 1000 : MAX_POLL_MS;
+
         const interval = setInterval(async () => {
-            if (Date.now() - startTime.current > MAX_POLL_MS) {
+            if (Date.now() - startTime.current > maxPollMs) {
                 clearInterval(interval);
                 setTimedOut(true);
                 return;
@@ -216,7 +231,7 @@ export function CheckoutResultClient({
             } catch {
                 // Network error — continue polling
             }
-        }, 3000);
+        }, pollIntervalMs);
 
         return () => clearInterval(interval);
     }, [orderId, status]);
@@ -469,6 +484,182 @@ export function CheckoutResultClient({
                             </Button>
                         </div>
                     )}
+
+                    {/* Navigation */}
+                    <div className="flex gap-3 justify-center">
+                        <Link href={`/${locale}/orders`}>
+                            <Button variant="secondary" size="md">
+                                <ShoppingBag className="h-4 w-4" />
+                                {t("viewOrders")}
+                            </Button>
+                        </Link>
+                        <Link href={`/${locale}`}>
+                            <Button variant="ghost" size="md">
+                                <Home className="h-4 w-4" />
+                                {t("backToHome")}
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+            </ResultShell>
+        );
+    }
+    // ── Bank Transfer Pending ───────────────────────────────────────────────────
+    // Show VietQR QR code + bank info + countdown for bank transfer
+    if (paymentProvider === "bank_transfer" && status === "pending" && bankSettings) {
+        const qrUrl = `https://img.vietqr.io/image/${bankSettings.bankId}-${bankSettings.accountNo}-${bankSettings.template}.png?amount=${finalAmount}&addInfo=${encodeURIComponent(qrDescription ?? "")}&accountName=${encodeURIComponent(bankSettings.accountName)}`;
+
+        return (
+            <ResultShell locale={locale}>
+                <div className="space-y-6 animate-[fadeSlideUp_0.5s_ease-out]">
+                    {/* Header */}
+                    <div className="relative overflow-hidden bg-gradient-to-br from-[#0D47A1] via-[#1565C0] to-[#1976D2] rounded-3xl p-8 text-white text-center">
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            {[...Array(6)].map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="absolute w-1.5 h-1.5 bg-white/20 rounded-full"
+                                    style={{
+                                        left: `${15 + i * 15}%`,
+                                        top: `${20 + (i % 3) * 25}%`,
+                                        animation: `pulse ${2 + i * 0.3}s ease-in-out infinite`,
+                                    }}
+                                />
+                            ))}
+                        </div>
+
+                        <div className="relative z-10">
+                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <Banknote className="h-7 w-7 text-white" />
+                            </div>
+                            <h1 className="text-xl font-bold">
+                                {locale === "vi" ? "Chuyển khoản thanh toán" : "Bank Transfer Payment"}
+                            </h1>
+                            <p className="text-blue-200 text-sm mt-1">{orderNumber}</p>
+
+                            {/* Countdown */}
+                            {!expired && timeLeft && (
+                                <div className="mt-4 inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-2">
+                                    <Clock className="h-4 w-4" />
+                                    <span className="font-mono text-lg font-bold tracking-wider">{timeLeft}</span>
+                                </div>
+                            )}
+                            {expired && (
+                                <div className="mt-4 inline-flex items-center gap-2 bg-red-500/30 rounded-full px-4 py-2">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span className="text-sm font-medium">
+                                        {locale === "vi" ? "Đã quá hạn thanh toán" : "Payment time expired"}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Amount */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 text-center border border-blue-100">
+                        <p className="text-sm text-gray-500 mb-1">
+                            {locale === "vi" ? "Số tiền cần chuyển" : "Amount to transfer"}
+                        </p>
+                        <p className="text-3xl font-bold text-[#0D47A1]">{formatVND(finalAmount)}</p>
+                    </div>
+
+                    {/* VietQR Code */}
+                    <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center shadow-sm">
+                        <p className="text-sm text-gray-500 mb-4">
+                            {locale === "vi" ? "Quét mã QR để chuyển khoản" : "Scan QR code to transfer"}
+                        </p>
+                        <img
+                            src={qrUrl}
+                            alt="VietQR Payment"
+                            className="w-64 h-auto mx-auto rounded-xl"
+                            style={{ imageRendering: "crisp-edges" }}
+                        />
+                    </div>
+
+                    {/* Bank Info */}
+                    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
+                            {locale === "vi" ? "Thông tin chuyển khoản" : "Transfer Information"}
+                        </h3>
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                                <span className="text-sm text-gray-500">
+                                    {locale === "vi" ? "Ngân hàng" : "Bank"}
+                                </span>
+                                <span className="text-sm font-medium text-gray-800">{bankSettings.bankId}</span>
+                            </div>
+                            <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                                <span className="text-sm text-gray-500">
+                                    {locale === "vi" ? "Số tài khoản" : "Account No"}
+                                </span>
+                                <span className="text-sm font-mono font-medium text-gray-800">{bankSettings.accountNo}</span>
+                            </div>
+                            <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                                <span className="text-sm text-gray-500">
+                                    {locale === "vi" ? "Chủ tài khoản" : "Account Holder"}
+                                </span>
+                                <span className="text-sm font-medium text-gray-800">{bankSettings.accountName}</span>
+                            </div>
+                            <div className="flex items-center justify-between py-2">
+                                <span className="text-sm text-gray-500">
+                                    {locale === "vi" ? "Nội dung CK" : "Transfer content"}
+                                </span>
+                                <span className="text-sm font-mono font-bold text-[#0D47A1]">{qrDescription}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Important note */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                        <div className="flex gap-3">
+                            <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                            <div className="text-sm text-amber-800">
+                                <p className="font-medium mb-1">
+                                    {locale === "vi" ? "Lưu ý quan trọng" : "Important"}
+                                </p>
+                                <p>
+                                    {locale === "vi"
+                                        ? "Vui lòng chuyển đúng số tiền và nội dung chuyển khoản. Vé sẽ được gửi qua email sau khi đơn hàng được xác nhận."
+                                        : "Please transfer the exact amount with the correct transfer content. Tickets will be emailed once the order is confirmed."}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Order Items */}
+                    <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                            {locale === "vi" ? "Chi tiết đơn hàng" : "Order Details"}
+                        </h3>
+                        <div className="space-y-3">
+                            {items.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-800">{item.productName}</p>
+                                        <p className="text-xs text-gray-400">x{item.quantity}</p>
+                                    </div>
+                                    <p className="text-sm font-medium text-gray-700">{formatVND(item.subtotal)}</p>
+                                </div>
+                            ))}
+                        </div>
+                        {discountAmount > 0 && (
+                            <div className="flex justify-between items-center pt-3 mt-2 border-t border-gray-100">
+                                <span className="text-sm text-gray-500">
+                                    {locale === "vi" ? "Giảm giá" : "Discount"}
+                                </span>
+                                <span className="text-sm text-green-600">-{formatVND(discountAmount)}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Contact */}
+                    <div className="text-center text-xs text-gray-400">
+                        <p>
+                            {locale === "vi"
+                                ? `Email xác nhận đã được gửi đến ${customerEmail}`
+                                : `Confirmation email sent to ${customerEmail}`}
+                        </p>
+                    </div>
 
                     {/* Navigation */}
                     <div className="flex gap-3 justify-center">

@@ -7,7 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { useTranslations } from "next-intl";
 import { useCartStore, rehydrateCart } from "@/stores/cart";
-import { createOrder, validatePromoCode, createCounterOrder } from "@/actions/checkout";
+import { createOrder, validatePromoCode, createCounterOrder, createBankTransferOrder } from "@/actions/checkout";
+import { getEnabledPaymentMethodIds } from "@/actions/admin/settings";
 import { useNavbar } from "@/stores/navbar";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui";
@@ -61,7 +62,7 @@ const PROMO_ERRORS: Record<string, string> = {
 
 // ─── Payment Methods ──────────────────────────────────────────────────────────
 // NOTE: legacy type kept for submit routing; extended by PaymentMethodId in future
-type PaymentMethod = "counter" | "mock";
+type PaymentMethod = "counter" | "bank_transfer" | "mock";
 
 // ─── Test Payment Cards (mock only) ──────────────────────────────────────────
 type SimulateType = "success" | "fail" | "timeout";
@@ -143,8 +144,23 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
 
+  // ── Enabled payment methods (fetched from admin settings) ──
+  const [enabledMethods, setEnabledMethods] = useState<string[] | undefined>(undefined);
+
   useEffect(() => {
     rehydrateCart();
+    // Fetch admin-configured enabled methods
+    getEnabledPaymentMethodIds().then((ids) => {
+      setEnabledMethods(ids);
+      // Auto-select first enabled method
+      if (ids.length > 0) {
+        const first = ids[0] as PaymentMethodId;
+        setSelectedPaymentId(first);
+        if (first === "counter") setPaymentMethod("counter");
+        else if (first === "bank_transfer") setPaymentMethod("bank_transfer");
+        else setPaymentMethod("mock");
+      }
+    });
   }, []);
 
   const {
@@ -254,6 +270,42 @@ export default function CheckoutPage() {
     window.location.href = `/${locale}/checkout/result?orderId=${result.data.orderId}`;
   }, [hasHydrated, items, submitting, getValues, promoCode, clearCart, locale]);
 
+  // ── Submit: Bank Transfer ─────────────────────────────────────────────────────
+  const onSubmitBankTransfer = useCallback(async () => {
+    if (!hasHydrated || items.length === 0 || submitting) return;
+    setSubmitting(true);
+    setServerError("");
+
+    const data = getValues();
+
+    const result = await createBankTransferOrder({
+      items: items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+      })),
+      customerName: data.customerName,
+      customerEmail: data.customerEmail,
+      customerPhone: data.customerPhone || undefined,
+      promoCode: promoCode || undefined,
+    });
+
+    if (!result.success) {
+      const errorMessages: Record<string, string> = {
+        "order.empty_cart": "Giỏ hàng trống",
+        "order.product_not_found": "Sản phẩm không tồn tại",
+        "order.product_unavailable": "Sản phẩm đã ngưng bán",
+        "order.stock_exhausted": "Vé đã hết",
+        "order.creation_failed": "Không thể tạo đơn, vui lòng thử lại",
+      };
+      setServerError(errorMessages[result.errorKey] ?? "Có lỗi xảy ra. Vui lòng thử lại.");
+      setSubmitting(false);
+      return;
+    }
+
+    sessionStorage.setItem("checkout_pending_order", result.data.orderId);
+    clearCart();
+    window.location.href = `/${locale}/checkout/result?orderId=${result.data.orderId}`;
+  }, [hasHydrated, items, submitting, getValues, promoCode, clearCart, locale]);
   // ── Submit: Mock payment (dev) ────────────────────────────────────────────────
   const onSubmitMock = useCallback(async () => {
     if (!hasHydrated || items.length === 0 || submitting) return;
@@ -481,10 +533,13 @@ export default function CheckoutPage() {
                         selected={selectedPaymentId}
                         onChange={(id) => {
                           setSelectedPaymentId(id);
-                          // Route to submit handler: counter stays counter, everything else uses mock/VNPay
-                          setPaymentMethod(id === "counter" ? "counter" : "mock");
+                          // Route to submit handler based on payment method selection
+                          if (id === "counter") setPaymentMethod("counter");
+                          else if (id === "bank_transfer") setPaymentMethod("bank_transfer");
+                          else setPaymentMethod("mock");
                         }}
                         disabled={submitting}
+                        enabledMethods={enabledMethods}
                       />
                     </div>
 
@@ -494,7 +549,13 @@ export default function CheckoutPage() {
                       variant="primary"
                       size="lg"
                       className="w-full"
-                      onClick={paymentMethod === "counter" ? onSubmitCounter : onSubmitMock}
+                      onClick={
+                        paymentMethod === "counter"
+                          ? onSubmitCounter
+                          : paymentMethod === "bank_transfer"
+                            ? onSubmitBankTransfer
+                            : onSubmitMock
+                      }
                       disabled={submitting}
                       loading={submitting}
                       id="submit-checkout-btn"
@@ -503,6 +564,12 @@ export default function CheckoutPage() {
                         <>
                           <Store className="h-4 w-4" />
                           {submitting ? t("processing") : t("counterSubmitBtn")}
+                          {!submitting && <ChevronRight className="h-4 w-4" />}
+                        </>
+                      ) : paymentMethod === "bank_transfer" ? (
+                        <>
+                          <CreditCard className="h-4 w-4" />
+                          {submitting ? t("processing") : (locale === "vi" ? "Chuyển khoản thanh toán" : "Pay via Bank Transfer")}
                           {!submitting && <ChevronRight className="h-4 w-4" />}
                         </>
                       ) : (

@@ -2,6 +2,7 @@
 // Shows Step 3 of the checkout flow with QR codes for each pass
 import { getOrderStatus } from "@/actions/orders";
 import type { OrderStatusResult } from "@/actions/orders";
+import { getBankTransferSettings } from "@/actions/admin/settings";
 import { CheckoutResultClient } from "./CheckoutResultClient";
 import type { Metadata } from "next";
 
@@ -40,6 +41,15 @@ export default async function CheckoutResultPage({
       ? "failed"
       : orderData?.status ?? null;
 
+  // Fetch bank settings for bank_transfer orders
+  let bankSettings: { bankId: string; accountNo: string; template: string; accountName: string } | undefined;
+  if (orderData?.paymentProvider === "bank_transfer") {
+    const config = await getBankTransferSettings();
+    if (config) {
+      bankSettings = config;
+    }
+  }
+
   return (
     <CheckoutResultClient
       orderId={orderId ?? ""}
@@ -56,6 +66,8 @@ export default async function CheckoutResultPage({
       orderCode={orderData?.orderCode}
       paymentProvider={orderData?.paymentProvider}
       expiresAt={orderData?.expiresAt}
+      qrDescription={orderData?.qrDescription}
+      bankSettings={bankSettings}
     />
   );
 }

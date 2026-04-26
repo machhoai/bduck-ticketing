@@ -275,14 +275,30 @@ export interface CounterPayData {
   note?: string;
 }
 
+/**
+ * Audit trail cho thanh toán chuyển khoản ngân hàng (bank transfer).
+ * qrDescription được sinh khi tạo đơn; approvedBy/At populated khi admin duyệt.
+ */
+export interface BankTransferPayData {
+  /** Nội dung chuyển khoản trên mã QR — DDMMYYHHmm + amount/1000 + random 4-char */
+  qrDescription: string;
+  /** Firebase Auth UID admin đã duyệt — set khi status → "paid" */
+  approvedBy?: string;
+  /** Timestamp admin duyệt — set khi status → "paid" */
+  approvedAt?: Timestamp;
+  /** Ghi chú admin khi duyệt */
+  note?: string;
+}
+
 export interface PaymentDetails {
   /**
-   * "vnpay"   — tích hợp cổng VNPay (planned)
-   * "mock"    — giả lập thanh toán (dev/test)
-   * "counter" — thanh toán trực tiếp tại quầy (Online-to-Offline flow)
+   * "vnpay"         — tích hợp cổng VNPay (planned)
+   * "mock"          — giả lập thanh toán (dev/test)
+   * "counter"       — thanh toán trực tiếp tại quầy (Online-to-Offline flow)
+   * "bank_transfer" — chuyển khoản ngân hàng qua QR VietQR
    */
-  provider: "vnpay" | "mock" | "counter";
-  providerData: VNPayData | MockPayData | CounterPayData;
+  provider: "vnpay" | "mock" | "counter" | "bank_transfer";
+  providerData: VNPayData | MockPayData | CounterPayData | BankTransferPayData;
 }
 
 export type OrderStatus = "pending" | "paid" | "cancelled";
@@ -365,6 +381,11 @@ export interface OrderDocument {
   paidAt?: Timestamp;
   cancelledAt?: Timestamp;
   cancelReason?: string;
+
+  /** Admin internal notes — visible only in admin panel */
+  adminNotes?: string;
+  /** Flag to prevent duplicate cancel notification emails */
+  cancelEmailSent?: boolean;
 
   /** 2-way reference with b_passes (populated after payment confirmed) */
   passIds: string[];
@@ -567,6 +588,35 @@ export interface AttractionsSettingsDocument {
   updatedBy: string; // admin UID
 }
 
+/** Document ID = "paymentMethods" inside bduck_settings */
+export interface PaymentMethodsSettingsDocument {
+  methods: PaymentMethodToggle[];
+  updatedAt: Timestamp;
+  updatedBy: string;
+}
+
+export interface PaymentMethodToggle {
+  /** Payment method identifier — "counter" | "bank_transfer" | "vnpay_card" etc. */
+  id: string;
+  enabled: boolean;
+  /** Display sort order (ascending) */
+  order: number;
+}
+
+/** Document ID = "bankTransfer" inside bduck_settings */
+export interface BankTransferSettingsDocument {
+  /** VietQR Bank ID e.g. "970436" (Vietcombank) */
+  bankId: string;
+  /** Bank account number */
+  accountNo: string;
+  /** VietQR template e.g. "compact2" */
+  template: string;
+  /** Account holder name (uppercase, no diacritics) */
+  accountName: string;
+  updatedAt: Timestamp;
+  updatedBy: string;
+}
+
 // ─────────────────────────────────────────────
 // bduck_dealSections
 // ─────────────────────────────────────────────
@@ -633,6 +683,9 @@ export interface DealItemDocument {
    */
   totalStock?: number;                // undefined = unlimited
   stockResetPeriod?: "daily" | "none";
+  /** Time of day to reset stock (matches section's dailyOpenHour/Minute) */
+  stockResetHour?: number;            // 0–23
+  stockResetMinute?: number;          // 0–59
   soldCount: number;
   lastStockResetDate?: string;        // "YYYY-MM-DD" for lazy daily reset
 

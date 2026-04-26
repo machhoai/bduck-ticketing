@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { type Locale } from "@/i18n/routing";
 import { useAuth } from "@/lib/auth/hooks";
+import { useState, useCallback, useEffect } from "react";
 import {
   LayoutDashboard,
   Ticket,
@@ -22,6 +23,10 @@ import {
   UserCog,
   Zap,
   TicketPercent,
+  Banknote,
+  Settings,
+  Menu,
+  X,
 } from "lucide-react";
 
 const LOCALE_FLAGS: Record<Locale, { flag: string; label: string }> = {
@@ -41,7 +46,9 @@ const NAV_ITEMS = [
   { href: "/admin/scan", key: "scan", icon: QrCode },
   { href: "/admin/affiliates", key: "affiliates", icon: Users },
   { href: "/admin/payouts", key: "payouts", icon: Wallet },
+  { href: "/admin/transfer-orders", key: "transferOrders", icon: Banknote },
   { href: "/admin/accounts", key: "accounts", icon: UserCog },
+  { href: "/admin/settings/payment", key: "paymentSettings", icon: Settings },
 ];
 
 interface AdminSidebarProps {
@@ -54,6 +61,26 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { signOut, user } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
+  const toggleMobile = useCallback(() => setMobileOpen((p) => !p), []);
 
   async function handleSignOut() {
     await signOut();
@@ -68,10 +95,11 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
     router.replace(pathname, { locale: newLocale });
   };
 
-  return (
-    <aside className="w-64 flex-shrink-0 bg-[#1A1A2E] flex flex-col h-full">
+  // ── Shared sidebar content ──
+  const sidebarContent = (
+    <>
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-white/10">
+      <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
         <Link href={`/${locale}/admin`} className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-[#F5C842] rounded-lg flex items-center justify-center font-black text-[#1A1A2E] text-sm">
             BD
@@ -81,6 +109,14 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
             <p className="text-white/40 text-xs">Admin Portal</p>
           </div>
         </Link>
+        {/* Close button — mobile only */}
+        <button
+          onClick={toggleMobile}
+          className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+          aria-label="Close menu"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -148,6 +184,53 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
           })}
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* ── Mobile Top Bar ── */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-[#1A1A2E] flex items-center px-4 gap-3 shadow-lg">
+        <button
+          onClick={toggleMobile}
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-[#F5C842] rounded-lg flex items-center justify-center font-black text-[#1A1A2E] text-xs">
+            BD
+          </div>
+          <p className="text-white font-bold text-sm">B.Duck Admin</p>
+        </div>
+      </div>
+
+      {/* ── Mobile Overlay ── */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+          onClick={toggleMobile}
+          aria-hidden
+        />
+      )}
+
+      {/* ── Sidebar ── */}
+      <aside
+        className={[
+          // Shared
+          "bg-[#1A1A2E] flex flex-col h-full transition-transform duration-300 ease-out",
+          // Desktop: static, always visible
+          "lg:relative lg:w-64 lg:flex-shrink-0 lg:translate-x-0",
+          // Mobile: fixed drawer
+          "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:w-72 max-lg:z-[60]",
+          mobileOpen
+            ? "max-lg:translate-x-0 max-lg:shadow-2xl"
+            : "max-lg:-translate-x-full",
+        ].join(" ")}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

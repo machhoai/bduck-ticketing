@@ -4,8 +4,11 @@ import "server-only";
 import { adminDb } from "@/lib/firebase/admin";
 import { requireAdmin } from "@/lib/auth/session";
 import { COLLECTIONS } from "@/lib/firebase/client";
-import { Timestamp } from "firebase-admin/firestore";
-import type { CounterPayData, OrderDocument, PassDocument } from "@/types/firestore";
+import { Timestamp, FieldValue } from "firebase-admin/firestore";
+import type { CounterPayData, BankTransferPayData, OrderDocument, PassDocument } from "@/types/firestore";
+import { generatePassesInTransaction } from "@/lib/pass-generation";
+import { sendTicketEmail } from "@/lib/email/tickets";
+import { sendTransferCancelEmail } from "@/lib/email/transfer-cancel";
 
 export type AdminActionResult<T = void> =
   | { success: true; data?: T }
@@ -293,4 +296,247 @@ export async function confirmCounterPayment(
       error: errorMap[message] ?? "Lỗi hệ thống, vui lòng thử lại",
     };
   }
+}
+
+// ─── Bank Transfer: Approve Order ────────────────────────────────────────────
+/**
+ * Approve a pending bank_transfer order.
+ * Uses Firestore Transaction + shared pass generation.
+ * skipStockIncrement = true because stock was already reserved at order creation.
+ */
+export async function approveBankTransferOrder(
+  orderId: string,
+  note?: string
+): Promise<AdminActionResult<{ passIds: string[] }>> {
+  const session = await requireAdmin();
+
+  const orderRef = adminDb.collection(COLLECTIONS.ORDERS).doc(orderId);
+
+  try {
+    const passIds: string[] = [];
+
+    await adminDb.runTransaction(async (tx) => {
+      const snap = await tx.get(orderRef);
+      if (!snap.exists) throw new Error("ORDER_NOT_FOUND");
+
+      const order = { id: snap.id, ...snap.data() } as OrderDocument;
+
+      // Idempotency
+      if (order.status === "paid") throw new Error("ALREADY_PAID");
+      if (order.status === "cancelled") throw new Error("ALREADY_CANCELLED");
+      if (order.paymentDetails?.provider !== "bank_transfer")
+        throw new Error("NOT_BANK_TRANSFER_ORDER");
+
+      // Generate passes — skipStockIncrement because stock was reserved at order creation
+      const generatedIds = generatePassesInTransaction(tx, orderRef, order, {
+        skipStockIncrement: true,
+        approverUid: session.uid,
+      });
+      passIds.push(...generatedIds);
+
+      // Update providerData with approval info
+      const providerData: BankTransferPayData = {
+        ...(order.paymentDetails!.providerData as BankTransferPayData),
+        approvedBy: session.uid,
+        approvedAt: Timestamp.now() as unknown as import("@/types/firestore").Timestamp,
+        ...(note ? { note } : {}),
+      };
+
+      tx.update(orderRef, {
+        "paymentDetails.providerData": providerData,
+      });
+    });
+
+    // Fire-and-forget: send ticket email
+    const updatedSnap = await orderRef.get();
+    const updated = updatedSnap.data() as OrderDocument;
+
+    sendTicketEmail({
+      to: updated.customerEmail,
+      customerName: updated.customerName,
+      orderId,
+      orderNumber: updated.orderNumber,
+      items: updated.items.map((i) => ({
+        productName: i.productName,
+        productType: i.productType,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        subtotal: i.subtotal,
+      })),
+      finalAmount: updated.finalAmount,
+      discountAmount: updated.discountAmount,
+      passIds,
+    }).catch((err) =>
+      console.error("[approveBankTransferOrder] Ticket email failed:", err)
+    );
+
+    return { success: true, data: { passIds } };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "UNKNOWN";
+    const errorMap: Record<string, string> = {
+      ORDER_NOT_FOUND: "Đơn hàng không tồn tại",
+      ALREADY_PAID: "Đơn hàng đã được duyệt trước đó",
+      ALREADY_CANCELLED: "Đơn hàng đã bị huỷ",
+      NOT_BANK_TRANSFER_ORDER: "Đơn hàng này không phải chuyển khoản",
+    };
+    console.error("[approveBankTransferOrder]", err);
+    return { success: false, error: errorMap[message] ?? "Lỗi hệ thống" };
+  }
+}
+
+// ─── Bank Transfer: Cancel Order ─────────────────────────────────────────────
+/**
+ * Cancel a bank_transfer order. Admin can ONLY cancel expired orders (>30 min).
+ * Rolls back stock (decrement soldCount) and sends bilingual cancel email.
+ */
+export async function cancelBankTransferOrder(
+  orderId: string,
+  reason: string,
+  adminNote?: string
+): Promise<AdminActionResult> {
+  await requireAdmin();
+
+  const orderRef = adminDb.collection(COLLECTIONS.ORDERS).doc(orderId);
+
+  try {
+    let customerEmail = "";
+    let customerName = "";
+    let orderNumber = "";
+    let finalAmount = 0;
+
+    await adminDb.runTransaction(async (tx) => {
+      const snap = await tx.get(orderRef);
+      if (!snap.exists) throw new Error("ORDER_NOT_FOUND");
+
+      const order = snap.data() as Omit<OrderDocument, "id">;
+
+      if (order.status !== "pending") throw new Error("NOT_PENDING");
+      if (order.paymentDetails?.provider !== "bank_transfer")
+        throw new Error("NOT_BANK_TRANSFER_ORDER");
+
+      // Enforce: admin can only cancel EXPIRED orders
+      const now = Timestamp.now();
+      if (order.expiresAt && now.toMillis() < order.expiresAt.toMillis()) {
+        throw new Error("ORDER_NOT_EXPIRED_YET");
+      }
+
+      // Capture for email
+      customerEmail = order.customerEmail;
+      customerName = order.customerName;
+      orderNumber = order.orderNumber;
+      finalAmount = order.finalAmount;
+
+      // Stock rollback — decrement soldCount for each product
+      for (const item of order.items) {
+        const productRef = adminDb
+          .collection(COLLECTIONS.PRODUCTS)
+          .doc(item.productId);
+        tx.update(productRef, {
+          soldCount: FieldValue.increment(-item.quantity),
+        });
+      }
+
+      // Update order
+      tx.update(orderRef, {
+        status: "cancelled",
+        cancelledAt: now,
+        cancelReason: reason || "bank_transfer_expired",
+        adminNotes: adminNote || undefined,
+        updatedAt: now,
+      });
+    });
+
+    // Fire-and-forget: send cancel email to customer
+    if (customerEmail) {
+      sendTransferCancelEmail({
+        to: customerEmail,
+        customerName,
+        orderNumber,
+        finalAmount,
+        cancelReason: reason,
+      })
+        .then(() => {
+          // Mark email as sent
+          orderRef.update({ cancelEmailSent: true }).catch(() => {});
+        })
+        .catch((err) =>
+          console.error("[cancelBankTransferOrder] Cancel email failed:", err)
+        );
+    }
+
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "UNKNOWN";
+    const errorMap: Record<string, string> = {
+      ORDER_NOT_FOUND: "Đơn hàng không tồn tại",
+      NOT_PENDING: "Đơn hàng không ở trạng thái chờ",
+      NOT_BANK_TRANSFER_ORDER: "Đơn hàng này không phải chuyển khoản",
+      ORDER_NOT_EXPIRED_YET: "Chưa thể hủy — đơn hàng chưa quá hạn 30 phút",
+    };
+    console.error("[cancelBankTransferOrder]", err);
+    return { success: false, error: errorMap[message] ?? "Lỗi hệ thống" };
+  }
+}
+
+// ─── Bank Transfer: Update Admin Notes ───────────────────────────────────────
+export async function updateTransferOrderNote(
+  orderId: string,
+  note: string
+): Promise<AdminActionResult> {
+  await requireAdmin();
+
+  try {
+    await adminDb.collection(COLLECTIONS.ORDERS).doc(orderId).update({
+      adminNotes: note,
+      updatedAt: Timestamp.now(),
+    });
+    return { success: true };
+  } catch {
+    return { success: false, error: "Không thể cập nhật ghi chú" };
+  }
+}
+
+// ─── Bank Transfer: Get Transfer Orders for Admin ───────────────────────────
+/**
+ * Fetch bank_transfer orders for admin approval page.
+ * Returns pending orders first (expired ones at top), then recent paid/cancelled.
+ */
+export async function getAdminTransferOrders(): Promise<OrderDocument[]> {
+  await requireAdmin();
+
+  // Fetch recent orders (last 200) and filter by bank_transfer
+  const snap = await adminDb
+    .collection(COLLECTIONS.ORDERS)
+    .orderBy("createdAt", "desc")
+    .limit(200)
+    .get();
+
+  const orders = snap.docs
+    .map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as Omit<OrderDocument, "id">),
+    }))
+    .filter((o) => o.paymentDetails?.provider === "bank_transfer");
+
+  // Sort: pending first (expired at top), then paid, then cancelled
+  const now = Date.now();
+  return orders.sort((a, b) => {
+    // Priority: pending > paid > cancelled
+    const statusOrder = { pending: 0, paid: 1, cancelled: 2 };
+    const aStatus = statusOrder[a.status] ?? 3;
+    const bStatus = statusOrder[b.status] ?? 3;
+
+    if (aStatus !== bStatus) return aStatus - bStatus;
+
+    // Within pending: expired first
+    if (a.status === "pending" && b.status === "pending") {
+      const aExpired = a.expiresAt && now > a.expiresAt.toMillis();
+      const bExpired = b.expiresAt && now > b.expiresAt.toMillis();
+      if (aExpired && !bExpired) return -1;
+      if (!aExpired && bExpired) return 1;
+    }
+
+    // Otherwise by createdAt desc
+    return (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0);
+  });
 }

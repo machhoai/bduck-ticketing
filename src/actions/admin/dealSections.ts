@@ -48,6 +48,8 @@ export interface CreateDealItemInput {
     giftMerch?: string;
     totalStock?: number;
     stockResetPeriod?: "daily" | "none";
+    stockResetHour?: number;
+    stockResetMinute?: number;
     maxQtyPerOrder: number;
     isActive: boolean;
     order: number;
@@ -212,6 +214,8 @@ export async function addDealItem(
         if (input.giftVoucher) newItem.giftVoucher = input.giftVoucher;
         if (input.giftMerch?.trim()) newItem.giftMerch = input.giftMerch.trim();
         if (input.totalStock !== undefined) newItem.totalStock = input.totalStock;
+        if (input.stockResetHour !== undefined) newItem.stockResetHour = input.stockResetHour;
+        if (input.stockResetMinute !== undefined) newItem.stockResetMinute = input.stockResetMinute;
 
         // Append to items array atomically
         await col().doc(sectionId).update({

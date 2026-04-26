@@ -10,6 +10,7 @@ import {
     QrCode,
     Store,
     CheckCircle2,
+    Banknote,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -24,7 +25,8 @@ export type PaymentMethodId =
     | "momo"             // Ví MoMo
     | "zalopay"          // Ví ZaloPay
     | "apple_pay"        // Apple Pay (iOS / macOS only)
-    | "counter";         // Thanh toán tại quầy
+    | "counter"          // Thanh toán tại quầy
+    | "bank_transfer";   // Chuyển khoản ngân hàng (VietQR)
 
 interface PaymentMethodGroup {
     readonly id: string;
@@ -46,6 +48,7 @@ interface PaymentMethodSelectorProps {
     selected: PaymentMethodId;
     onChange: (id: PaymentMethodId) => void;
     disabled?: boolean;
+    enabledMethods?: string[];
 }
 
 // ─── Logo helpers (SVG inline for reliability) ────────────────────────────────
@@ -196,6 +199,7 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
     selected,
     onChange,
     disabled = false,
+    enabledMethods,
 }) => {
     const t = useTranslations("paymentSelector");
 
@@ -272,28 +276,44 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                     descKey: t("methodCounterDesc"),
                     icon: <Store className="h-5 w-5 text-amber-500" />,
                 },
+                {
+                    id: "bank_transfer",
+                    labelKey: t("methodBankTransfer"),
+                    descKey: t("methodBankTransferDesc"),
+                    icon: <Banknote className="h-5 w-5 text-blue-500" />,
+                },
             ],
         },
     ];
 
     return (
         <div className="space-y-5" role="radiogroup" aria-label={t("groupLabel")}>
-            {groups.map((group) => (
-                <div key={group.id} className="space-y-2">
-                    <GroupHeading>{group.headingKey}</GroupHeading>
-                    <div className="space-y-2">
-                        {group.methods.map((method) => (
-                            <MethodCard
-                                key={method.id}
-                                method={method}
-                                selected={selected === method.id}
-                                disabled={disabled}
-                                onSelect={onChange}
-                            />
-                        ))}
+            {groups.map((group) => {
+                // Filter methods based on enabledMethods (if provided)
+                const visibleMethods = enabledMethods
+                    ? group.methods.filter((m) => enabledMethods.includes(m.id))
+                    : group.methods;
+
+                // Hide entire group if no visible methods
+                if (visibleMethods.length === 0) return null;
+
+                return (
+                    <div key={group.id} className="space-y-2">
+                        <GroupHeading>{group.headingKey}</GroupHeading>
+                        <div className="space-y-2">
+                            {visibleMethods.map((method) => (
+                                <MethodCard
+                                    key={method.id}
+                                    method={method}
+                                    selected={selected === method.id}
+                                    disabled={disabled}
+                                    onSelect={onChange}
+                                />
+                            ))}
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
 
             {/* Security indicator */}
             <div className="flex items-center gap-2 pt-1 px-1">
