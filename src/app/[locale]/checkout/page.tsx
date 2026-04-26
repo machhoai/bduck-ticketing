@@ -587,7 +587,7 @@ export default function CheckoutPage() {
                       ) : paymentMethod === "bank_transfer" ? (
                         <>
                           <CreditCard className="h-4 w-4" />
-                          {submitting ? t("processing") : (locale === "vi" ? "Chuyển khoản thanh toán" : "Pay via Bank Transfer")}
+                          {submitting ? t("processing") : t("bankTransferSubmitBtn")}
                           {!submitting && <ChevronRight className="h-4 w-4" />}
                         </>
                       ) : (

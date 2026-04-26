@@ -68,6 +68,7 @@ export default async function CheckoutResultPage({
       expiresAt={orderData?.expiresAt}
       qrDescription={orderData?.qrDescription}
       bankSettings={bankSettings}
+      initialVouchers={orderData?.vouchers}
     />
   );
 }

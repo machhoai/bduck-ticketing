@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useTransition } from "react";
 import Image from "next/image";
 import { ShoppingCart, Clock, Gift, Crown, Check, Loader2, Tag, Flame, Zap } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { DealItemDocument } from "@/types/firestore";
 import { useCartStore } from "@/stores/cart";
 
@@ -65,6 +66,7 @@ interface CountdownClockProps {
 }
 
 const CountdownClock = React.memo(function CountdownClock({ opensAt }: CountdownClockProps) {
+    const t = useTranslations("deals");
     const [remaining, setRemaining] = useState<TimeRemaining | null>(() => calcRemaining(opensAt));
 
     useEffect(() => {
@@ -77,9 +79,9 @@ const CountdownClock = React.memo(function CountdownClock({ opensAt }: Countdown
     return (
         <div className="flex items-center gap-1.5 mt-2">
             {[
-                { v: remaining.hours, label: "giờ" },
-                { v: remaining.minutes, label: "phút" },
-                { v: remaining.seconds, label: "giây" },
+                { v: remaining.hours, label: t("hours") },
+                { v: remaining.minutes, label: t("minutes") },
+                { v: remaining.seconds, label: t("seconds") },
             ].map(({ v, label }, i) => (
                 <React.Fragment key={label}>
                     <div className="flex flex-col items-center">
@@ -104,6 +106,7 @@ interface StockBarProps {
 }
 
 const StockBar = React.memo(function StockBar({ totalStock, soldCount, highlight }: StockBarProps) {
+    const t = useTranslations("deals");
     const pct = Math.min(100, Math.round((soldCount / totalStock) * 100));
     const remaining = totalStock - soldCount;
     const isUrgent = pct >= 70;
@@ -116,7 +119,7 @@ const StockBar = React.memo(function StockBar({ totalStock, soldCount, highlight
                     style={{ color: isUrgent ? "#EF4444" : "#10B981" }}
                 >
                     {isUrgent ? <Flame className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
-                    {isUrgent ? "Sắp hết!" : "Còn hàng"}
+                    {isUrgent ? t("almostGone") : t("inStock")}
                 </span>
                 <span className="text-[10px] text-gray-400 tabular-nums">{remaining}/{totalStock}</span>
             </div>
@@ -155,6 +158,7 @@ export const DealCard = React.memo(function DealCard({
     opensAt,
     index = 0,
 }: DealCardProps) {
+    const t = useTranslations("deals");
     const [added, setAdded] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const [pending, startTransition] = useTransition();
@@ -190,7 +194,7 @@ export const DealCard = React.memo(function DealCard({
     const discountText =
         item.dealType === "percentage" ? `-${item.discountValue}%`
         : item.dealType === "fixed"      ? `-${vnd(item.discountValue)}`
-        : "Mua 1 tặng 1";
+        : t("buyOneGetOne");
 
     return (
         <article
@@ -232,7 +236,7 @@ export const DealCard = React.memo(function DealCard({
                         <div className="w-11 h-11 rounded-full bg-white/20 border border-white/30 flex items-center justify-center">
                             <Clock className="h-5 w-5 text-white" />
                         </div>
-                        <p className="text-white font-extrabold text-sm">Mở bán lúc {opensAt}</p>
+                        <p className="text-white font-extrabold text-sm">{t("opensAt", { time: opensAt ?? "" })}</p>
                         <CountdownClock opensAt={opensAt} />
                     </div>
                 )}
@@ -243,8 +247,8 @@ export const DealCard = React.memo(function DealCard({
                         className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-t-[24px]"
                         style={{ backdropFilter: "blur(8px)", background: "rgba(26,26,46,0.65)" }}
                     >
-                        <p className="text-white font-extrabold text-xl">Hết hàng</p>
-                        <p className="text-white/60 text-xs">Quay lại ngày mai</p>
+                        <p className="text-white font-extrabold text-xl">{t("soldOut")}</p>
+                        <p className="text-white/60 text-xs">{t("soldOutSub")}</p>
                     </div>
                 )}
 
@@ -269,7 +273,7 @@ export const DealCard = React.memo(function DealCard({
                     <div className="flex flex-wrap gap-1.5">
                         {item.giftVoucher && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700">
-                                <Tag className="h-2.5 w-2.5" /> Kèm voucher
+                                <Tag className="h-2.5 w-2.5" /> {t("includesVoucher")}
                             </span>
                         )}
                         {item.giftMerch && (
@@ -279,13 +283,13 @@ export const DealCard = React.memo(function DealCard({
                         )}
                         {item.membershipBonusOverride && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                                <Crown className="h-2.5 w-2.5" /> Nhân đôi lộc
+                                <Crown className="h-2.5 w-2.5" /> {t("doubleReward")}
                             </span>
                         )}
                         {item.membershipConfig && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-800">
                                 <Crown className="h-2.5 w-2.5" />
-                                {(item.membershipConfig.basePoints ?? 0) + (item.membershipConfig.bonusPoints ?? 0)} điểm
+                                {t("points", { count: (item.membershipConfig.basePoints ?? 0) + (item.membershipConfig.bonusPoints ?? 0) })}
                             </span>
                         )}
                     </div>
@@ -301,7 +305,7 @@ export const DealCard = React.memo(function DealCard({
                             {item.description}
                         </p>
                         <span className="text-[10px] font-semibold mt-0.5 inline-block" style={{ color: accent.highlight }}>
-                            {expanded ? "Thu gọn ▲" : "Xem thêm ▼"}
+                            {expanded ? t("collapseDetails") : t("expandDetails")}
                         </span>
                     </div>
                 )}
@@ -314,9 +318,9 @@ export const DealCard = React.memo(function DealCard({
                             <div className="flex items-start gap-2 p-2 rounded-lg bg-violet-50 border border-violet-100">
                                 <Tag className="h-3.5 w-3.5 text-violet-500 mt-0.5 flex-shrink-0" />
                                 <div>
-                                    <p className="font-bold text-violet-700">Tặng voucher: {item.giftVoucher.templateName}</p>
+                                    <p className="font-bold text-violet-700">{t("voucherGift", { name: item.giftVoucher.templateName })}</p>
                                     <p className="text-violet-500 text-[10px]">
-                                        {item.giftVoucher.distribution === "perProduct" ? "1 voucher/sản phẩm mua" : "1 voucher/đơn hàng"}
+                                        {item.giftVoucher.distribution === "perProduct" ? t("voucherPerProduct") : t("voucherPerOrder")}
                                     </p>
                                 </div>
                             </div>
@@ -327,11 +331,11 @@ export const DealCard = React.memo(function DealCard({
                             <div className="flex items-start gap-2 p-2 rounded-lg bg-yellow-50 border border-yellow-100">
                                 <Crown className="h-3.5 w-3.5 text-yellow-600 mt-0.5 flex-shrink-0" />
                                 <div>
-                                    <p className="font-bold text-yellow-800">Thẻ thành viên</p>
+                                    <p className="font-bold text-yellow-800">{t("membershipCard")}</p>
                                     <p className="text-yellow-600 text-[10px]">
-                                        {item.membershipConfig.basePoints ?? 0} điểm gốc
-                                        {(item.membershipConfig.bonusPoints ?? 0) > 0 && ` + ${item.membershipConfig.bonusPoints} bonus`}
-                                        {item.membershipConfig.merch && ` · Quà: ${item.membershipConfig.merch}`}
+                                        {t("basePoints", { count: item.membershipConfig.basePoints ?? 0 })}
+                                        {(item.membershipConfig.bonusPoints ?? 0) > 0 && ` ${t("bonusPoints", { count: item.membershipConfig.bonusPoints })}`}
+                                        {item.membershipConfig.merch && ` · ${t("merchGift", { name: item.membershipConfig.merch })}`}
                                     </p>
                                 </div>
                             </div>
@@ -341,7 +345,7 @@ export const DealCard = React.memo(function DealCard({
                         {item.giftMerch && (
                             <div className="flex items-start gap-2 p-2 rounded-lg bg-pink-50 border border-pink-100">
                                 <Gift className="h-3.5 w-3.5 text-pink-500 mt-0.5 flex-shrink-0" />
-                                <p className="font-bold text-pink-700">Quà tặng: {item.giftMerch}</p>
+                                <p className="font-bold text-pink-700">{t("giftLabel", { name: item.giftMerch })}</p>
                             </div>
                         )}
                     </div>
@@ -353,7 +357,7 @@ export const DealCard = React.memo(function DealCard({
                 )} */}
 
                 {item.maxQtyPerOrder === 1 && (
-                    <p className="text-[10px] text-gray-400 italic">⚠ Tối đa 1 sp/đơn</p>
+                    <p className="text-[10px] text-gray-400 italic">⚠ {t("maxOnePerOrder")}</p>
                 )}
 
                 {/* Divider */}
@@ -378,7 +382,7 @@ export const DealCard = React.memo(function DealCard({
                     <button
                         onClick={handleAddToCart}
                         disabled={isDisabled || pending}
-                        aria-label={`Thêm ${item.name} vào giỏ hàng`}
+                        aria-label={t("addToCartAria", { name: item.name })}
                         className="btn-bounce flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         style={
                             added
@@ -393,10 +397,10 @@ export const DealCard = React.memo(function DealCard({
                         }
                     >
                         {pending    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : added     ? <><Check className="h-3.5 w-3.5" /> Đã thêm</>
-                        : isSoldOut ? "Hết hàng"
+                        : added     ? <><Check className="h-3.5 w-3.5" /> {t("added")}</>
+                        : isSoldOut ? t("soldOut")
                         : isLocked  ? <><Clock className="h-3.5 w-3.5" /> {opensAt}</>
-                        :             <><ShoppingCart className="h-3.5 w-3.5" /> Mua ngay</>}
+                        :             <><ShoppingCart className="h-3.5 w-3.5" /> {t("buyNow")}</>}
                     </button>
                 </div>
             </div>

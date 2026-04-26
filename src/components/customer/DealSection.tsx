@@ -7,6 +7,7 @@
 import React from "react";
 import Image from "next/image";
 import { Zap, Package } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { getActiveDealSections } from "@/actions/dealSections";
 import { checkDealSectionTimeGate } from "@/lib/dealUtils";
 import { DealCard } from "./DealCard";
@@ -36,9 +37,11 @@ interface SectionBannerProps {
     isOpen: boolean;
     opensAt: string | null;
     sIdx: number;
+    productsCountLabel: string;
+    maxVariantsLabel: string | null;
 }
 
-function SectionBanner({ section, isOpen, opensAt, sIdx }: SectionBannerProps) {
+function SectionBanner({ section, isOpen, opensAt, sIdx, productsCountLabel, maxVariantsLabel }: SectionBannerProps) {
     const accent = HEADER_ACCENTS[sIdx % HEADER_ACCENTS.length];
     const sticker = STICKERS[sIdx % STICKERS.length];
 
@@ -74,11 +77,11 @@ function SectionBanner({ section, isOpen, opensAt, sIdx }: SectionBannerProps) {
                         )}
                         <div className="flex items-center gap-3 flex-wrap">
                             <span className="inline-flex items-center gap-1 text-[10px] text-gray-400">
-                                <Package className="h-3 w-3" /> {section.items.length} sản phẩm
+                                <Package className="h-3 w-3" /> {productsCountLabel}
                             </span>
-                            {section.maxPromoVariantsPerOrder && (
+                            {maxVariantsLabel && (
                                 <span className="text-[10px] text-gray-400">
-                                    · Tối đa {section.maxPromoVariantsPerOrder} loại/đơn
+                                    · {maxVariantsLabel}
                                 </span>
                             )}
                         </div>
@@ -103,6 +106,8 @@ interface DealSectionProps {
 export async function DealSection({ locale = "vi" }: DealSectionProps) {
     const sections = await getActiveDealSections();
     if (sections.length === 0) return null;
+
+    const t = await getTranslations("deals");
 
     return (
         <section
@@ -137,7 +142,7 @@ export async function DealSection({ locale = "vi" }: DealSectionProps) {
                         </span>
                     </h2>
                     <p className="text-gray-500 text-sm md:text-base max-w-lg mx-auto leading-relaxed">
-                        Ưu đãi đặc biệt mỗi ngày — số lượng có hạn, nhanh tay kẻo hết!
+                        {t("subtitle")}
                     </p>
                 </div>
 
@@ -152,12 +157,14 @@ export async function DealSection({ locale = "vi" }: DealSectionProps) {
                                 isOpen={isOpen}
                                 opensAt={opensAt}
                                 sIdx={sIdx}
+                                productsCountLabel={t("productsCount", { count: section.items.length })}
+                                maxVariantsLabel={section.maxPromoVariantsPerOrder ? t("maxVariants", { count: section.maxPromoVariantsPerOrder }) : null}
                             />
 
                             {section.items.length === 0 ? (
                                 <div className="text-center py-10 text-gray-400 text-sm">
                                     <Package className="h-10 w-10 mx-auto mb-2 opacity-20" />
-                                    Chưa có sản phẩm nào trong section này.
+                                    {t("emptySection")}
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

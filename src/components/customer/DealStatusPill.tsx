@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Clock } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface DealStatusPillProps {
     /** "HH:MM" format, e.g. "10:00". null = no time gate (always open) */
@@ -40,6 +41,7 @@ function getSecondsUntilOpen(opensAt: string): number {
 }
 
 export function DealStatusPill({ opensAt, initialIsOpen }: DealStatusPillProps) {
+    const t = useTranslations("deals");
     const [isOpen, setIsOpen] = useState(initialIsOpen);
     const [countdown, setCountdown] = useState("");
 
@@ -79,7 +81,7 @@ export function DealStatusPill({ opensAt, initialIsOpen }: DealStatusPillProps) 
         return (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Đang mở bán
+                {t("statusOpen")}
             </span>
         );
     }
@@ -89,13 +91,13 @@ export function DealStatusPill({ opensAt, initialIsOpen }: DealStatusPillProps) 
             <Clock className="h-3 w-3" />
             {countdown ? (
                 <>
-                    Mở sau{" "}
+                    {t("opensIn")}{" "}
                     <span className="font-mono font-bold text-amber-600 tabular-nums">
                         {countdown}
                     </span>
                 </>
             ) : (
-                <>Mở lúc {opensAt}</>
+                <>{t("opensAtTime", { time: opensAt })}</>
             )}
         </span>
     );

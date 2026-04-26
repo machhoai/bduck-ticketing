@@ -59,6 +59,22 @@ async function buildQrBuffer(passId: string): Promise<Buffer> {
     });
 }
 
+/**
+ * Generate a QR code PNG buffer for a voucher code.
+ * Same as pass QR but with amber-themed color.
+ */
+async function buildVoucherQrBuffer(code: string): Promise<Buffer> {
+    return QRCode.toBuffer(code, {
+        errorCorrectionLevel: "H",
+        width: 160,
+        margin: 2,
+        color: {
+            dark: "#1A1A2E",
+            light: "#FFFFFF",
+        },
+    });
+}
+
 function buildTicketHTML(params: TicketEmailParams): string {
     const {
         customerName,
@@ -220,7 +236,7 @@ function buildTicketHTML(params: TicketEmailParams): string {
               🎁 Voucher tặng kèm (${vouchers.length})
             </p>
             <table width="100%" cellpadding="0" cellspacing="0">
-              ${vouchers.map((v) => `
+              ${vouchers.map((v, vi) => `
               <tr>
                 <td style="padding:8px 0;">
                   <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#FFF7E6 0%,#FFF3D6 100%);border:1px solid #F5C842;border-radius:12px;overflow:hidden;">
@@ -229,6 +245,11 @@ function buildTicketHTML(params: TicketEmailParams): string {
                         <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#B8860B;">
                           ${v.templateName}
                         </p>
+                        ${(v.status === "WON_VOUCHER" || v.status === "ISSUED") && v.code && !v.code.startsWith("PENDING") ? `
+                        <div style="text-align:center;margin:8px 0;">
+                          <img src="cid:voucher_qr_${vi}" alt="Voucher QR" width="120" height="120" style="display:block;margin:0 auto 8px;border-radius:8px;" />
+                        </div>
+                        ` : ""}
                         <p style="margin:0 0 8px;font-size:20px;font-weight:800;color:#1A1A2E;font-family:monospace;letter-spacing:2px;text-align:center;background:#FFFFFF;padding:10px;border-radius:8px;border:2px dashed #F5C842;">
                           ${v.code}
                         </p>
@@ -292,6 +313,30 @@ export async function sendTicketEmail(
             contentType: "image/png" as const,
             contentDisposition: "inline" as const,
         }));
+
+        // Generate QR PNG buffers for vouchers (only for won/issued vouchers with real codes)
+        const voucherList = params.vouchers || [];
+        const voucherQrBuffers = await Promise.all(
+            voucherList.map(async (v) => {
+                if ((v.status === "WON_VOUCHER" || v.status === "ISSUED") && v.code && !v.code.startsWith("PENDING")) {
+                    return buildVoucherQrBuffer(v.code);
+                }
+                return null;
+            })
+        );
+
+        // Add voucher QR CID attachments
+        voucherQrBuffers.forEach((buffer, index) => {
+            if (buffer) {
+                attachments.push({
+                    filename: `voucher-qr-${index + 1}.png`,
+                    content: buffer,
+                    cid: `voucher_qr_${index}`,
+                    contentType: "image/png" as const,
+                    contentDisposition: "inline" as const,
+                });
+            }
+        });
 
         await transporter.sendMail({
             from: FROM_ADDRESS,

@@ -26,8 +26,10 @@ import {
     Clock,
     Banknote,
     ClipboardList,
+    Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { VoucherQRCard } from "@/components/customer/VoucherQRCard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +48,14 @@ interface PassValidity {
     visitDate?: string;
     validFrom?: string;
     validUntil?: string;
+}
+
+interface VoucherData {
+    id: string;
+    code: string;
+    templateName: string;
+    status: string;
+    voucherType: string;
 }
 
 interface CheckoutResultClientProps {
@@ -75,6 +85,7 @@ interface CheckoutResultClientProps {
         template: string;
         accountName: string;
     };
+    initialVouchers?: VoucherData[];
 }
 
 function formatVND(amount: number) {
@@ -104,17 +115,17 @@ function getValidityLabel(
             const from = formatDate(pass.validFrom, locale);
             const until = formatDate(pass.validUntil, locale);
             if (from && until) return `${from} → ${until}`;
-            if (until) return `${locale === "vi" ? "HSD" : "Exp"}: ${until}`;
+            if (until) return `${t("expiryLabel")}: ${until}`;
             return t("statusValid");
         }
         case "open-dated": {
             // Has a real expiry (e.g. validDaysFromPurchase = 30)
             if (pass.validUntil) {
                 const until = formatDate(pass.validUntil, locale);
-                return `${locale === "vi" ? "HSD" : "Exp"}: ${until}`;
+                return `${t("expiryLabel")}: ${until}`;
             }
             // Truly unlimited
-            return locale === "vi" ? "Không thời hạn" : "No expiry";
+            return t("noExpiry");
         }
         default:
             return t("statusValid");
@@ -142,12 +153,13 @@ export function CheckoutResultClient({
     expiresAt,
     qrDescription,
     bankSettings,
+    initialVouchers,
 }: CheckoutResultClientProps) {
     const t = useTranslations("checkout");
 
     useNavbar({ darkText: true, shadow: false, solidBg: true });
 
-    const [status, setStatus] = useState<string | null>(initialStatus);
+    const [status, setStatus] = useState<string | null>(initialStatus); 
     const [passIds, setPassIds] = useState<string[]>(initialPassIds);
     const [timedOut, setTimedOut] = useState(false);
     const [resendStatus, setResendStatus] = useState<
@@ -156,6 +168,7 @@ export function CheckoutResultClient({
     const [resendCounterStatus, setResendCounterStatus] = useState<
         "idle" | "sending" | "success"
     >("idle");
+    const [vouchers, setVouchers] = useState<VoucherData[]>(initialVouchers ?? []);
 
     // ─── Clear in-flight payment flag ────────────────────────────────────────────
     // Set in checkout page before navigating to payment gateway. Clear it here
@@ -224,6 +237,7 @@ export function CheckoutResultClient({
                     clearInterval(interval);
                     setStatus("paid");
                     setPassIds(data.passIds ?? []);
+                    if (data.vouchers) setVouchers(data.vouchers);
                 } else if (data.status === "cancelled") {
                     clearInterval(interval);
                     setStatus("failed");
@@ -355,11 +369,10 @@ export function CheckoutResultClient({
                             </div>
                             {/* Countdown */}
                             {timeLeft && (
-                                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold font-mono ${
-                                    expired
-                                        ? "bg-red-100 text-red-600"
-                                        : "bg-amber-100 text-amber-800"
-                                }`}>
+                                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold font-mono ${expired
+                                    ? "bg-red-100 text-red-600"
+                                    : "bg-amber-100 text-amber-800"
+                                    }`}>
                                     <Clock className="h-3.5 w-3.5" />
                                     {timeLeft}
                                 </div>
@@ -383,12 +396,11 @@ export function CheckoutResultClient({
                                 {["top-0 left-0", "top-0 right-0", "bottom-0 left-0", "bottom-0 right-0"].map((pos, i) => (
                                     <div
                                         key={i}
-                                        className={`absolute ${pos} w-6 h-6 border-[#F5C842] ${
-                                            i === 0 ? "border-t-[3px] border-l-[3px] rounded-tl-lg" :
+                                        className={`absolute ${pos} w-6 h-6 border-[#F5C842] ${i === 0 ? "border-t-[3px] border-l-[3px] rounded-tl-lg" :
                                             i === 1 ? "border-t-[3px] border-r-[3px] rounded-tr-lg" :
-                                            i === 2 ? "border-b-[3px] border-l-[3px] rounded-bl-lg" :
-                                                      "border-b-[3px] border-r-[3px] rounded-br-lg"
-                                        }`}
+                                                i === 2 ? "border-b-[3px] border-l-[3px] rounded-bl-lg" :
+                                                    "border-b-[3px] border-r-[3px] rounded-br-lg"
+                                            }`}
                                     />
                                 ))}
                             </div>
@@ -533,7 +545,7 @@ export function CheckoutResultClient({
                                 <Banknote className="h-7 w-7 text-white" />
                             </div>
                             <h1 className="text-xl font-bold">
-                                {locale === "vi" ? "Chuyển khoản thanh toán" : "Bank Transfer Payment"}
+                                {t("bankTransferTitle")}
                             </h1>
                             <p className="text-blue-200 text-sm mt-1">{orderNumber}</p>
 
@@ -548,7 +560,7 @@ export function CheckoutResultClient({
                                 <div className="mt-4 inline-flex items-center gap-2 bg-red-500/30 rounded-full px-4 py-2">
                                     <AlertCircle className="h-4 w-4" />
                                     <span className="text-sm font-medium">
-                                        {locale === "vi" ? "Đã quá hạn thanh toán" : "Payment time expired"}
+                                        {t("bankTransferExpired")}
                                     </span>
                                 </div>
                             )}
@@ -558,7 +570,7 @@ export function CheckoutResultClient({
                     {/* Amount */}
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 text-center border border-blue-100">
                         <p className="text-sm text-gray-500 mb-1">
-                            {locale === "vi" ? "Số tiền cần chuyển" : "Amount to transfer"}
+                            {t("bankTransferAmount")}
                         </p>
                         <p className="text-3xl font-bold text-[#0D47A1]">{formatVND(finalAmount)}</p>
                     </div>
@@ -566,7 +578,7 @@ export function CheckoutResultClient({
                     {/* VietQR Code */}
                     <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center shadow-sm">
                         <p className="text-sm text-gray-500 mb-4">
-                            {locale === "vi" ? "Quét mã QR để chuyển khoản" : "Scan QR code to transfer"}
+                            {t("bankTransferScanQR")}
                         </p>
                         <img
                             src={qrUrl}
@@ -579,30 +591,30 @@ export function CheckoutResultClient({
                     {/* Bank Info */}
                     <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
                         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
-                            {locale === "vi" ? "Thông tin chuyển khoản" : "Transfer Information"}
+                            {t("bankTransferInfo")}
                         </h3>
                         <div className="space-y-2">
                             <div className="flex items-center justify-between py-2 border-b border-gray-50">
                                 <span className="text-sm text-gray-500">
-                                    {locale === "vi" ? "Ngân hàng" : "Bank"}
+                                    {t("bankTransferBank")}
                                 </span>
                                 <span className="text-sm font-medium text-gray-800">{bankSettings.bankId}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-gray-50">
                                 <span className="text-sm text-gray-500">
-                                    {locale === "vi" ? "Số tài khoản" : "Account No"}
+                                    {t("bankTransferAccountNo")}
                                 </span>
                                 <span className="text-sm font-mono font-medium text-gray-800">{bankSettings.accountNo}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-gray-50">
                                 <span className="text-sm text-gray-500">
-                                    {locale === "vi" ? "Chủ tài khoản" : "Account Holder"}
+                                    {t("bankTransferAccountHolder")}
                                 </span>
                                 <span className="text-sm font-medium text-gray-800">{bankSettings.accountName}</span>
                             </div>
                             <div className="flex items-center justify-between py-2">
                                 <span className="text-sm text-gray-500">
-                                    {locale === "vi" ? "Nội dung CK" : "Transfer content"}
+                                    {t("bankTransferContent")}
                                 </span>
                                 <span className="text-sm font-mono font-bold text-[#0D47A1]">{qrDescription}</span>
                             </div>
@@ -615,12 +627,10 @@ export function CheckoutResultClient({
                             <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                             <div className="text-sm text-amber-800">
                                 <p className="font-medium mb-1">
-                                    {locale === "vi" ? "Lưu ý quan trọng" : "Important"}
+                                    {t("bankTransferImportant")}
                                 </p>
                                 <p>
-                                    {locale === "vi"
-                                        ? "Vui lòng chuyển đúng số tiền và nội dung chuyển khoản. Vé sẽ được gửi qua email sau khi đơn hàng được xác nhận."
-                                        : "Please transfer the exact amount with the correct transfer content. Tickets will be emailed once the order is confirmed."}
+                                    {t("bankTransferNote")}
                                 </p>
                             </div>
                         </div>
@@ -629,7 +639,7 @@ export function CheckoutResultClient({
                     {/* Order Items */}
                     <div className="bg-white rounded-2xl border border-gray-100 p-5">
                         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                            {locale === "vi" ? "Chi tiết đơn hàng" : "Order Details"}
+                            {t("bankTransferOrderDetails")}
                         </h3>
                         <div className="space-y-3">
                             {items.map((item, idx) => (
@@ -645,7 +655,7 @@ export function CheckoutResultClient({
                         {discountAmount > 0 && (
                             <div className="flex justify-between items-center pt-3 mt-2 border-t border-gray-100">
                                 <span className="text-sm text-gray-500">
-                                    {locale === "vi" ? "Giảm giá" : "Discount"}
+                                    {t("bankTransferDiscount")}
                                 </span>
                                 <span className="text-sm text-green-600">-{formatVND(discountAmount)}</span>
                             </div>
@@ -655,9 +665,7 @@ export function CheckoutResultClient({
                     {/* Contact */}
                     <div className="text-center text-xs text-gray-400">
                         <p>
-                            {locale === "vi"
-                                ? `Email xác nhận đã được gửi đến ${customerEmail}`
-                                : `Confirmation email sent to ${customerEmail}`}
+                            {t("bankTransferEmailConfirm", { email: customerEmail })}
                         </p>
                     </div>
 
@@ -876,7 +884,7 @@ export function CheckoutResultClient({
                     <div className="space-y-5">
                         <h2 className="flex items-center gap-2 text-sm font-bold text-[#1A1A2E] uppercase tracking-wider">
                             <Sparkles className="h-4 w-4 text-[#F5C842]" />
-                            {t("yourTickets")} — {passIds.length} {passIds.length > 1 ? "vé" : "vé"}
+                            {t("yourTickets")} — {passIds.length} {t("ticketUnit")}
                         </h2>
 
                         <div className="space-y-4">
@@ -960,7 +968,7 @@ export function CheckoutResultClient({
                                             <div className="flex items-center justify-center p-5 sm:pl-3 sm:border-l sm:border-dashed sm:border-gray-200">
                                                 <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-inner">
                                                     <QRCodeSVG
-                                                        value={`${qrBaseUrl}${passId}`}
+                                                        value={`${passId}`}
                                                         size={128}
                                                         level="H"
                                                         bgColor="#FFFFFF"
@@ -980,6 +988,21 @@ export function CheckoutResultClient({
                             <Smartphone className="h-5 w-5 text-amber-600 flex-shrink-0" />
                             <p className="text-xs text-amber-800 font-medium">{t("screenshotTip")}</p>
                         </div>
+
+                        {/* ── Voucher section ──────────────────────────────────── */}
+                        {vouchers.length > 0 && (
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 px-1">
+                                    <Gift className="h-4 w-4 text-[#F5C842]" />
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        🎁 {t("voucherSectionTitle")} ({vouchers.length})
+                                    </span>
+                                </div>
+                                {vouchers.map((v) => (
+                                    <VoucherQRCard key={v.id} voucher={v} />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
 

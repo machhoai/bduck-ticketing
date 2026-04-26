@@ -136,6 +136,14 @@ export interface OrderStatusResult {
   expiresAt?: string;
   /** QR description for bank_transfer orders — displayed as transfer content */
   qrDescription?: string;
+  /** Vouchers issued for this order */
+  vouchers?: {
+    id: string;
+    code: string;
+    templateName: string;
+    status: string;
+    voucherType: string;
+  }[];
 }
 
 export async function getOrderStatus(
@@ -175,6 +183,22 @@ export async function getOrderStatus(
       });
   }
 
+  // Fetch issued vouchers for this order
+  const voucherSnap = await adminDb
+    .collection(COLLECTIONS.ISSUED_VOUCHERS)
+    .where("orderId", "==", doc.id)
+    .get();
+  const vouchers = voucherSnap.docs.map((d) => {
+    const v = d.data();
+    return {
+      id: d.id,
+      code: (v.code as string) || "",
+      templateName: (v.templateName as string) || "",
+      status: (v.status as string) || "unknown",
+      voucherType: (v.voucherType as string) || "",
+    };
+  });
+
   return {
     status: data.status,
     passIds,
@@ -200,5 +224,6 @@ export async function getOrderStatus(
       ? (data.expiresAt.toDate() as Date).toISOString()
       : undefined,
     qrDescription: data.paymentDetails?.providerData?.qrDescription,
+    vouchers: vouchers.length > 0 ? vouchers : undefined,
   };
 }

@@ -4,12 +4,14 @@
  *
  * Re-sends the ticket confirmation email for a paid order.
  * Used by the "Resend email" button on the checkout result page.
+ * Also includes voucher QR codes if the order has issued vouchers.
  */
 import { type NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/client";
 import { sendTicketEmail } from "@/lib/email/tickets";
 import type { OrderDocument } from "@/types/firestore";
+import type { VoucherEmailInfo } from "@/lib/deal-checkout";
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,7 +45,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send email
+    // Fetch issued vouchers for this order
+    const voucherSnap = await adminDb
+      .collection(COLLECTIONS.ISSUED_VOUCHERS)
+      .where("orderId", "==", orderId)
+      .get();
+
+    const vouchers: VoucherEmailInfo[] = voucherSnap.docs.map((d) => {
+      const v = d.data();
+      return {
+        templateName: (v.templateName as string) || "",
+        code: (v.code as string) || "",
+        status: (v.status as string) === "active" ? "WON_VOUCHER" : (v.status as string),
+        message: (v.status as string) === "active"
+          ? `Chúc mừng! Bạn nhận được ${v.templateName}`
+          : "",
+      };
+    });
+
+    // Send email with vouchers
     const success = await sendTicketEmail({
       to: order.customerEmail,
       customerName: order.customerName,
@@ -59,6 +79,7 @@ export async function POST(request: NextRequest) {
       finalAmount: order.finalAmount,
       discountAmount: order.discountAmount,
       passIds: order.passIds ?? [],
+      vouchers: vouchers.length > 0 ? vouchers : undefined,
     });
 
     if (!success) {
