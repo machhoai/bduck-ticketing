@@ -11,8 +11,7 @@ import type {
     VoucherTemplateDocument,
 } from "@/types/firestore";
 import { checkDealSectionTimeGate } from "@/lib/dealUtils";
-import { registerEventCustomer } from "@/lib/event-gacha";
-import { sendVoucherNotificationEmail, type IssuedVoucherInfo } from "@/lib/email/voucher-notification";
+import { registerAndClaimVoucher } from "@/lib/event-gacha";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -232,11 +231,24 @@ export async function generateVoucherCode(
     return `${prefix}${ts}${suffix}`;
 }
 
+// ─── Voucher Email Info (for embedding in ticket email) ──────────────────────
+
+export interface VoucherEmailInfo {
+    templateName: string;
+    code: string;
+    /** "WON_VOUCHER" | "LUCK_NEXT_TIME" | "ERROR" for gacha, "ISSUED" for standard */
+    status: string;
+    /** Human-readable message for the customer */
+    message: string;
+}
+
 // ─── Issue Vouchers Post-Payment ──────────────────────────────────────────────
 
 /**
  * After order is confirmed paid, issue vouchers for all deal items that have giftVoucher config.
- * Also handles event_gacha vouchers by calling the external API.
+ * Handles event_gacha vouchers by calling register + gacha roll to get real voucher codes.
+ *
+ * Returns VoucherEmailInfo[] so callers can embed voucher details in the ticket email.
  *
  * This runs OUTSIDE the main transaction (fire-and-forget with error logging)
  * because it involves external API calls that shouldn't block order completion.
@@ -244,9 +256,9 @@ export async function generateVoucherCode(
 export async function issueVouchersForOrder(
     order: OrderDocument,
     resolved: Map<string, ResolvedDealItem>
-): Promise<string[]> {
+): Promise<{ issuedIds: string[]; vouchers: VoucherEmailInfo[] }> {
     const issuedIds: string[] = [];
-    const issuedVouchers: IssuedVoucherInfo[] = [];
+    const vouchers: VoucherEmailInfo[] = [];
     const now = Timestamp.now();
 
     for (const [productId, deal] of resolved) {
@@ -275,8 +287,8 @@ export async function issueVouchersForOrder(
         for (let i = 0; i < qty; i++) {
             try {
                 if (template.voucherType === "event_gacha" && template.eventGachaConfig) {
-                    // ── Event Gacha: call external API ──
-                    const result = await registerEventCustomer({
+                    // ── Event Gacha: register + roll to get actual voucher code ──
+                    const result = await registerAndClaimVoucher({
                         apiBaseUrl: template.eventGachaConfig.apiBaseUrl,
                         eventId: template.eventGachaConfig.eventId,
                         customer: {
@@ -288,13 +300,18 @@ export async function issueVouchersForOrder(
                         source: template.eventGachaConfig.source,
                     });
 
-                    // Create issued voucher record (for audit trail)
+                    // Use real voucher code if won, otherwise placeholder
+                    const voucherCode = result.success && result.voucherCode
+                        ? result.voucherCode
+                        : `PENDING-${order.orderNumber}-${i + 1}`;
+
+                    // Create issued voucher record
                     const voucherRef = adminDb.collection(COLLECTIONS.ISSUED_VOUCHERS).doc();
                     const voucherData: Record<string, unknown> = {
                         templateId: template.id,
                         templateName: template.name,
                         voucherType: template.voucherType,
-                        code: `GACHA-${order.orderNumber}-${i + 1}`, // internal reference
+                        code: voucherCode,
                         customerId: order.customerId || "",
                         customerEmail: order.customerEmail,
                         customerPhone: order.customerPhone || "",
@@ -304,8 +321,8 @@ export async function issueVouchersForOrder(
                         dealSectionId: deal.sectionId,
                         dealItemId: deal.item.id,
                         issuedAt: now,
-                        expiresAt: now, // N/A for gacha
-                        status: result.success ? "active" : "pending_registration",
+                        expiresAt: now, // N/A for gacha vouchers
+                        status: result.success ? "active" : "pending",
                         createdAt: now,
                         updatedAt: now,
                     };
@@ -313,8 +330,10 @@ export async function issueVouchersForOrder(
                     // Store API result metadata
                     if (result.success) {
                         voucherData.eventGachaResult = {
-                            spinsRemaining: result.spinsRemaining,
-                            isNewUser: result.isNewUser,
+                            voucherCode: result.voucherCode,
+                            campaignName: result.campaignName,
+                            rewardType: result.rewardType,
+                            rewardValue: result.rewardValue,
                             message: result.message,
                         };
                     } else {
@@ -324,16 +343,14 @@ export async function issueVouchersForOrder(
                     await voucherRef.set(voucherData);
                     issuedIds.push(voucherRef.id);
 
-                    // Collect for email notification
-                    issuedVouchers.push({
+                    // Collect for ticket email
+                    vouchers.push({
                         templateName: template.name,
-                        voucherType: "event_gacha",
-                        code: `GACHA-${order.orderNumber}-${i + 1}`,
-                        gachaSpinsRemaining: result.success ? result.spinsRemaining : undefined,
-                        gachaMessage: result.success ? (result.message || "Đăng ký thành công!") : undefined,
-                        gachaPlayUrl: template.eventGachaConfig?.apiBaseUrl
-                            ? `${template.eventGachaConfig.apiBaseUrl}/event/${template.eventGachaConfig.eventId}`
-                            : undefined,
+                        code: voucherCode,
+                        status: result.success ? "WON_VOUCHER" : (result.status || "ERROR"),
+                        message: result.success
+                            ? `🎉 Mã voucher: ${voucherCode}`
+                            : "Vui lòng đến quầy để được hỗ trợ nhận voucher.",
                     });
 
                     // Increment template counter
@@ -371,12 +388,12 @@ export async function issueVouchersForOrder(
                     await voucherRef.set(voucherData);
                     issuedIds.push(voucherRef.id);
 
-                    // Collect for email notification
-                    issuedVouchers.push({
+                    const expDateStr = new Date(expiresAt.toMillis()).toLocaleDateString("vi-VN");
+                    vouchers.push({
                         templateName: template.name,
-                        voucherType: "standard",
                         code,
-                        expiresAt: new Date(expiresAt.toMillis()).toISOString(),
+                        status: "ISSUED",
+                        message: `Mã voucher: ${code} — HSD: ${expDateStr}`,
                     });
 
                     // Increment template counter
@@ -390,19 +407,7 @@ export async function issueVouchersForOrder(
         }
     }
 
-    // ── Send voucher notification email ──
-    if (issuedVouchers.length > 0 && order.customerEmail) {
-        sendVoucherNotificationEmail({
-            to: order.customerEmail,
-            customerName: order.customerName,
-            orderNumber: order.orderNumber,
-            vouchers: issuedVouchers,
-        }).catch((err) =>
-            console.error("[deal-checkout] Voucher email failed (non-fatal):", err)
-        );
-    }
-
-    return issuedIds;
+    return { issuedIds, vouchers };
 }
 
 // ─── Update Deal Item Stock (Inside Transaction) ──────────────────────────────
@@ -497,7 +502,7 @@ export async function updateDealStock(
  */
 export async function issueVouchersFromOrderItems(
     order: OrderDocument
-): Promise<string[]> {
+): Promise<{ issuedIds: string[]; vouchers: VoucherEmailInfo[] }> {
     // Rebuild resolved map from order items
     const resolved = new Map<string, ResolvedDealItem>();
 
@@ -521,6 +526,6 @@ export async function issueVouchersFromOrderItems(
         }
     }
 
-    if (resolved.size === 0) return [];
+    if (resolved.size === 0) return { issuedIds: [], vouchers: [] };
     return issueVouchersForOrder(order, resolved);
 }

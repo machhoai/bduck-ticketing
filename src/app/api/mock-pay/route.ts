@@ -176,28 +176,36 @@ export async function GET(request: NextRequest) {
       });
     });
 
-    // Fire-and-forget ticket email — don't block the redirect
-    sendTicketEmail({
-      to: order.customerEmail,
-      customerName: order.customerName,
-      orderId: orderId,
-      orderNumber: order.orderNumber,
-      items: order.items.map((item) => ({
-        productName: item.productName,
-        productType: item.productType,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        subtotal: item.subtotal,
-      })),
-      finalAmount: order.finalAmount,
-      discountAmount: order.discountAmount,
-      passIds,
-    }).catch(() => {}); // logged inside sendTicketEmail
+    // Fire-and-forget: issue vouchers first, then send combined ticket+voucher email
+    (async () => {
+      try {
+        // Issue vouchers (may call external gacha API)
+        const { vouchers } = await issueVouchersFromOrderItems(
+          { ...order, id: orderId! } as OrderDocument
+        );
 
-    // Fire-and-forget: issue deal vouchers (event gacha + standard)
-    issueVouchersFromOrderItems({ ...order, id: orderId! } as OrderDocument).catch((err) =>
-      console.error("[mock-pay] Voucher issuance failed (non-fatal):", err)
-    );
+        // Send ticket email WITH voucher info embedded
+        await sendTicketEmail({
+          to: order.customerEmail,
+          customerName: order.customerName,
+          orderId: orderId!,
+          orderNumber: order.orderNumber,
+          items: order.items.map((item) => ({
+            productName: item.productName,
+            productType: item.productType,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            subtotal: item.subtotal,
+          })),
+          finalAmount: order.finalAmount,
+          discountAmount: order.discountAmount,
+          passIds,
+          vouchers: vouchers.length > 0 ? vouchers : undefined,
+        });
+      } catch (err) {
+        console.error("[mock-pay] Voucher/email failed (non-fatal):", err);
+      }
+    })();
 
     return NextResponse.redirect(`${resultUrl}&status=success`);
   } catch (error) {

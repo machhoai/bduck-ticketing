@@ -280,7 +280,7 @@ export async function confirmCounterPayment(
       });
     });
 
-    // Fire-and-forget: issue deal vouchers
+    // Fire-and-forget: issue deal vouchers (counter orders don't send ticket email)
     const updatedSnap = await orderRef.get();
     const updatedOrder = { id: updatedSnap.id, ...updatedSnap.data() } as OrderDocument;
     issueVouchersFromOrderItems(updatedOrder).catch((err) =>
@@ -355,33 +355,36 @@ export async function approveBankTransferOrder(
       });
     });
 
-    // Fire-and-forget: send ticket email
+    // Re-read order after transaction to get latest state
     const updatedSnap = await orderRef.get();
     const updated = { id: updatedSnap.id, ...updatedSnap.data() } as OrderDocument;
 
-    sendTicketEmail({
-      to: updated.customerEmail,
-      customerName: updated.customerName,
-      orderId,
-      orderNumber: updated.orderNumber,
-      items: updated.items.map((i) => ({
-        productName: i.productName,
-        productType: i.productType,
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        subtotal: i.subtotal,
-      })),
-      finalAmount: updated.finalAmount,
-      discountAmount: updated.discountAmount,
-      passIds,
-    }).catch((err) =>
-      console.error("[approveBankTransferOrder] Ticket email failed:", err)
-    );
+    // Fire-and-forget: issue vouchers first, then send combined ticket+voucher email
+    (async () => {
+      try {
+        const { vouchers } = await issueVouchersFromOrderItems(updated);
 
-    // Fire-and-forget: issue deal vouchers
-    issueVouchersFromOrderItems(updated as OrderDocument).catch((err) =>
-      console.error("[approveBankTransferOrder] Voucher issuance failed (non-fatal):", err)
-    );
+        await sendTicketEmail({
+          to: updated.customerEmail,
+          customerName: updated.customerName,
+          orderId,
+          orderNumber: updated.orderNumber,
+          items: updated.items.map((i) => ({
+            productName: i.productName,
+            productType: i.productType,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            subtotal: i.subtotal,
+          })),
+          finalAmount: updated.finalAmount,
+          discountAmount: updated.discountAmount,
+          passIds,
+          vouchers: vouchers.length > 0 ? vouchers : undefined,
+        });
+      } catch (err) {
+        console.error("[approveBankTransferOrder] Email/voucher failed (non-fatal):", err);
+      }
+    })();
 
     return { success: true, data: { passIds } };
   } catch (err) {

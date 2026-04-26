@@ -6,7 +6,7 @@ import { COLLECTIONS } from "@/lib/firebase/client";
 import { PassCard, type SerializedPass } from "@/components/customer/PassCard";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ShieldCheck, Smartphone, Eye, Ticket } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Smartphone, Eye, Ticket, Gift } from "lucide-react";
 
 export const dynamic = "force-dynamic"; // always fresh — no cache for tickets
 
@@ -82,6 +82,32 @@ export default async function ETicketPage({ params }: PageProps) {
     // Find index of the primary pass for highlighting
     const primaryIndex = allPasses.findIndex((p) => p.id === passId);
 
+    // 3. Load vouchers for this order
+    interface VoucherDisplay {
+        id: string;
+        code: string;
+        templateName: string;
+        status: string;
+        voucherType: string;
+    }
+    let vouchers: VoucherDisplay[] = [];
+    if (primaryPass.orderId) {
+        const voucherSnap = await adminDb
+            .collection(COLLECTIONS.ISSUED_VOUCHERS)
+            .where("orderId", "==", primaryPass.orderId)
+            .get();
+        vouchers = voucherSnap.docs.map((d) => {
+            const v = d.data();
+            return {
+                id: d.id,
+                code: v.code || "",
+                templateName: v.templateName || "",
+                status: v.status || "unknown",
+                voucherType: v.voucherType || "",
+            };
+        });
+    }
+
     return (
         <main className="min-h-screen bg-gradient-to-b pt-20 from-[#F8F6F0] to-[#F0EDE6]">
             {/* ── Top bar ───────────────────────────────────────────────── */}
@@ -150,6 +176,44 @@ export default async function ETicketPage({ params }: PageProps) {
                         </div>
                     ))}
                 </div>
+
+                {/* ── Voucher cards ─────────────────────────────────────── */}
+                {vouchers.length > 0 && (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 px-1">
+                            <Gift className="h-4 w-4 text-[#F5C842]" />
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                Voucher tặng kèm ({vouchers.length})
+                            </span>
+                        </div>
+                        {vouchers.map((v) => (
+                            <div
+                                key={v.id}
+                                className="bg-gradient-to-br from-[#FFF7E6] to-[#FFF3D6] rounded-2xl border border-[#F5C842] p-4 shadow-sm"
+                            >
+                                <p className="text-xs font-semibold text-[#B8860B] mb-2">
+                                    {v.templateName}
+                                </p>
+                                <div className="bg-white rounded-lg border-2 border-dashed border-[#F5C842] p-3 text-center">
+                                    <p className="text-lg font-extrabold text-[#1A1A2E] font-mono tracking-widest">
+                                        {v.code}
+                                    </p>
+                                </div>
+                                <div className="mt-2 flex items-center justify-between">
+                                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                                        v.status === "active"
+                                            ? "bg-emerald-100 text-emerald-700"
+                                            : v.status === "redeemed"
+                                            ? "bg-gray-100 text-gray-500"
+                                            : "bg-amber-100 text-amber-700"
+                                    }`}>
+                                        {v.status === "active" ? "✓ Có hiệu lực" : v.status === "redeemed" ? "Đã sử dụng" : "Đến quầy nhận hỗ trợ"}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* ── Usage tips ───────────────────────────────────────── */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

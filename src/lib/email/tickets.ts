@@ -15,6 +15,7 @@
  */
 import QRCode from "qrcode";
 import transporter, { FROM_ADDRESS } from "./transporter";
+import type { VoucherEmailInfo } from "@/lib/deal-checkout";
 
 interface TicketItem {
     productName: string;
@@ -33,6 +34,7 @@ interface TicketEmailParams {
     finalAmount: number;
     discountAmount: number;
     passIds: string[];
+    vouchers?: VoucherEmailInfo[];
     locale?: string;
 }
 
@@ -65,6 +67,7 @@ function buildTicketHTML(params: TicketEmailParams): string {
         finalAmount,
         discountAmount,
         passIds,
+        vouchers,
         orderId,
         locale = "vi",
     } = params;
@@ -208,6 +211,39 @@ function buildTicketHTML(params: TicketEmailParams): string {
             </table>
           </td>
         </tr>
+
+        ${vouchers && vouchers.length > 0 ? `
+        <!-- Voucher section -->
+        <tr>
+          <td style="padding:24px 32px 0;">
+            <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#1A1A2E;text-transform:uppercase;letter-spacing:0.5px;">
+              🎁 Voucher tặng kèm (${vouchers.length})
+            </p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              ${vouchers.map((v) => `
+              <tr>
+                <td style="padding:8px 0;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#FFF7E6 0%,#FFF3D6 100%);border:1px solid #F5C842;border-radius:12px;overflow:hidden;">
+                    <tr>
+                      <td style="padding:16px;">
+                        <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#B8860B;">
+                          ${v.templateName}
+                        </p>
+                        <p style="margin:0 0 8px;font-size:20px;font-weight:800;color:#1A1A2E;font-family:monospace;letter-spacing:2px;text-align:center;background:#FFFFFF;padding:10px;border-radius:8px;border:2px dashed #F5C842;">
+                          ${v.code}
+                        </p>
+                        <p style="margin:0;font-size:12px;color:#666;${v.status !== "WON_VOUCHER" && v.status !== "ISSUED" ? "color:#E53E3E;font-weight:600;" : ""}">
+                          ${v.message}
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>`).join("")}
+            </table>
+          </td>
+        </tr>
+        ` : ""}
 
         <!-- CTA -->
         <tr>

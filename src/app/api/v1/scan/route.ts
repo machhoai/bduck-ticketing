@@ -56,19 +56,23 @@ export async function GET(req: Request): Promise<Response> {
   const passById = await lookupPass(rawCode);
   if (passById) return Response.json({ success: true, type: "pass", pass: passById });
 
-  // 2. Try as pass short code (last 12 chars shown on ticket/email)
+  // 2. Try as exact orderId (full Firestore document ID)
+  const orderById = await lookupOrderById(rawCode);
+  if (orderById) return Response.json({ success: true, type: "order", order: orderById });
+
+  // 3. Try as pass short code (last 12 chars shown on ticket/email)
   const passByShort = await lookupPassByShortCode(upper);
   if (passByShort) return Response.json({ success: true, type: "pass", pass: passByShort });
 
-  // 3. Try as orderNumber
+  // 4. Try as orderNumber
   const byNumber = await lookupOrder("orderNumber", upper);
   if (byNumber) return Response.json({ success: true, type: "order", order: byNumber });
 
-  // 4. Try as orderCode
+  // 5. Try as orderCode
   const byCode = await lookupOrder("orderCode", upper);
   if (byCode) return Response.json({ success: true, type: "order", order: byCode });
 
-  // 5. Nothing matched
+  // 6. Nothing matched
   return notFoundResponse(rawCode);
 }
 
@@ -104,6 +108,35 @@ async function lookupPassByShortCode(shortCode: string) {
 }
 
 // ─── Order lookup ─────────────────────────────────────────────────────────────
+
+async function lookupOrderById(orderId: string) {
+  if (!orderId) return null;
+  try {
+    const snap = await adminDb.collection(COLLECTIONS.ORDERS).doc(orderId).get();
+    if (!snap.exists) return null;
+    let order = { id: snap.id, ...(snap.data() as Omit<OrderDocument, "id">) } as OrderDocument;
+
+    // Lazy auto-cancel expired pending counter orders
+    if (
+      order.status === "pending" &&
+      order.expiresAt &&
+      Timestamp.now().toMillis() > order.expiresAt.toMillis()
+    ) {
+      const now = Timestamp.now();
+      await snap.ref.update({
+        status: "cancelled",
+        cancelledAt: now,
+        cancelReason: "counter_expired",
+        updatedAt: now,
+      });
+      order = { ...order, status: "cancelled", cancelReason: "counter_expired" } as OrderDocument;
+    }
+
+    return serializeOrder(order);
+  } catch {
+    return null;
+  }
+}
 
 async function lookupOrder(field: "orderNumber" | "orderCode", value: string) {
   try {
