@@ -101,7 +101,7 @@ function buildCancelHTML(params: TransferCancelParams): string {
       <!-- Footer -->
       <div style="background:#f9f9f9;padding:16px;text-align:center;border-top:1px solid #eee;">
         <p style="margin:0;font-size:12px;color:#999;">
-          © B.Duck Cityfuns | <a href="${appUrl}" style="color:#FF6B00;text-decoration:none;">bduck.vn</a>
+          © B.Duck Cityfuns | <a href="${appUrl}" style="color:#FF6B00;text-decoration:none;">cityfuns.joyworld.vn/</a>
         </p>
       </div>
     </div>

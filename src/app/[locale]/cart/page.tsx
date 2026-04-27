@@ -19,8 +19,10 @@ import {
     ShieldCheck,
     Package,
     Gift,
+    AlertTriangle,
 } from "lucide-react";
 import { useCartStore, rehydrateCart } from "@/stores/cart";
+import { useCartStockCheck } from "@/hooks/useCartStockCheck";
 import { Button } from "@/components/ui/Button";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
@@ -49,6 +51,14 @@ export default function CartPage() {
     const hasHydrated = useCartStore((s) => s._hasHydrated);
 
     const [mounted, setMounted] = useState(false);
+
+    // ── Stock check: runs on mount once hydrated ──
+    const {
+        canIncrease,
+        isOutOfStock,
+        isUnavailable,
+        hasStockIssues,
+    } = useCartStockCheck(items, hasHydrated && items.length > 0);
 
     useEffect(() => {
         rehydrateCart();
@@ -136,25 +146,57 @@ export default function CartPage() {
                     </div>
                 ) : (
                     /* ── Cart content ─────────────────────────────── */
+                    <>
+                    {/* Stock warning banner */}
+                    {hasStockIssues && (
+                        <div className={cn(
+                            "flex items-center gap-3 mb-6 px-4 py-3 rounded-2xl bg-red-50 border border-red-100 transition-all duration-500",
+                            mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                        )}>
+                            <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                            <p className="text-sm text-red-600 font-medium">
+                                Một số sản phẩm đã hết hàng. Vui lòng xóa để tiếp tục đặt mua.
+                            </p>
+                        </div>
+                    )}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                         {/* ── Items list ──────────────────────────────── */}
                         <div className="lg:col-span-2 space-y-4">
-                            {items.map((item, idx) => (
+                            {items.map((item, idx) => {
+                                const itemOOS = isOutOfStock(item.productId) || isUnavailable(item.productId);
+                                const itemCanIncrease = canIncrease(item.productId, item.quantity);
+
+                                return (
                                 <div
-                                    key={item.productId}
+                                    key={item.productId + (item.dealOptionId ?? "")}
                                     className={cn(
-                                        "group relative flex gap-4 bg-white rounded-2xl p-4 sm:p-5 border border-border-light/60 shadow-card hover:shadow-card-hover transition-all duration-500",
+                                        "group relative flex gap-4 rounded-2xl p-4 sm:p-5 border shadow-card transition-all duration-500",
+                                        itemOOS
+                                            ? "bg-red-50/40 border-red-200/60"
+                                            : "bg-white border-border-light/60 hover:shadow-card-hover",
                                         mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
                                     )}
                                     style={{ transitionDelay: `${150 + idx * 80}ms` }}
                                 >
+                                    {/* OOS overlay */}
+                                    {itemOOS && (
+                                        <div className="absolute inset-0 bg-white/40 rounded-2xl z-10 flex items-center justify-center pointer-events-none">
+                                            <span className="px-4 py-1.5 rounded-full bg-red-500 text-white text-xs font-bold shadow-md">
+                                                Hết hàng
+                                            </span>
+                                        </div>
+                                    )}
+
                                     {/* Thumbnail */}
                                     <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-border-light/50">
                                         <Image
                                             src={item.thumbnailUrl}
                                             alt={item.name}
                                             fill
-                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                            className={cn(
+                                                "object-cover transition-transform duration-500",
+                                                itemOOS ? "opacity-40" : "group-hover:scale-105"
+                                            )}
                                         />
                                         {/* Type badge */}
                                         <span className="absolute top-1.5 left-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-white/90 backdrop-blur-sm text-text-primary shadow-sm">
@@ -166,12 +208,20 @@ export default function CartPage() {
                                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                                         <div>
                                             <div className="flex items-start justify-between gap-2">
-                                                <h2 className="font-bold text-text-primary text-sm sm:text-base line-clamp-2 leading-snug">
+                                                <h2 className={cn(
+                                                    "font-bold text-sm sm:text-base line-clamp-2 leading-snug",
+                                                    itemOOS ? "text-text-muted" : "text-text-primary"
+                                                )}>
                                                     {item.name}
                                                 </h2>
                                                 <button
                                                     onClick={() => removeItem(item.productId)}
-                                                    className="flex-shrink-0 p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-all duration-200"
+                                                    className={cn(
+                                                        "relative z-20 flex-shrink-0 p-1.5 rounded-lg transition-all duration-200",
+                                                        itemOOS
+                                                            ? "text-red-500 hover:text-red-700 hover:bg-red-100"
+                                                            : "text-text-muted hover:text-red-500 hover:bg-red-50"
+                                                    )}
                                                     aria-label={`Xóa ${item.name}`}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -180,7 +230,10 @@ export default function CartPage() {
 
                                             {/* Price */}
                                             <div className="flex items-center gap-2 mt-1">
-                                                <span className="font-extrabold text-text-primary text-sm sm:text-base">
+                                                <span className={cn(
+                                                    "font-extrabold text-sm sm:text-base",
+                                                    itemOOS ? "text-text-muted" : "text-text-primary"
+                                                )}>
                                                     {formatVND(item.price)}
                                                 </span>
                                                 {item.originalPrice !== item.price && (
@@ -207,6 +260,17 @@ export default function CartPage() {
                                         </div>
 
                                         {/* Quantity controls */}
+                                        {itemOOS ? (
+                                            <div className="flex items-center mt-3">
+                                                <button
+                                                    onClick={() => removeItem(item.productId)}
+                                                    className="relative z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-100 text-red-600 text-xs font-semibold hover:bg-red-200 transition-colors"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                    Xóa khỏi giỏ hàng
+                                                </button>
+                                            </div>
+                                        ) : (
                                         <div className="flex items-center justify-between mt-3">
                                             <div className="flex items-center gap-0">
                                                 <button
@@ -225,19 +289,31 @@ export default function CartPage() {
                                                     onClick={() =>
                                                         updateQuantity(item.productId, item.quantity + 1)
                                                     }
-                                                    className="w-8 h-8 rounded-r-xl border border-border-light bg-surface-100 hover:bg-surface-200 flex items-center justify-center transition-colors"
+                                                    disabled={!itemCanIncrease}
+                                                    className={cn(
+                                                        "w-8 h-8 rounded-r-xl border border-border-light flex items-center justify-center transition-colors",
+                                                        itemCanIncrease
+                                                            ? "bg-surface-100 hover:bg-surface-200"
+                                                            : "bg-surface-100/50 cursor-not-allowed"
+                                                    )}
                                                     aria-label="Tăng"
+                                                    title={!itemCanIncrease ? "Đã đạt giới hạn" : undefined}
                                                 >
-                                                    <Plus className="h-3.5 w-3.5 text-text-secondary" />
+                                                    <Plus className={cn(
+                                                        "h-3.5 w-3.5",
+                                                        itemCanIncrease ? "text-text-secondary" : "text-text-muted/40"
+                                                    )} />
                                                 </button>
                                             </div>
                                             <span className="text-sm font-bold text-duck-orange">
                                                 {formatVND(item.price * item.quantity)}
                                             </span>
                                         </div>
+                                        )}
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {/* ── Order summary ────────────────────────────── */}
@@ -317,9 +393,16 @@ export default function CartPage() {
                                         onClick={() => router.push(`/${locale}/checkout`)}
                                         className="w-full btn-bounce shadow-yellow text-base"
                                         id="proceed-to-checkout-btn"
+                                        disabled={hasStockIssues}
                                     >
-                                        {t("checkout")}
-                                        <ArrowRight className="h-4 w-4" />
+                                        {hasStockIssues ? (
+                                            <>Vui lòng cập nhật giỏ hàng</>
+                                        ) : (
+                                            <>
+                                                {t("checkout")}
+                                                <ArrowRight className="h-4 w-4" />
+                                            </>
+                                        )}
                                     </Button>
 
                                     <Link
@@ -333,6 +416,7 @@ export default function CartPage() {
                             </div>
                         </div>
                     </div>
+                    </>
                 )}
             </div>
         </main>
