@@ -447,14 +447,22 @@ export function TransferOrdersClient({
     orders: SerializedOrder[];
 }) {
     const router = useRouter();
-    const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "paid" | "cancelled">("all");
+    const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "expired" | "paid" | "cancelled">("all");
     const [dateFilter, setDateFilter] = useState(todayStr());
     const [showAllDates, setShowAllDates] = useState(false);
 
     // ── Filtering ──
     const filtered = initialOrders.filter((o) => {
         // Status filter
-        if (statusFilter !== "all" && o.status !== statusFilter) return false;
+        if (statusFilter === "expired") {
+            // Show only pending + expired orders
+            if (o.status !== "pending" || !isExpired(o.expiresAt)) return false;
+        } else if (statusFilter === "pending") {
+            // Pending tab excludes expired orders
+            if (o.status !== "pending" || isExpired(o.expiresAt)) return false;
+        } else if (statusFilter !== "all" && o.status !== statusFilter) {
+            return false;
+        }
         // Date filter
         if (!showAllDates && dateFilter) {
             const orderDate = toDateStr(o.createdAt);
@@ -484,12 +492,12 @@ export function TransferOrdersClient({
 
     // ── Counts (for current date filter) ──
     const dateOrders = showAllDates ? initialOrders : initialOrders.filter((o) => toDateStr(o.createdAt) === dateFilter);
-    const pendingCount = dateOrders.filter((o) => o.status === "pending").length;
-    const paidCount = dateOrders.filter((o) => o.status === "paid").length;
-    const cancelledCount = dateOrders.filter((o) => o.status === "cancelled").length;
     const expiredCount = dateOrders.filter(
         (o) => o.status === "pending" && isExpired(o.expiresAt)
     ).length;
+    const pendingCount = dateOrders.filter((o) => o.status === "pending").length - expiredCount;
+    const paidCount = dateOrders.filter((o) => o.status === "paid").length;
+    const cancelledCount = dateOrders.filter((o) => o.status === "cancelled").length;
 
     // ── Date navigation ──
     const shiftDate = (days: number) => {
@@ -583,24 +591,33 @@ export function TransferOrdersClient({
 
             {/* Status Filters */}
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
-                {(["all", "pending", "paid", "cancelled"] as const).map((f) => (
-                    <button
-                        key={f}
-                        onClick={() => setStatusFilter(f)}
-                        className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${statusFilter === f
-                            ? "bg-[#0D47A1] text-white shadow-sm"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
-                    >
-                        {f === "all"
-                            ? `Tất cả (${dateOrders.length})`
-                            : f === "pending"
-                                ? `Chờ duyệt (${pendingCount})`
-                                : f === "paid"
-                                    ? `Đã duyệt (${paidCount})`
-                                    : `Đã hủy (${cancelledCount})`}
-                    </button>
-                ))}
+                {(["all", "pending", "expired", "paid", "cancelled"] as const).map((f) => {
+                    const label =
+                        f === "all" ? `Tất cả (${dateOrders.length})`
+                        : f === "pending" ? `Chờ duyệt (${pendingCount})`
+                        : f === "expired" ? `Quá hạn (${expiredCount})`
+                        : f === "paid" ? `Đã duyệt (${paidCount})`
+                        : `Đã hủy (${cancelledCount})`;
+
+                    const isExpiredTab = f === "expired";
+
+                    return (
+                        <button
+                            key={f}
+                            onClick={() => setStatusFilter(f)}
+                            className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${statusFilter === f
+                                ? isExpiredTab
+                                    ? "bg-red-600 text-white shadow-sm"
+                                    : "bg-[#0D47A1] text-white shadow-sm"
+                                : isExpiredTab && expiredCount > 0
+                                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                }`}
+                        >
+                            {label}
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Date label */}
