@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useTransition } from "react";
+import React, { useState, useEffect, useCallback, useTransition, useMemo } from "react";
 import Image from "next/image";
-import { ShoppingCart, Clock, Gift, Crown, Check, Loader2, Tag, Flame, Zap } from "lucide-react";
+import { ShoppingCart, Clock, Gift, Crown, Check, Loader2, Tag, Flame, Zap, AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { DealItemDocument } from "@/types/firestore";
 import { useCartStore } from "@/stores/cart";
@@ -165,15 +165,37 @@ export const DealCard = React.memo(function DealCard({
     const [expanded, setExpanded] = useState(false);
     const [pending, startTransition] = useTransition();
     const [selectedOptionIdx, setSelectedOptionIdx] = useState(0);
+    const [limitWarning, setLimitWarning] = useState<string | null>(null);
     const addItem = useCartStore((s) => s.addItem);
+    const cartItems = useCartStore((s) => s.items);
 
     const accent = ACCENTS[index % ACCENTS.length];
     const sticker = STICKERS[index % STICKERS.length];
     const isSoldOut = item.totalStock !== undefined && item.soldCount >= item.totalStock;
     const isLocked = !isOpen;
-    const isDisabled = isLocked || isSoldOut;
     const hasOptions = item.options && item.options.length > 1;
     const selectedOption = hasOptions ? item.options![selectedOptionIdx] : null;
+
+    // ── Cart-aware quantity checks ──
+    const productId = item.linkedProductId ?? item.id;
+    const dedupeKey = productId + (selectedOption?.id ? `_${selectedOption.id}` : "");
+    const currentCartQty = useMemo(() => {
+        const found = cartItems.find(
+            (ci) => (ci.productId + (ci.dealOptionId ? `_${ci.dealOptionId}` : "")) === dedupeKey
+        );
+        return found?.quantity ?? 0;
+    }, [cartItems, dedupeKey]);
+
+    // Check maxQtyPerOrder limit
+    const isMaxQtyReached = currentCartQty >= item.maxQtyPerOrder;
+
+    // Check stock limit (SSR snapshot — server re-validates at checkout)
+    const remainingStock = item.totalStock !== undefined
+        ? Math.max(0, item.totalStock - item.soldCount)
+        : Infinity;
+    const isStockLimitReached = currentCartQty >= remainingStock;
+
+    const isDisabled = isLocked || isSoldOut || isMaxQtyReached || isStockLimitReached;
 
     // Locale-aware text
     const loc = locale ?? "vi";
@@ -186,9 +208,33 @@ export const DealCard = React.memo(function DealCard({
 
     const handleAddToCart = useCallback(() => {
         if (isDisabled || added || pending) return;
+
+        // Double-check limits at click time (cart may have changed)
+        const freshCartItems = useCartStore.getState().items;
+        const freshCartQty = freshCartItems.find(
+            (ci) => (ci.productId + (ci.dealOptionId ? `_${ci.dealOptionId}` : "")) === dedupeKey
+        )?.quantity ?? 0;
+
+        // maxQtyPerOrder guard
+        if (freshCartQty >= item.maxQtyPerOrder) {
+            setLimitWarning(t("maxQtyReached", { max: item.maxQtyPerOrder }));
+            setTimeout(() => setLimitWarning(null), 3_000);
+            return;
+        }
+
+        // Stock guard (SSR snapshot)
+        if (item.totalStock !== undefined) {
+            const freshRemaining = Math.max(0, item.totalStock - item.soldCount);
+            if (freshCartQty >= freshRemaining) {
+                setLimitWarning(t("stockLimitReached"));
+                setTimeout(() => setLimitWarning(null), 3_000);
+                return;
+            }
+        }
+
         startTransition(() => {
             addItem({
-                id: item.linkedProductId ?? item.id,
+                id: productId,
                 name: displayName + (selectedOption ? ` (${selectedOption.label})` : ""),
                 thumbnailUrl: item.thumbnailUrl,
                 price: displayPrice,
@@ -202,9 +248,10 @@ export const DealCard = React.memo(function DealCard({
                 giftVoucherName: item.giftVoucher?.templateName,
             } as Parameters<typeof addItem>[0]);
             setAdded(true);
+            setLimitWarning(null);
             setTimeout(() => setAdded(false), 2_000);
         });
-    }, [isDisabled, added, pending, addItem, item, sectionId, displayName, displayPrice, displayDesc, selectedOption]);
+    }, [isDisabled, added, pending, addItem, item, sectionId, productId, dedupeKey, displayName, displayPrice, displayDesc, selectedOption, t]);
 
     const discountText =
         item.dealType === "percentage" ? `-${item.discountValue}%`
@@ -403,6 +450,21 @@ export const DealCard = React.memo(function DealCard({
                     <p className="text-[10px] text-gray-400 italic">⚠ {t("maxOnePerOrder")}</p>
                 )}
 
+                {/* Limit warning toast */}
+                {/* {limitWarning && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <AlertCircle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                        <span className="text-[11px] font-semibold text-amber-700">{limitWarning}</span>
+                    </div>
+                )} */}
+
+                {/* Cart quantity indicator */}
+                {/* {currentCartQty > 0 && !isSoldOut && !isLocked && (
+                    <p className="text-[10px] text-gray-400">
+                        {t("inCartQty", { qty: currentCartQty, max: item.maxQtyPerOrder })}
+                    </p>
+                )} */}
+
                 {/* Divider */}
                 <div className="h-px bg-gray-100" />
 
@@ -443,7 +505,8 @@ export const DealCard = React.memo(function DealCard({
                             : added ? <><Check className="h-3.5 w-3.5" /> {t("added")}</>
                                 : isSoldOut ? t("soldOut")
                                     : isLocked ? <><Clock className="h-3.5 w-3.5" /> {opensAt}</>
-                                        : <><ShoppingCart className="h-3.5 w-3.5" /> {t("buyNow")}</>}
+                                        : (isMaxQtyReached || isStockLimitReached) ? t("limitReached")
+                                            : <><ShoppingCart className="h-3.5 w-3.5" /> {t("buyNow")}</>}
                     </button>
                 </div>
             </div>
