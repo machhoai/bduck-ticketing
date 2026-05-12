@@ -34,7 +34,7 @@ export const metadata: Metadata = {
                 url: "/images/bduck_summer_backdrop.png",
                 width: 1200,
                 height: 630,
-                alt: "B.Duck Cityfuns — Summer Fun",
+                alt: "B.Duck Cityfuns",
             },
         ],
         locale: "vi_VN",
