@@ -8,7 +8,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/lib/auth/provider";
 import { NavbarProvider } from "@/stores/navbar";
-import { GoogleAnalytics } from "@next/third-parties/google";
+import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 import "../globals.css";
 
 const montserrat = Montserrat({
@@ -88,6 +88,7 @@ export default async function LocaleLayout({
                     </AuthProvider>
                 </NextIntlClientProvider>
                 <GoogleAnalytics gaId="G-1NPZNCKHD6" />
+                <GoogleTagManager gtmId="GTM-PJLFRG6W" />
             </body>
         </html>
     );
