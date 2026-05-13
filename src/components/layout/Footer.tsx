@@ -173,6 +173,17 @@ export const Footer: React.FC = () => {
                                     />
                                 </a>
                             </div>
+                            <div className="relative w-full h-20 mt-2">
+                                <a href="http://online.gov.vn/Home/WebDetails/142281" target="_blank" rel="noopener noreferrer">
+                                    <Image
+                                        src="/20150827110756-dathongbao.png"
+                                        alt="BCT Logo"
+                                        width={150}
+                                        height={100}
+                                        className="object-contain"
+                                    />
+                                </a>
+                            </div>
                         </div>
 
                         {/* BCT compliance badge */}
