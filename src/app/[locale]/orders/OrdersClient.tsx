@@ -657,13 +657,15 @@ export function OrdersClient({
     // Which orders to render
     const ordersToShow = isOffline ? offlineOrders : initialOrders;
 
-    // Split into counter (QR) vs regular
+    // Split into categories to prioritize completed (paid) orders first
+    const paidOrders = ordersToShow.filter((o) => o.status === "paid");
     const counterOrders = ordersToShow.filter(
         (o) => o.status === "pending" && o.paymentProvider === "counter"
     );
-    const regularOrders = ordersToShow.filter(
-        (o) => !(o.status === "pending" && o.paymentProvider === "counter")
+    const otherPendingOrders = ordersToShow.filter(
+        (o) => o.status === "pending" && o.paymentProvider !== "counter"
     );
+    const cancelledOrders = ordersToShow.filter((o) => o.status === "cancelled");
 
     return (
         <div className="space-y-5">
@@ -688,7 +690,17 @@ export function OrdersClient({
                 <EmptyState locale={locale} t={t} isOffline={isOffline} />
             ) : (
                 <div className="space-y-4">
-                    {/* Counter QR orders always first */}
+                    {/* 1. Paid orders (Completed) */}
+                    {paidOrders.map((order) => (
+                        <RegularOrderCard
+                            key={order.id}
+                            order={order}
+                            locale={locale}
+                            t={t}
+                        />
+                    ))}
+
+                    {/* 2. Counter QR orders (Pending) */}
                     {counterOrders.map((order) => (
                         <CounterOrderCard
                             key={order.id}
@@ -698,8 +710,18 @@ export function OrdersClient({
                         />
                     ))}
 
-                    {/* Regular orders */}
-                    {regularOrders.map((order) => (
+                    {/* 3. Other pending orders */}
+                    {otherPendingOrders.map((order) => (
+                        <RegularOrderCard
+                            key={order.id}
+                            order={order}
+                            locale={locale}
+                            t={t}
+                        />
+                    ))}
+
+                    {/* 4. Cancelled orders */}
+                    {cancelledOrders.map((order) => (
                         <RegularOrderCard
                             key={order.id}
                             order={order}
