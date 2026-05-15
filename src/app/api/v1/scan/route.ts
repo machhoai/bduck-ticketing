@@ -182,7 +182,42 @@ function tsToISO(ts: { toMillis?: () => number; toDate?: () => Date } | undefine
   return null;
 }
 
+function getRealTimePassStatus(pass: PassDocument): string {
+  if (pass.status !== "active") return pass.status;
+  
+  const now = Timestamp.now();
+  if (pass.validFrom && now.toMillis() < pass.validFrom.toMillis()) {
+    return "not_yet_valid";
+  }
+  if (pass.validUntil && now.toMillis() > pass.validUntil.toMillis()) {
+    return "expired";
+  }
+  if (pass.validityType === "time-slot" && pass.timeSlotStart && pass.timeSlotEnd) {
+    const formatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const vnTimeStr = formatter.format(new Date(now.toMillis()));
+    const [currentHour, currentMinute] = vnTimeStr.split(":").map(Number);
+    const currentTotalMinutes = currentHour * 60 + currentMinute;
+    
+    const [startHour, startMinute] = pass.timeSlotStart.split(":").map(Number);
+    const startTotalMinutes = startHour * 60 + startMinute;
+    
+    const [endHour, endMinute] = pass.timeSlotEnd.split(":").map(Number);
+    const endTotalMinutes = endHour * 60 + endMinute;
+    
+    if (currentTotalMinutes < startTotalMinutes || currentTotalMinutes > endTotalMinutes) {
+      return "out_of_time_slot";
+    }
+  }
+  
+  return "active";
+}
+
 function serializePass(pass: PassDocument) {
+  const currentStatus = getRealTimePassStatus(pass);
   return {
     id: pass.id,
     shortCode: pass.id.slice(-12).toUpperCase(),
@@ -197,11 +232,14 @@ function serializePass(pass: PassDocument) {
     productType: pass.productType,
     thumbnailUrl: pass.thumbnailUrl ?? null,
     validityType: pass.validityType,
-    status: pass.status,
+    status: currentStatus,
+    originalStatus: pass.status,
     comboItems: pass.comboItems ?? null,
     visitDate: tsToISO(pass.visitDate as never),
     validFrom: tsToISO(pass.validFrom as never),
     validUntil: tsToISO(pass.validUntil as never),
+    timeSlotStart: pass.timeSlotStart ?? null,
+    timeSlotEnd: pass.timeSlotEnd ?? null,
     createdAt: tsToISO(pass.createdAt as never),
     usedAt: tsToISO(pass.usedAt as never),
     usedBy: pass.usedBy ?? null,

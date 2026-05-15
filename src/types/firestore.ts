@@ -21,7 +21,7 @@ export interface Timestamp {
 // Shared Types
 // ─────────────────────────────────────────────
 
-export type ValidityType = "date-specific" | "date-range" | "open-dated";
+export type ValidityType = "date-specific" | "date-range" | "open-dated" | "time-slot";
 
 export interface ValidityConfig {
   type: ValidityType;
@@ -31,6 +31,9 @@ export interface ValidityConfig {
   validDaysFromPurchase?: number;
   /** optional hard deadline for any validity type */
   overallExpiresAt?: Timestamp;
+  /** time-slot: allowed time frames to activate, e.g. "09:00" */
+  timeSlotStart?: string;
+  timeSlotEnd?: string;
 }
 
 export interface ComboItem {
@@ -298,9 +301,10 @@ export interface PaymentDetails {
    * "mock"          — giả lập thanh toán (dev/test)
    * "counter"       — thanh toán trực tiếp tại quầy (Online-to-Offline flow)
    * "bank_transfer" — chuyển khoản ngân hàng qua QR VietQR
+   * "payos"         — cổng thanh toán PayOS
    */
-  provider: "vnpay" | "mock" | "counter" | "bank_transfer";
-  providerData: VNPayData | MockPayData | CounterPayData | BankTransferPayData;
+  provider: "vnpay" | "mock" | "counter" | "bank_transfer" | "payos";
+  providerData: VNPayData | MockPayData | CounterPayData | BankTransferPayData | any;
 }
 
 export type OrderStatus = "pending" | "paid" | "cancelled";
@@ -336,6 +340,11 @@ export interface OrderDocument {
    * undefined với đơn online (vnpay / mock).
    */
   orderCode?: string; // indexed — counter orders only
+
+  /**
+   * Mã đơn hàng PayOS — dùng để query trạng thái thanh toán từ webhook PayOS.
+   */
+  payosOrderCode?: number; // indexed — payos orders only
 
   /**
    * Thời điểm đơn counter tự động bị huỷ nếu chưa thanh toán.
@@ -443,6 +452,8 @@ export interface PassDocument {
   visitDate?: Timestamp; // date-specific
   validFrom?: Timestamp; // date-range: start
   validUntil?: Timestamp; // date-range & date-specific: deadline
+  timeSlotStart?: string; // time-slot: start time (HH:mm)
+  timeSlotEnd?: string;   // time-slot: end time (HH:mm)
 
   /**
    * QR code is rendered client-side from Document ID (raw pass.id)

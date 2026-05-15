@@ -78,11 +78,13 @@ const formSchema = z.object({
   totalStock: z.coerce.number().int().positive().optional().or(z.literal("").transform(() => undefined)),
   stockResetPeriod: z.enum(["none", "daily", "monthly"]).default("none"),
   commissionRate: z.coerce.number().min(0).max(100).optional().or(z.literal("").transform(() => undefined)),
-  validityType: z.enum(["open-dated", "date-specific", "date-range"]),
+  validityType: z.enum(["open-dated", "date-specific", "date-range", "time-slot"]),
   validDaysFromPurchase: z.coerce.number().int().positive().optional().or(z.literal("").transform(() => undefined)),
   specificDate: z.string().optional(),
   validFrom: z.string().optional(),
   validUntil: z.string().optional(),
+  timeSlotStart: z.string().optional(),
+  timeSlotEnd: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -139,6 +141,8 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
       commissionRate: initialData?.commissionRate ? initialData.commissionRate * 100 : undefined,
       validityType: initialData?.validityConfig?.type ?? "open-dated",
       validDaysFromPurchase: initialData?.validityConfig?.validDaysFromPurchase ?? undefined,
+      timeSlotStart: initialData?.validityConfig?.timeSlotStart ?? undefined,
+      timeSlotEnd: initialData?.validityConfig?.timeSlotEnd ?? undefined,
     },
   });
 
@@ -233,6 +237,12 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
     if (data.validityType === "date-range") {
       if (data.validFrom) validityConfig.validFrom = data.validFrom;
       if (data.validUntil) validityConfig.overallExpiresAt = data.validUntil;
+    }
+    if (data.validityType === "time-slot") {
+      if (data.validDaysFromPurchase) validityConfig.validDaysFromPurchase = data.validDaysFromPurchase;
+      if (data.validUntil) validityConfig.overallExpiresAt = data.validUntil;
+      if (data.timeSlotStart) validityConfig.timeSlotStart = data.timeSlotStart;
+      if (data.timeSlotEnd) validityConfig.timeSlotEnd = data.timeSlotEnd;
     }
 
     // Build nameLocales: always store vi (= name), add en if provided
@@ -632,6 +642,7 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
             <option value="open-dated">Open-dated (số ngày từ khi mua)</option>
             <option value="date-specific">Ngày cụ thể</option>
             <option value="date-range">Khoảng thời gian</option>
+            <option value="time-slot">Kích hoạt theo giờ (Time-slot)</option>
           </select>
         </Field>
 
@@ -661,6 +672,33 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
             <Field label="Đến ngày" error={errors.validUntil?.message}>
               <input {...register("validUntil")} type="date" className={inputCls(!!errors.validUntil)} />
             </Field>
+          </div>
+        )}
+
+        {validityType === "time-slot" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Giờ bắt đầu" hint="VD: 09:00" error={errors.timeSlotStart?.message}>
+                <input {...register("timeSlotStart")} type="time" className={inputCls(!!errors.timeSlotStart)} />
+              </Field>
+              <Field label="Giờ kết thúc" hint="VD: 11:00" error={errors.timeSlotEnd?.message}>
+                <input {...register("timeSlotEnd")} type="time" className={inputCls(!!errors.timeSlotEnd)} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Hiệu lực (ngày)" hint="Từ lúc mua" error={errors.validDaysFromPurchase?.message}>
+                <input
+                  {...register("validDaysFromPurchase")}
+                  type="number"
+                  min="1"
+                  placeholder="365"
+                  className={inputCls(!!errors.validDaysFromPurchase)}
+                />
+              </Field>
+              <Field label="Hạn chót" hint="Ngày hết hạn (tùy chọn)" error={errors.validUntil?.message}>
+                <input {...register("validUntil")} type="date" className={inputCls(!!errors.validUntil)} />
+              </Field>
+            </div>
           </div>
         )}
       </div>

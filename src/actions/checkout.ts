@@ -1453,10 +1453,10 @@ export async function syncPayOSPayment(orderId: string): Promise<boolean> {
 
     // Idempotency check: only process if pending
     if (order.status !== "pending") return true;
-    if (order.paymentProvider !== "payos" || !order.payosOrderCode) return false;
+    if (order.paymentDetails?.provider !== "payos" || !order.payosOrderCode) return false;
 
     const payos = getPayOS();
-    const info = await payos.paymentRequests.getPaymentLinkInformation(order.payosOrderCode);
+    const info = await payos.paymentRequests.get(order.payosOrderCode);
 
     if (info.status !== "PAID") return false;
 

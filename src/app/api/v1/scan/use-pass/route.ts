@@ -84,6 +84,8 @@ export async function POST(req: Request): Promise<Response> {
         visitDate: tsToISO(pass.visitDate as never),
         validFrom: tsToISO(pass.validFrom as never),
         validUntil: tsToISO(pass.validUntil as never),
+        timeSlotStart: pass.timeSlotStart ?? null,
+        timeSlotEnd: pass.timeSlotEnd ?? null,
         createdAt: tsToISO(pass.createdAt as never),
         usedAt: tsToISO(pass.usedAt as never),
         usedBy: pass.usedBy ?? null,
@@ -102,6 +104,27 @@ export async function POST(req: Request): Promise<Response> {
       }
       if (pass.validUntil && now.toMillis() > pass.validUntil.toMillis()) {
         return { error: "EXPIRED", status: 422, message: "Vé đã hết hạn", pass: passInfo };
+      }
+
+      if (pass.validityType === "time-slot" && pass.timeSlotStart && pass.timeSlotEnd) {
+        const formatter = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Asia/Ho_Chi_Minh",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const vnTimeStr = formatter.format(new Date(now.toMillis()));
+        const [currentHour, currentMinute] = vnTimeStr.split(":").map(Number);
+        const currentTotalMinutes = currentHour * 60 + currentMinute;
+        
+        const [startHour, startMinute] = pass.timeSlotStart.split(":").map(Number);
+        const startTotalMinutes = startHour * 60 + startMinute;
+        
+        const [endHour, endMinute] = pass.timeSlotEnd.split(":").map(Number);
+        const endTotalMinutes = endHour * 60 + endMinute;
+        
+        if (currentTotalMinutes < startTotalMinutes || currentTotalMinutes > endTotalMinutes) {
+          return { error: "OUT_OF_TIME_SLOT", status: 422, message: `Vé chỉ có thể kích hoạt trong khung giờ ${pass.timeSlotStart} - ${pass.timeSlotEnd}`, pass: passInfo };
+        }
       }
 
       tx.update(passRef, {
