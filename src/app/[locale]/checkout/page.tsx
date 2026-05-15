@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { useTranslations } from "next-intl";
 import { useCartStore, rehydrateCart } from "@/stores/cart";
-import { createOrder, validatePromoCode, createCounterOrder, createBankTransferOrder } from "@/actions/checkout";
+import { createOrder, validatePromoCode, createCounterOrder, createBankTransferOrder, createPayOSOrder } from "@/actions/checkout";
 import { getEnabledPaymentMethodIds } from "@/actions/admin/settings";
 import { useNavbar } from "@/stores/navbar";
 import { Button } from "@/components/ui/Button";
@@ -62,7 +62,7 @@ const PROMO_ERRORS: Record<string, string> = {
 
 // ─── Payment Methods ──────────────────────────────────────────────────────────
 // NOTE: legacy type kept for submit routing; extended by PaymentMethodId in future
-type PaymentMethod = "counter" | "bank_transfer" | "mock";
+type PaymentMethod = "counter" | "bank_transfer" | "payos" | "mock";
 
 // ─── Test Payment Cards (mock only) ──────────────────────────────────────────
 type SimulateType = "success" | "fail" | "timeout";
@@ -158,6 +158,7 @@ export default function CheckoutPage() {
         setSelectedPaymentId(first);
         if (first === "counter") setPaymentMethod("counter");
         else if (first === "bank_transfer") setPaymentMethod("bank_transfer");
+        else if (first === "payos") setPaymentMethod("payos");
         else setPaymentMethod("mock");
       }
     });
@@ -320,6 +321,51 @@ export default function CheckoutPage() {
     clearCart();
     window.location.href = `/${locale}/checkout/result?orderId=${result.data.orderId}`;
   }, [hasHydrated, items, submitting, getValues, promoCode, clearCart, locale]);
+
+  // ── Submit: PayOS Payment ──────────────────────────────────────────────────
+  const onSubmitPayOS = useCallback(async () => {
+    if (!hasHydrated || items.length === 0 || submitting) return;
+    setSubmitting(true);
+    setServerError("");
+
+    const data = getValues();
+
+    const result = await createPayOSOrder({
+      items: items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        dealSectionId: i.dealSectionId,
+        dealItemId: i.dealItemId,
+        dealOptionId: i.dealOptionId,
+      })),
+      customerName: data.customerName,
+      customerEmail: data.customerEmail,
+      customerPhone: data.customerPhone || undefined,
+      promoCode: promoCode || undefined,
+    });
+
+    if (!result.success) {
+      const errorMessages: Record<string, string> = {
+        "order.empty_cart": "Giỏ hàng trống",
+        "order.product_not_found": "Sản phẩm không tồn tại",
+        "order.product_unavailable": "Sản phẩm đã ngưng bán",
+        "order.stock_exhausted": "Vé đã hết",
+        "order.payment_link_failed": "Không thể tạo liên kết thanh toán. Vui lòng thử lại.",
+        "deal.not_open_yet": "Deal chưa mở bán",
+        "deal.stock_exhausted": "Deal đã hết hàng",
+        "deal.max_qty_exceeded": "Vượt quá số lượng tối đa",
+        "deal.section_max_items": "Vượt giới hạn deal/đơn",
+      };
+      setServerError(errorMessages[result.errorKey] ?? result.message ?? "Có lỗi xảy ra. Vui lòng thử lại.");
+      setSubmitting(false);
+      return;
+    }
+
+    // PayOS returns a checkoutUrl — redirect user to PayOS payment page
+    sessionStorage.setItem("checkout_pending_order", result.data.orderId);
+    clearCart();
+    window.location.href = result.data.checkoutUrl;
+  }, [hasHydrated, items, submitting, getValues, promoCode, clearCart]);
   // ── Submit: Mock payment (dev) ────────────────────────────────────────────────
   const onSubmitMock = useCallback(async () => {
     if (!hasHydrated || items.length === 0 || submitting) return;
@@ -557,6 +603,7 @@ export default function CheckoutPage() {
                           // Route to submit handler based on payment method selection
                           if (id === "counter") setPaymentMethod("counter");
                           else if (id === "bank_transfer") setPaymentMethod("bank_transfer");
+                          else if (id === "payos") setPaymentMethod("payos");
                           else setPaymentMethod("mock");
                         }}
                         disabled={submitting}
@@ -575,7 +622,9 @@ export default function CheckoutPage() {
                           ? onSubmitCounter
                           : paymentMethod === "bank_transfer"
                             ? onSubmitBankTransfer
-                            : onSubmitMock
+                            : paymentMethod === "payos"
+                              ? onSubmitPayOS
+                              : onSubmitMock
                       }
                       disabled={submitting}
                       loading={submitting}
@@ -591,6 +640,12 @@ export default function CheckoutPage() {
                         <>
                           <CreditCard className="h-4 w-4" />
                           {submitting ? t("processing") : t("bankTransferSubmitBtn")}
+                          {!submitting && <ChevronRight className="h-4 w-4" />}
+                        </>
+                      ) : paymentMethod === "payos" ? (
+                        <>
+                          <CreditCard className="h-4 w-4" />
+                          {submitting ? t("processing") : t("payNow")}
                           {!submitting && <ChevronRight className="h-4 w-4" />}
                         </>
                       ) : (

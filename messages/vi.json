@@ -184,7 +184,9 @@
         "methodCounterDesc": "Nhận mã QR đơn hàng, đến quầy thu ngân để thanh toán tiền mặt hoặc chuyển khoản",
         "methodBankTransfer": "Chuyển khoản ngân hàng",
         "methodBankTransferDesc": "Quét mã VietQR để chuyển khoản trực tiếp, vé gửi qua email sau khi xác nhận",
-        "secureNote": "Mọi giao dịch được mã hóa SSL 256-bit và xử lý qua cổng thanh toán được Bộ Công Thương Việt Nam cấp phép"
+        "methodPayOS": "Chuyển khoản",
+        "methodPayOSDesc": "Quét QR, chuyển khoản ngân hàng hoặc ví điện tử",
+        "secureNote": "Mọi giao dịch được mã hóa và xử lý qua cổng thanh toán được Bộ Công Thương Việt Nam cấp phép"
     },
     "footer": {
         "copyright": "© 2026 Công ty TNHH Joy World Entertainment. Mọi quyền được bảo lưu.",

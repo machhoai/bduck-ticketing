@@ -11,6 +11,8 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@next/third-parties": "^16.2.4",
+    "@payos/node": "^2.0.5",
+    "@payos/payos-checkout": "^1.0.8",
     "@zxing/browser": "^0.1.5",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",

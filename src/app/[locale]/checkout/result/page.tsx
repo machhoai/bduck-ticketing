@@ -18,6 +18,7 @@ interface PageProps {
     orderId?: string;
     status?: string;
     error?: string;
+    cancel?: string;  // PayOS sends cancel=true when user cancels
   }>;
 }
 
@@ -26,7 +27,7 @@ export default async function CheckoutResultPage({
   searchParams,
 }: PageProps) {
   const { locale } = await params;
-  const { orderId, status, error } = await searchParams;
+  const { orderId, status, error, cancel } = await searchParams;
 
   // Fetch full order data server-side for initial render
   let orderData: OrderStatusResult | null = null;
@@ -36,10 +37,24 @@ export default async function CheckoutResultPage({
   }
 
   // Override with explicit redirect params
-  const resolvedStatus =
-    status === "failed" || error
-      ? "failed"
-      : orderData?.status ?? null;
+  // PayOS redirects with status=CANCELLED&cancel=true on user cancellation
+  const isCancelled =
+    status === "failed" ||
+    status === "CANCELLED" ||
+    cancel === "true" ||
+    !!error;
+
+  const resolvedStatus = isCancelled
+    ? "failed"
+    : orderData?.status ?? null;
+
+  // If PayOS user cancelled and order is still pending → mark cancelled in Firestore
+  if (isCancelled && orderId && orderData?.status === "pending" && orderData?.paymentProvider === "payos") {
+    const { cancelPayOSOrder } = await import("@/actions/checkout");
+    cancelPayOSOrder(orderId).catch((err: unknown) =>
+      console.error("[checkout/result] Failed to cancel PayOS order:", err)
+    );
+  }
 
   // Fetch bank settings for bank_transfer orders
   let bankSettings: { bankId: string; accountNo: string; template: string; accountName: string } | undefined;

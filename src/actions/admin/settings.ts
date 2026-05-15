@@ -16,14 +16,15 @@ import type {
 const DEFAULT_METHODS: PaymentMethodToggle[] = [
   { id: "counter", enabled: true, order: 1 },
   { id: "bank_transfer", enabled: false, order: 2 },
-  { id: "vnpay_card", enabled: false, order: 3 },
-  { id: "vnpay_intl", enabled: false, order: 4 },
-  { id: "vnpay_transfer", enabled: false, order: 5 },
-  { id: "vnpay_qr", enabled: false, order: 6 },
-  { id: "vnpay_wallet", enabled: false, order: 7 },
-  { id: "momo", enabled: false, order: 8 },
-  { id: "zalopay", enabled: false, order: 9 },
-  { id: "apple_pay", enabled: false, order: 10 },
+  { id: "payos", enabled: false, order: 3 },
+  { id: "vnpay_card", enabled: false, order: 4 },
+  { id: "vnpay_intl", enabled: false, order: 5 },
+  { id: "vnpay_transfer", enabled: false, order: 6 },
+  { id: "vnpay_qr", enabled: false, order: 7 },
+  { id: "vnpay_wallet", enabled: false, order: 8 },
+  { id: "momo", enabled: false, order: 9 },
+  { id: "zalopay", enabled: false, order: 10 },
+  { id: "apple_pay", enabled: false, order: 11 },
 ];
 
 

@@ -124,6 +124,10 @@ export interface OrderStatusResult {
     quantity: number;
     unitPrice: number;
     subtotal: number;
+    productId: string;
+    dealSectionId?: string;
+    dealItemId?: string;
+    dealOptionId?: string;
   }[];
   finalAmount: number;
   discountAmount: number;
@@ -206,13 +210,28 @@ export async function getOrderStatus(
     customerEmail: data.customerEmail ?? "",
     customerName: data.customerName ?? "",
     items: (data.items ?? []).map(
-      (item: { productName: string; productType: string; thumbnailUrl: string; quantity: number; unitPrice: number; subtotal: number }) => ({
+      (item: {
+        productName: string;
+        productType: string;
+        thumbnailUrl: string;
+        quantity: number;
+        unitPrice: number;
+        subtotal: number;
+        productId: string;
+        dealSectionId?: string;
+        dealItemId?: string;
+        dealOptionId?: string;
+      }) => ({
         productName: item.productName,
         productType: item.productType,
         thumbnailUrl: item.thumbnailUrl,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         subtotal: item.subtotal,
+        productId: item.productId,
+        dealSectionId: item.dealSectionId,
+        dealItemId: item.dealItemId,
+        dealOptionId: item.dealOptionId,
       })
     ),
     finalAmount: data.finalAmount ?? 0,

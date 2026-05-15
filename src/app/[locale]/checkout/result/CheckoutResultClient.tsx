@@ -2,9 +2,12 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { useTranslations } from "next-intl";
 import { useNavbar } from "@/stores/navbar";
+import { useCartStore } from "@/stores/cart";
+import { validateOrderItemsForRetry } from "@/actions/checkout";
 import { CheckoutProgressBar } from "@/components/customer/CheckoutProgressBar";
 import {
     CheckCircle2,
@@ -40,6 +43,10 @@ interface OrderItemData {
     quantity: number;
     unitPrice: number;
     subtotal: number;
+    productId: string;
+    dealSectionId?: string;
+    dealItemId?: string;
+    dealOptionId?: string;
 }
 
 interface PassValidity {
@@ -156,6 +163,7 @@ export function CheckoutResultClient({
     initialVouchers,
 }: CheckoutResultClientProps) {
     const t = useTranslations("checkout");
+    const router = useRouter();
 
     useNavbar({ darkText: true, shadow: false, solidBg: true });
 
@@ -169,6 +177,9 @@ export function CheckoutResultClient({
         "idle" | "sending" | "success"
     >("idle");
     const [vouchers, setVouchers] = useState<VoucherData[]>(initialVouchers ?? []);
+    
+    const [tryAgainLoading, setTryAgainLoading] = useState(false);
+    const [tryAgainError, setTryAgainError] = useState<string | null>(null);
 
     // ─── Clear in-flight payment flag ────────────────────────────────────────────
     // Set in checkout page before navigating to payment gateway. Clear it here
@@ -746,6 +757,62 @@ export function CheckoutResultClient({
 
     // ── Failed ──────────────────────────────────────────────────────────────────
     if (status === "failed") {
+        const handleTryAgain = async () => {
+            if (tryAgainLoading) return;
+            setTryAgainLoading(true);
+            setTryAgainError(null);
+
+            try {
+                const result = await validateOrderItemsForRetry(items.map(item => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    dealSectionId: item.dealSectionId,
+                    dealItemId: item.dealItemId,
+                    dealOptionId: item.dealOptionId
+                })));
+
+                if (result.success) {
+                    // Clear and recreate cart
+                    const cartStore = useCartStore.getState();
+                    cartStore.clearCart();
+                    
+                    // Set directly to handle any potential missing dedup parameters
+                    useCartStore.setState({
+                        items: items.map(item => ({
+                            productId: item.productId,
+                            name: item.productName,
+                            thumbnailUrl: item.thumbnailUrl,
+                            price: item.unitPrice, // using the paid unit price for display
+                            originalPrice: item.unitPrice, 
+                            quantity: item.quantity,
+                            type: item.productType as "ticket" | "combo" | "membership",
+                            dealSectionId: item.dealSectionId,
+                            dealItemId: item.dealItemId,
+                            dealOptionId: item.dealOptionId,
+                        }))
+                    });
+                    
+                    router.push(`/${locale}/checkout`);
+                } else {
+                    const errorMessages: Record<string, string> = {
+                        "order.empty_cart": "Giỏ hàng trống",
+                        "order.product_not_found": "Sản phẩm không tồn tại",
+                        "order.product_unavailable": "Sản phẩm đã ngưng bán",
+                        "order.stock_exhausted": "Sản phẩm đã hết hàng",
+                        "deal.not_open_yet": "Deal chưa mở bán",
+                        "deal.stock_exhausted": "Deal đã hết hàng",
+                        "deal.max_qty_exceeded": "Vượt quá số lượng tối đa",
+                        "deal.section_max_items": "Vượt giới hạn deal/đơn",
+                    };
+                    setTryAgainError(errorMessages[result.errorKey] || result.message || "Có lỗi xảy ra. Vui lòng thử lại.");
+                }
+            } catch (err) {
+                setTryAgainError("Lỗi hệ thống. Vui lòng thử lại sau.");
+            } finally {
+                setTryAgainLoading(false);
+            }
+        };
+
         return (
             <ResultShell locale={locale}>
                 <StatusCard
@@ -754,11 +821,24 @@ export function CheckoutResultClient({
                     title={t("resultFailed")}
                     description={t("resultFailedDesc")}
                 >
-                    <Link href={`/${locale}/checkout`}>
-                        <Button variant="primary" size="lg">
-                            {t("tryAgain")}
+                    <div className="flex flex-col items-center gap-3 w-full">
+                        {tryAgainError && (
+                            <p className="text-sm text-red-600 bg-red-50 rounded-xl p-3 w-full flex items-center justify-center gap-2">
+                                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                {tryAgainError}
+                            </p>
+                        )}
+                        <Button 
+                            variant="primary" 
+                            size="lg" 
+                            onClick={handleTryAgain}
+                            loading={tryAgainLoading}
+                            disabled={tryAgainLoading}
+                            className="w-full sm:w-auto"
+                        >
+                            {tryAgainLoading ? t("processing") : t("tryAgain")}
                         </Button>
-                    </Link>
+                    </div>
                 </StatusCard>
             </ResultShell>
         );

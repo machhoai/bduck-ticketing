@@ -26,7 +26,8 @@ export type PaymentMethodId =
     | "zalopay"          // Ví ZaloPay
     | "apple_pay"        // Apple Pay (iOS / macOS only)
     | "counter"          // Thanh toán tại quầy
-    | "bank_transfer";   // Chuyển khoản ngân hàng (VietQR)
+    | "bank_transfer"    // Chuyển khoản ngân hàng (VietQR)
+    | "payos";           // PayOS — Thanh toán trực tuyến (QR / thẻ / ví)
 
 interface PaymentMethodGroup {
     readonly id: string;
@@ -281,6 +282,13 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                     labelKey: t("methodBankTransfer"),
                     descKey: t("methodBankTransferDesc"),
                     icon: <Banknote className="h-5 w-5 text-blue-500" />,
+                },
+                {
+                    id: "payos",
+                    labelKey: t("methodPayOS"),
+                    descKey: t("methodPayOSDesc"),
+                    icon: <QrCode className="h-5 w-5 text-emerald-600" />,
+                    badge: "Nhanh",
                 },
             ],
         },

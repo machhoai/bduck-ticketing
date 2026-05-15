@@ -184,7 +184,9 @@
         "methodCounterDesc": "Receive an order QR code, then pay cash or bank transfer at the cashier",
         "methodBankTransfer": "Bank Transfer",
         "methodBankTransferDesc": "Scan VietQR code to transfer directly, tickets sent via email after confirmation",
-        "secureNote": "All transactions are SSL 256-bit encrypted and processed through payment gateways licensed by Vietnam's Ministry of Industry and Trade"
+        "methodPayOS": "Online Transfer",
+        "methodPayOSDesc": "QR scan, bank transfer, or e-wallet — auto-confirmed, receive tickets instantly",
+        "secureNote": "All transactions are encrypted and processed through payment gateways licensed by Vietnam's Ministry of Industry and Trade"
     },
     "footer": {
         "copyright": "© 2026 Joy World Entertainment Limited. All rights reserved.",
