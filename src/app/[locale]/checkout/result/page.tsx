@@ -44,17 +44,24 @@ export default async function CheckoutResultPage({
     cancel === "true" ||
     !!error;
 
-  const resolvedStatus = isCancelled
-    ? "failed"
-    : orderData?.status ?? null;
-
   // If PayOS user cancelled and order is still pending → mark cancelled in Firestore
   if (isCancelled && orderId && orderData?.status === "pending" && orderData?.paymentProvider === "payos") {
     const { cancelPayOSOrder } = await import("@/actions/checkout");
     cancelPayOSOrder(orderId).catch((err: unknown) =>
       console.error("[checkout/result] Failed to cancel PayOS order:", err)
     );
+  } else if (!isCancelled && status === "PAID" && orderId && orderData?.status === "pending" && orderData?.paymentProvider === "payos") {
+    // Active fallback sync: if PayOS redirects with success but webhook was missed (e.g. localhost)
+    const { syncPayOSPayment } = await import("@/actions/checkout");
+    const fulfilled = await syncPayOSPayment(orderId);
+    if (fulfilled) {
+      orderData = await getOrderStatus(orderId); // Refresh state
+    }
   }
+
+  const resolvedStatus = isCancelled
+    ? "failed"
+    : orderData?.status ?? null;
 
   // Fetch bank settings for bank_transfer orders
   let bankSettings: { bankId: string; accountNo: string; template: string; accountName: string } | undefined;

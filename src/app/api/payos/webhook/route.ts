@@ -48,6 +48,13 @@ export async function POST(request: NextRequest) {
 
     const orderCode = webhookData.orderCode;
 
+    // ── Handle PayOS Test Webhook ──
+    // The PayOS dashboard "Send Test Webhook" button sends orderCode 123 and amount 3000.
+    if (orderCode === 123) {
+      console.log("[payos-webhook] Received PayOS TEST webhook successfully! Signature is valid.");
+      return NextResponse.json({ success: true });
+    }
+
     // ── Find the order by payosOrderCode ──
     const orderQuery = await adminDb
       .collection(COLLECTIONS.ORDERS)

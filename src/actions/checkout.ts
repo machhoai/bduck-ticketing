@@ -25,7 +25,10 @@ import {
   updateDealStockInTransaction,
   type ResolvedDealItem,
 } from "@/lib/deal-checkout";
+import { getOrderStatus } from "./orders";
 import { getPayOS } from "@/lib/payos";
+import { issueVouchersFromOrderItems } from "@/lib/deal-checkout";
+import { sendTicketEmail } from "@/lib/email/tickets";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1434,4 +1437,153 @@ export async function validateOrderItemsForRetry(
   }
 
   return { success: true, data: undefined };
+}
+
+// ─── Active PayOS Sync (Fallback for delayed webhooks) ───────────────────────
+export async function syncPayOSPayment(orderId: string): Promise<boolean> {
+  try {
+    const orderDoc = await adminDb
+      .collection(COLLECTIONS.ORDERS)
+      .doc(orderId)
+      .get();
+
+    if (!orderDoc.exists) return false;
+
+    const order = { id: orderDoc.id, ...orderDoc.data() } as OrderDocument;
+
+    // Idempotency check: only process if pending
+    if (order.status !== "pending") return true;
+    if (order.paymentProvider !== "payos" || !order.payosOrderCode) return false;
+
+    const payos = getPayOS();
+    const info = await payos.paymentRequests.getPaymentLinkInformation(order.payosOrderCode);
+
+    if (info.status !== "PAID") return false;
+
+    // The order is paid but Firestore is still pending.
+    // Perform the fulfillment transaction.
+    const orderRef = adminDb.collection(COLLECTIONS.ORDERS).doc(orderId);
+    const passIds: string[] = [];
+
+    await adminDb.runTransaction(async (tx) => {
+      const freshOrderSnap = await tx.get(orderRef);
+      const freshOrder = freshOrderSnap.data() as OrderDocument;
+
+      if (freshOrder.status !== "pending") return;
+
+      const now = Timestamp.now();
+
+      for (const item of freshOrder.items) {
+        for (let i = 0; i < item.quantity; i++) {
+          const passRef = adminDb.collection(COLLECTIONS.PASSES).doc();
+
+          let validFrom: FirebaseFirestore.Timestamp | undefined;
+          let validUntil: FirebaseFirestore.Timestamp | undefined;
+          let visitDate: FirebaseFirestore.Timestamp | undefined;
+
+          const validity = item.validityConfig;
+
+          if (validity.type === "date-specific" && validity.specificDate) {
+            visitDate = validity.specificDate as unknown as FirebaseFirestore.Timestamp;
+            validUntil = validity.specificDate as unknown as FirebaseFirestore.Timestamp;
+          } else if (validity.type === "open-dated" && validity.validDaysFromPurchase) {
+            validFrom = now;
+            const expiryMs = now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
+            validUntil = Timestamp.fromMillis(expiryMs);
+          } else if (validity.type === "date-range") {
+            validFrom = now;
+            if (validity.validDaysFromPurchase) {
+              const expiryMs = now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
+              validUntil = Timestamp.fromMillis(expiryMs);
+            }
+            if (validity.overallExpiresAt) {
+              validUntil = validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
+            }
+          }
+
+          if (validity.overallExpiresAt) {
+            validUntil = validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const passData: Record<string, any> = {
+            orderId,
+            orderNumber: freshOrder.orderNumber,
+            customerId: freshOrder.customerId ?? "",
+            customerName: freshOrder.customerName,
+            customerEmail: freshOrder.customerEmail,
+            productId: item.productId,
+            productName: item.productName,
+            productType: item.productType,
+            thumbnailUrl: item.thumbnailUrl ?? "",
+            validityType: validity.type,
+            status: "active",
+            createdAt: now,
+          };
+
+          if (item.comboItems) passData.comboItems = item.comboItems;
+          if (visitDate) passData.visitDate = visitDate;
+          if (validFrom) passData.validFrom = validFrom;
+          if (validUntil) passData.validUntil = validUntil;
+          if (freshOrder.affiliateId) passData.affiliateId = freshOrder.affiliateId;
+
+          tx.set(passRef, passData);
+          passIds.push(passRef.id);
+        }
+
+        const productRef = adminDb.collection(COLLECTIONS.PRODUCTS).doc(item.productId);
+        tx.update(productRef, { soldCount: FieldValue.increment(item.quantity) });
+      }
+
+      if (freshOrder.promotionId) {
+        const promoRef = adminDb.collection(COLLECTIONS.PROMOTIONS).doc(freshOrder.promotionId);
+        tx.update(promoRef, { usedCount: FieldValue.increment(1) });
+      }
+
+      tx.update(orderRef, {
+        status: "paid",
+        passIds,
+        paidAt: now,
+        updatedAt: now,
+        paymentDetails: {
+          provider: "payos",
+          providerData: {
+            payosOrderCode: order.payosOrderCode,
+            amount: info.amountPaid ?? info.amount,
+            status: info.status,
+            syncMethod: "active_fallback",
+          },
+        },
+      });
+    });
+
+    // Post-transaction side-effects
+    try {
+      const { vouchers } = await issueVouchersFromOrderItems(order);
+      await sendTicketEmail({
+        to: order.customerEmail,
+        customerName: order.customerName,
+        orderId,
+        orderNumber: order.orderNumber,
+        items: order.items.map((item) => ({
+          productName: item.productName,
+          productType: item.productType,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          subtotal: item.subtotal,
+        })),
+        finalAmount: order.finalAmount,
+        discountAmount: order.discountAmount,
+        passIds,
+        vouchers: vouchers.length > 0 ? vouchers : undefined,
+      });
+    } catch (err) {
+      console.error("[syncPayOSPayment] Error in post-transaction side effects:", err);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[syncPayOSPayment] Failed to sync payment:", error);
+    return false;
+  }
 }
