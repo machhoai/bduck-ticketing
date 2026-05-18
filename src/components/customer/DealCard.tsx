@@ -391,9 +391,15 @@ export const DealCard = React.memo(function DealCard({
                         className="cursor-pointer"
                         onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
                     >
-                        <div 
-                            className={`text-gray-500 text-xs leading-relaxed ${expanded ? "" : "line-clamp-2"} [&_p]:block [&_p]:mb-1 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:font-bold [&_em]:italic [&_u]:underline`}
-                            dangerouslySetInnerHTML={{ __html: displayDesc }}
+                        <div
+                            className={`text-gray-500 text-xs leading-relaxed w-full break-normal [word-break:normal] ${expanded
+                                    ? "[&_p]:block [&_p]:mb-1 last:[&_p]:mb-0"
+                                    : "line-clamp-2 [&_p]:inline [&_p]:mr-1 [&_br]:hidden"
+                                } [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:font-bold [&_em]:italic [&_u]:underline`}
+                            dangerouslySetInnerHTML={{
+                                // Xử lý luôn trường hợp lỗi do khoảng trắng &nbsp; từ CMS
+                                __html: displayDesc.replace(/&nbsp;/g, ' ')
+                            }}
                         />
                         <span className="text-[10px] font-semibold mt-0.5 inline-block" style={{ color: accent.highlight }}>
                             {expanded ? t("collapseDetails") : t("expandDetails")}
