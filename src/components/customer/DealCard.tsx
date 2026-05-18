@@ -392,7 +392,7 @@ export const DealCard = React.memo(function DealCard({
                         onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
                     >
                         <div 
-                            className={`text-gray-500 text-xs leading-relaxed ${expanded ? "" : "line-clamp-2"} [&>p]:mb-1 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&_strong]:font-bold [&_em]:italic`}
+                            className={`text-gray-500 text-xs leading-relaxed ${expanded ? "" : "line-clamp-2"} [&_p]:block [&_p]:mb-1 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:font-bold [&_em]:italic [&_u]:underline`}
                             dangerouslySetInnerHTML={{ __html: displayDesc }}
                         />
                         <span className="text-[10px] font-semibold mt-0.5 inline-block" style={{ color: accent.highlight }}>

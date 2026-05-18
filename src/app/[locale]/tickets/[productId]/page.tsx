@@ -232,7 +232,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                                     {product.name}
                                 </h1>
                                 <div 
-                                    className="text-gray-500 leading-relaxed text-[15px] [&>p]:mb-2 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&_strong]:font-bold [&_em]:italic"
+                                    className="text-gray-500 leading-relaxed text-[15px] [&_p]:block [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:font-bold [&_em]:italic [&_u]:underline"
                                     dangerouslySetInnerHTML={{ __html: product.description || "" }}
                                 />
                             </div>

@@ -91,7 +91,7 @@ export function ProductCard({ product, locale }: ProductCardProps) {
                             {displayName}
                         </h3>
                         <div 
-                            className="text-gray-500 text-[13px] font-medium leading-relaxed line-clamp-2 [&>p]:inline [&>p]:mr-1 [&>ul]:list-none [&>ol]:list-none [&_strong]:font-bold [&_em]:italic"
+                            className="text-gray-500 text-[13px] font-medium leading-relaxed line-clamp-2 [&_p]:block [&_p]:mb-1 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:font-bold [&_em]:italic [&_u]:underline"
                             dangerouslySetInnerHTML={{ __html: displayDesc || "Vé cổng điện tử B.Duck Cityfuns" }}
                         />
                     </Link>

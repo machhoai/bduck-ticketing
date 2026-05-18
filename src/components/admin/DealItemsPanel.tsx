@@ -5,6 +5,28 @@ import { addDealItem, removeDealItem, createDealProduct, updateDealItem } from "
 import { uploadThumbnail } from "@/actions/admin/products";
 import type { DealItemDocument, DealSectionDocument, ProductType, DealType } from "@/types/firestore";
 import { Plus, Loader2, Trash2, Package, ChevronDown, ChevronUp, Upload, ImageIcon, Sparkles, Pencil, X, Save, Globe } from "lucide-react";
+import dynamic from "next/dynamic";
+import "react-quill-new/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
+
+const quillModules = {
+    toolbar: [
+        [{ header: [1, 2, 3, false] }],
+        ["bold", "italic", "underline", "strike"],
+        [{ list: "ordered" }, { list: "bullet" }],
+        ["clean"],
+    ],
+};
+const quillFormats = [
+    "header",
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    "list",
+    "bullet"
+];
 
 interface DealItemsPanelProps {
     section: DealSectionDocument;
@@ -347,7 +369,16 @@ export function DealItemsPanel({ section, voucherTemplates, linkedProducts }: De
                             {mode === "create" && (
                                 <div className="space-y-1 col-span-2">
                                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mô tả (tùy chọn)</label>
-                                    <textarea value={form.description} onChange={(e) => setF("description", e.target.value)} rows={2} placeholder="Mô tả ngắn..." className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F5C842]/40 resize-none" />
+                                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden [&_.ql-toolbar]:border-none [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-gray-100 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[100px]">
+                                        <ReactQuill
+                                            theme="snow"
+                                            value={form.description}
+                                            onChange={(val) => setF("description", val)}
+                                            modules={quillModules}
+                                            formats={quillFormats}
+                                            placeholder="Mô tả ngắn..."
+                                        />
+                                    </div>
                                 </div>
                             )}
 
@@ -686,7 +717,16 @@ function DealItemRow({ item, sectionId, formatVND, resetTimeLabel, voucherTempla
                     </div>
                     <div className="space-y-1 col-span-2">
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mô tả</label>
-                        <textarea value={edit.description} onChange={(e) => setE("description", e.target.value)} rows={2} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
+                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden [&_.ql-toolbar]:border-none [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-gray-100 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[100px]">
+                            <ReactQuill
+                                theme="snow"
+                                value={edit.description}
+                                onChange={(val) => setE("description", val)}
+                                modules={quillModules}
+                                formats={quillFormats}
+                                placeholder="Mô tả..."
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -702,7 +742,16 @@ function DealItemRow({ item, sectionId, formatVND, resetTimeLabel, voucherTempla
                         </div>
                         <div className="space-y-1 col-span-2">
                             <label className="text-xs text-gray-500">Description (EN)</label>
-                            <textarea value={edit.descriptionEn} onChange={(e) => setE("descriptionEn", e.target.value)} rows={2} placeholder="English description" className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none" />
+                            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden [&_.ql-toolbar]:border-none [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-gray-100 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[100px]">
+                                <ReactQuill
+                                    theme="snow"
+                                    value={edit.descriptionEn}
+                                    onChange={(val) => setE("descriptionEn", val)}
+                                    modules={quillModules}
+                                    formats={quillFormats}
+                                    placeholder="English description"
+                                />
+                            </div>
                         </div>
                     </div>
                 </details>
