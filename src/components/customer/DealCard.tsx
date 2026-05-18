@@ -171,7 +171,7 @@ export const DealCard = React.memo(function DealCard({
 
     const accent = ACCENTS[index % ACCENTS.length];
     const sticker = STICKERS[index % STICKERS.length];
-    const isSoldOut = item.totalStock !== undefined && item.soldCount >= item.totalStock;
+    const isSoldOut = item.totalStock != null && item.soldCount >= item.totalStock;
     const isLocked = !isOpen;
     const hasOptions = item.options && item.options.length > 1;
     const selectedOption = hasOptions ? item.options![selectedOptionIdx] : null;
@@ -190,7 +190,7 @@ export const DealCard = React.memo(function DealCard({
     const isMaxQtyReached = currentCartQty >= item.maxQtyPerOrder;
 
     // Check stock limit (SSR snapshot — server re-validates at checkout)
-    const remainingStock = item.totalStock !== undefined
+    const remainingStock = item.totalStock != null
         ? Math.max(0, item.totalStock - item.soldCount)
         : Infinity;
     const isStockLimitReached = currentCartQty >= remainingStock;
@@ -223,7 +223,7 @@ export const DealCard = React.memo(function DealCard({
         }
 
         // Stock guard (SSR snapshot)
-        if (item.totalStock !== undefined) {
+        if (item.totalStock != null) {
             const freshRemaining = Math.max(0, item.totalStock - item.soldCount);
             if (freshCartQty >= freshRemaining) {
                 setLimitWarning(t("stockLimitReached"));
@@ -443,7 +443,7 @@ export const DealCard = React.memo(function DealCard({
                 )}
 
                 {/* Stock bar */}
-                {/* {item.totalStock !== undefined && item.stockResetPeriod === "daily" && (
+                {/* {item.totalStock != null && item.stockResetPeriod === "daily" && (
                     <StockBar totalStock={item.totalStock} soldCount={item.soldCount} highlight={accent.highlight} />
                 )} */}
 
