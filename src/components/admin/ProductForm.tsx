@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, type Resolver, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { useRouter } from "next/navigation";
@@ -8,6 +8,19 @@ import { useState, useRef, useTransition } from "react";
 import { createProduct, updateProduct, uploadThumbnail } from "@/actions/admin/products";
 import type { ProductGroupDocument, ProductDocument } from "@/types/firestore";
 import { Upload, Loader2, ImageIcon, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
+import dynamic from "next/dynamic";
+import "react-quill-new/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
+
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    ["clean"],
+  ],
+};
 
 // ─── Client-side WebP conversion ─────────────────────────────────────────────
 /**
@@ -124,6 +137,7 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
@@ -437,11 +451,14 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
               />
             </Field>
             <Field label="Mô tả (Tiếng Việt)" error={errors.description?.message}>
-              <textarea
-                {...register("description")}
-                rows={3}
-                placeholder="Mô tả ngắn về sản phẩm..."
-                className={`${inputCls(false)} resize-none`}
+              <Controller
+                name="description"
+                control={control}
+                render={({ field }) => (
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden [&_.ql-toolbar]:border-none [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-gray-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[120px]">
+                    <ReactQuill theme="snow" modules={quillModules} {...field} />
+                  </div>
+                )}
               />
             </Field>
           </div>
@@ -456,11 +473,14 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
               />
             </Field>
             <Field label="Description (English)" error={errors.descriptionEn?.message}>
-              <textarea
-                {...register("descriptionEn")}
-                rows={3}
-                placeholder="Short product description in English..."
-                className={`${inputCls(false)} resize-none`}
+              <Controller
+                name="descriptionEn"
+                control={control}
+                render={({ field }) => (
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden [&_.ql-toolbar]:border-none [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-gray-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[120px]">
+                    <ReactQuill theme="snow" modules={quillModules} {...field} />
+                  </div>
+                )}
               />
             </Field>
             <p className="text-xs text-gray-400">

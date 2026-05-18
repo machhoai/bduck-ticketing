@@ -90,9 +90,10 @@ export function ProductCard({ product, locale }: ProductCardProps) {
                         <h3 className="font-bold text-gray-900 text-lg leading-snug tracking-tight line-clamp-2 group-hover:text-duck-orange transition-colors duration-300">
                             {displayName}
                         </h3>
-                        <p className="text-gray-500 text-[13px] font-medium leading-relaxed line-clamp-2">
-                            {displayDesc || "Vé cổng điện tử B.Duck Cityfuns"}
-                        </p>
+                        <div 
+                            className="text-gray-500 text-[13px] font-medium leading-relaxed line-clamp-2 [&>p]:inline [&>p]:mr-1 [&>ul]:list-none [&>ol]:list-none [&_strong]:font-bold [&_em]:italic"
+                            dangerouslySetInnerHTML={{ __html: displayDesc || "Vé cổng điện tử B.Duck Cityfuns" }}
+                        />
                     </Link>
 
                     {/* Price row */}

@@ -231,9 +231,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
                                 <h1 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] leading-[1.2] tracking-tight">
                                     {product.name}
                                 </h1>
-                                <p className="text-gray-500 leading-relaxed text-[15px]">
-                                    {product.description}
-                                </p>
+                                <div 
+                                    className="text-gray-500 leading-relaxed text-[15px] [&>p]:mb-2 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&_strong]:font-bold [&_em]:italic"
+                                    dangerouslySetInnerHTML={{ __html: product.description || "" }}
+                                />
                             </div>
 
                             {/* ── Price Block ──────────────────────────────────────────── */}
