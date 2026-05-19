@@ -94,6 +94,13 @@ export async function POST(req: Request): Promise<Response> {
               validUntil = Timestamp.fromMillis(expiryMs);
             }
             if (validity.overallExpiresAt) validUntil = validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
+          } else if (validity.type === "time-slot") {
+            validFrom = now;
+            if (validity.validDaysFromPurchase) {
+              const expiryMs = now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
+              validUntil = Timestamp.fromMillis(expiryMs);
+            }
+            if (validity.overallExpiresAt) validUntil = validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
           }
           if (validity.overallExpiresAt) {
             validUntil = validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
@@ -119,6 +126,8 @@ export async function POST(req: Request): Promise<Response> {
           if (visitDate) passData.visitDate = visitDate;
           if (validFrom) passData.validFrom = validFrom;
           if (validUntil) passData.validUntil = validUntil;
+          if (validity.timeSlotStart) passData.timeSlotStart = validity.timeSlotStart;
+          if (validity.timeSlotEnd) passData.timeSlotEnd = validity.timeSlotEnd;
 
           tx.set(passRef, passData);
           passIds.push(passRef.id);
