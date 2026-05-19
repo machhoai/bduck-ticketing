@@ -129,6 +129,16 @@ export async function POST(request: NextRequest) {
             if (validity.overallExpiresAt)
               validUntil =
                 validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
+          } else if (validity.type === "time-slot") {
+            validFrom = now;
+            if (validity.validDaysFromPurchase) {
+              const expiryMs =
+                now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
+              validUntil = Timestamp.fromMillis(expiryMs);
+            }
+            if (validity.overallExpiresAt)
+              validUntil =
+                validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
           }
 
           // Override with hard deadline if set
@@ -157,6 +167,8 @@ export async function POST(request: NextRequest) {
           if (visitDate) passData.visitDate = visitDate;
           if (validFrom) passData.validFrom = validFrom;
           if (validUntil) passData.validUntil = validUntil;
+          if (validity.timeSlotStart) passData.timeSlotStart = validity.timeSlotStart;
+          if (validity.timeSlotEnd) passData.timeSlotEnd = validity.timeSlotEnd;
           if (freshOrder.affiliateId)
             passData.affiliateId = freshOrder.affiliateId;
 
