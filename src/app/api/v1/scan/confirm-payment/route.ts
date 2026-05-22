@@ -12,8 +12,9 @@
 import { verifyApiKey, unauthorizedResponse } from "@/lib/api/verify-api-key";
 import { adminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/client";
-import { Timestamp, FieldValue } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 import type { OrderDocument, CounterPayData } from "@/types/firestore";
+import { generatePassesInTransaction } from "@/lib/pass-generation";
 
 export const runtime = "nodejs";
 
@@ -51,7 +52,7 @@ export async function POST(req: Request): Promise<Response> {
       const snap = await tx.get(orderRef);
       if (!snap.exists) throw new Error("ORDER_NOT_FOUND");
 
-      const order = snap.data() as Omit<OrderDocument, "id">;
+      const order = { id: orderId, ...snap.data() } as OrderDocument;
 
       if (order.status === "paid") throw new Error("ALREADY_PAID");
       if (order.status === "cancelled") throw new Error("ALREADY_CANCELLED");
@@ -70,93 +71,20 @@ export async function POST(req: Request): Promise<Response> {
         throw new Error("ORDER_EXPIRED");
       }
 
-      // Generate passes for each item × quantity
-      for (const item of order.items) {
-        for (let i = 0; i < item.quantity; i++) {
-          const passRef = adminDb.collection(COLLECTIONS.PASSES).doc();
-
-          let validFrom: FirebaseFirestore.Timestamp | undefined;
-          let validUntil: FirebaseFirestore.Timestamp | undefined;
-          let visitDate: FirebaseFirestore.Timestamp | undefined;
-
-          const validity = item.validityConfig;
-          if (validity.type === "date-specific" && validity.specificDate) {
-            visitDate = validity.specificDate as unknown as FirebaseFirestore.Timestamp;
-            validUntil = validity.specificDate as unknown as FirebaseFirestore.Timestamp;
-          } else if (validity.type === "open-dated" && validity.validDaysFromPurchase) {
-            validFrom = now;
-            const expiryMs = now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
-            validUntil = Timestamp.fromMillis(expiryMs);
-          } else if (validity.type === "date-range") {
-            validFrom = now;
-            if (validity.validDaysFromPurchase) {
-              const expiryMs = now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
-              validUntil = Timestamp.fromMillis(expiryMs);
-            }
-            if (validity.overallExpiresAt) validUntil = validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
-          } else if (validity.type === "time-slot") {
-            validFrom = now;
-            if (validity.validDaysFromPurchase) {
-              const expiryMs = now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
-              validUntil = Timestamp.fromMillis(expiryMs);
-            }
-            if (validity.overallExpiresAt) validUntil = validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
-          }
-          if (validity.overallExpiresAt) {
-            validUntil = validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
-          }
-
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const passData: Record<string, any> = {
-            orderId,
-            orderNumber: order.orderNumber,
-            customerId: order.customerId ?? "",
-            customerName: order.customerName,
-            customerEmail: order.customerEmail,
-            productId: item.productId,
-            productName: item.productName,
-            productType: item.productType,
-            thumbnailUrl: item.thumbnailUrl ?? "",
-            validityType: validity.type,
-            status: "active",
-            createdAt: now,
-          };
-
-          if (item.comboItems) passData.comboItems = item.comboItems;
-          if (visitDate) passData.visitDate = visitDate;
-          if (validFrom) passData.validFrom = validFrom;
-          if (validUntil) passData.validUntil = validUntil;
-          if (validity.timeSlotStart) passData.timeSlotStart = validity.timeSlotStart;
-          if (validity.timeSlotEnd) passData.timeSlotEnd = validity.timeSlotEnd;
-
-          tx.set(passRef, passData);
-          passIds.push(passRef.id);
-        }
-
-        // Increment product soldCount
-        const productRef = adminDb.collection(COLLECTIONS.PRODUCTS).doc(item.productId);
-        tx.update(productRef, { soldCount: FieldValue.increment(item.quantity) });
-      }
-
-      // Increment promotion usedCount
-      if (order.promotionId) {
-        const promoRef = adminDb.collection(COLLECTIONS.PROMOTIONS).doc(order.promotionId);
-        tx.update(promoRef, { usedCount: FieldValue.increment(1) });
-      }
-
+      // Build provider data
       const providerData: CounterPayData = {
         confirmedBy: "api_external",
         confirmedAt: now as unknown as import("@/types/firestore").Timestamp,
         ...(note ? { note } : {}),
       };
 
-      tx.update(orderRef, {
-        status: "paid",
-        passIds,
-        paidAt: now,
-        updatedAt: now,
-        "paymentDetails.providerData": providerData,
+      // Generate passes + update order in one atomic operation
+      const generatedIds = generatePassesInTransaction(tx, orderRef, order, {
+        orderUpdateExtras: {
+          "paymentDetails.providerData": providerData,
+        },
       });
+      passIds.push(...generatedIds);
     });
 
     // Fetch updated order

@@ -381,13 +381,6 @@ export async function approveBankTransferOrder(
         throw new Error("NOT_BANK_TRANSFER_ORDER");
 
       // Generate passes — skipStockIncrement because stock was reserved at order creation
-      const generatedIds = generatePassesInTransaction(tx, orderRef, order, {
-        skipStockIncrement: true,
-        approverUid: session.uid,
-      });
-      passIds.push(...generatedIds);
-
-      // Update providerData with approval info
       const providerData: BankTransferPayData = {
         ...(order.paymentDetails!.providerData as BankTransferPayData),
         approvedBy: session.uid,
@@ -395,9 +388,14 @@ export async function approveBankTransferOrder(
         ...(note ? { note } : {}),
       };
 
-      tx.update(orderRef, {
-        "paymentDetails.providerData": providerData,
+      const generatedIds = generatePassesInTransaction(tx, orderRef, order, {
+        skipStockIncrement: true,
+        approverUid: session.uid,
+        orderUpdateExtras: {
+          "paymentDetails.providerData": providerData,
+        },
       });
+      passIds.push(...generatedIds);
     });
 
     // Re-read order after transaction to get latest state

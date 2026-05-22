@@ -24,6 +24,12 @@ export interface GeneratePassesOptions {
    * reserved at order creation time.
    */
   skipStockIncrement?: boolean;
+  /**
+   * Extra fields merged into the order update.
+   * Use for provider-specific paymentDetails, e.g.:
+   *   { paymentDetails: { provider: "payos", providerData: { ... } } }
+   */
+  orderUpdateExtras?: Record<string, unknown>;
 }
 
 /**
@@ -154,6 +160,7 @@ export function generatePassesInTransaction(
     passIds,
     paidAt: now,
     updatedAt: now,
+    ...(options?.orderUpdateExtras ?? {}),
   });
 
   return passIds;

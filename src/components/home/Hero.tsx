@@ -137,7 +137,7 @@ export function Hero() {
                         {/* CTAs */}
                         <div className="flex flex-col sm:flex-row gap-4">
                             <button
-                                onClick={() => scrollTo("tickets")}
+                                onClick={() => scrollTo("deals")}
                                 className="btn-bounce group cursor-pointer inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-full font-bold text-text-primary text-sm"
                                 style={{
                                     fontFamily: "var(--font-heading)",

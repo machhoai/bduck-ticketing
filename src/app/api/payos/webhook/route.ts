@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse, after } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/client";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import type { OrderDocument, PassDocument } from "@/types/firestore";
+import type { OrderDocument } from "@/types/firestore";
 import { sendTicketEmail } from "@/lib/email/tickets";
 import { issueVouchersFromOrderItems } from "@/lib/deal-checkout";
 import { getPayOS } from "@/lib/payos";
+import { generatePassesInTransaction } from "@/lib/pass-generation";
 import type { Webhook, WebhookData } from "@payos/node/lib/resources/webhooks/webhook";
 
 /**
@@ -13,7 +13,7 @@ import type { Webhook, WebhookData } from "@payos/node/lib/resources/webhooks/we
  *
  * PayOS sends a POST webhook when a payment status changes.
  * This handler verifies the signature, then processes the payment
- * identically to mock-pay: generates passes + sends ticket email.
+ * using the shared generatePassesInTransaction utility.
  *
  * IDEMPOTENT: If order.status !== 'pending', exit silently with 200.
  *
@@ -88,132 +88,30 @@ export async function POST(request: NextRequest) {
 
     await adminDb.runTransaction(async (tx) => {
       const freshOrderSnap = await tx.get(orderRef);
-      const freshOrder = freshOrderSnap.data() as OrderDocument;
+      const freshOrder = { id: orderId, ...freshOrderSnap.data() } as OrderDocument;
 
       // Double-check idempotency inside transaction
       if (freshOrder.status !== "pending") return;
 
-      const now = Timestamp.now();
-
-      // Generate a PassDocument for each order item × quantity
-      for (const item of freshOrder.items) {
-        for (let i = 0; i < item.quantity; i++) {
-          const passRef = adminDb.collection(COLLECTIONS.PASSES).doc();
-
-          let validFrom: FirebaseFirestore.Timestamp | undefined;
-          let validUntil: FirebaseFirestore.Timestamp | undefined;
-          let visitDate: FirebaseFirestore.Timestamp | undefined;
-
-          const validity = item.validityConfig;
-
-          if (validity.type === "date-specific" && validity.specificDate) {
-            visitDate =
-              validity.specificDate as unknown as FirebaseFirestore.Timestamp;
-            validUntil =
-              validity.specificDate as unknown as FirebaseFirestore.Timestamp;
-          } else if (
-            validity.type === "open-dated" &&
-            validity.validDaysFromPurchase
-          ) {
-            validFrom = now;
-            const expiryMs =
-              now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
-            validUntil = Timestamp.fromMillis(expiryMs);
-          } else if (validity.type === "date-range") {
-            validFrom = now;
-            if (validity.validDaysFromPurchase) {
-              const expiryMs =
-                now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
-              validUntil = Timestamp.fromMillis(expiryMs);
-            }
-            if (validity.overallExpiresAt)
-              validUntil =
-                validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
-          } else if (validity.type === "time-slot") {
-            validFrom = now;
-            if (validity.validDaysFromPurchase) {
-              const expiryMs =
-                now.toMillis() + validity.validDaysFromPurchase * 86400 * 1000;
-              validUntil = Timestamp.fromMillis(expiryMs);
-            }
-            if (validity.overallExpiresAt)
-              validUntil =
-                validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
-          }
-
-          // Override with hard deadline if set
-          if (validity.overallExpiresAt) {
-            validUntil =
-              validity.overallExpiresAt as unknown as FirebaseFirestore.Timestamp;
-          }
-
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const passData: Record<string, any> = {
-            orderId,
-            orderNumber: freshOrder.orderNumber,
-            customerId: freshOrder.customerId ?? "",
-            customerName: freshOrder.customerName,
-            customerEmail: freshOrder.customerEmail,
-            productId: item.productId,
-            productName: item.productName,
-            productType: item.productType,
-            thumbnailUrl: item.thumbnailUrl ?? "",
-            validityType: validity.type,
-            status: "active",
-            createdAt: now,
-          };
-
-          if (item.comboItems) passData.comboItems = item.comboItems;
-          if (visitDate) passData.visitDate = visitDate;
-          if (validFrom) passData.validFrom = validFrom;
-          if (validUntil) passData.validUntil = validUntil;
-          if (validity.timeSlotStart) passData.timeSlotStart = validity.timeSlotStart;
-          if (validity.timeSlotEnd) passData.timeSlotEnd = validity.timeSlotEnd;
-          if (freshOrder.affiliateId)
-            passData.affiliateId = freshOrder.affiliateId;
-
-          tx.set(passRef, passData);
-          passIds.push(passRef.id);
-        }
-
-        // Increment product soldCount
-        const productRef = adminDb
-          .collection(COLLECTIONS.PRODUCTS)
-          .doc(item.productId);
-        tx.update(productRef, {
-          soldCount: FieldValue.increment(item.quantity),
-        });
-      }
-
-      // Increment promotion usedCount
-      if (freshOrder.promotionId) {
-        const promoRef = adminDb
-          .collection(COLLECTIONS.PROMOTIONS)
-          .doc(freshOrder.promotionId);
-        tx.update(promoRef, { usedCount: FieldValue.increment(1) });
-      }
-
-      // Update order to paid
-      tx.update(orderRef, {
-        status: "paid",
-        passIds,
-        paidAt: now,
-        updatedAt: now,
-        paymentDetails: {
-          provider: "payos",
-          providerData: {
-            payosOrderCode: orderCode,
-            paymentLinkId: webhookData.paymentLinkId,
-            reference: webhookData.reference,
-            amount: webhookData.amount,
-            transactionDateTime: webhookData.transactionDateTime,
-            counterAccountBankId: webhookData.counterAccountBankId ?? null,
-            counterAccountBankName: webhookData.counterAccountBankName ?? null,
-            counterAccountName: webhookData.counterAccountName ?? null,
-            counterAccountNumber: webhookData.counterAccountNumber ?? null,
+      const generatedIds = generatePassesInTransaction(tx, orderRef, freshOrder, {
+        orderUpdateExtras: {
+          paymentDetails: {
+            provider: "payos",
+            providerData: {
+              payosOrderCode: orderCode,
+              paymentLinkId: webhookData.paymentLinkId,
+              reference: webhookData.reference,
+              amount: webhookData.amount,
+              transactionDateTime: webhookData.transactionDateTime,
+              counterAccountBankId: webhookData.counterAccountBankId ?? null,
+              counterAccountBankName: webhookData.counterAccountBankName ?? null,
+              counterAccountName: webhookData.counterAccountName ?? null,
+              counterAccountNumber: webhookData.counterAccountNumber ?? null,
+            },
           },
         },
       });
+      passIds.push(...generatedIds);
     });
 
     // ── Issue vouchers + send ticket email (after response) ──
