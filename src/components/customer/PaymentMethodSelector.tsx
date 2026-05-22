@@ -45,6 +45,7 @@ interface PaymentMethod {
     readonly logoSlot?: React.ReactNode;
     readonly badge?: string;
     readonly applePlatformOnly?: boolean;
+    readonly mobilePlatformOnly?: boolean;
 }
 
 interface PaymentMethodSelectorProps {
@@ -206,19 +207,27 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
 }) => {
     const t = useTranslations("paymentSelector");
 
-    // ── Apple device detection (client-side only) ──
+    // ── Device detection (client-side only) ──
     const [isAppleDevice, setIsAppleDevice] = useState(false);
+    const [isMobileDevice, setIsMobileDevice] = useState(false);
 
     useEffect(() => {
         const ua = navigator.userAgent;
         const platform = navigator.platform;
+        
         const isApple =
             /iPhone|iPad|iPod/.test(ua) ||
             /Macintosh/.test(ua) ||
             /Mac/.test(platform) ||
             // iPad with desktop UA (iPadOS 13+)
             (navigator.maxTouchPoints > 1 && /MacIntel/.test(platform));
+            
+        const isMobile = 
+            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/.test(ua) ||
+            (navigator.maxTouchPoints > 1 && /MacIntel/.test(platform));
+            
         setIsAppleDevice(isApple);
+        setIsMobileDevice(isMobile);
     }, []);
 
     // Build groups — icons and logos are JSX, labels come from i18n
@@ -281,6 +290,7 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                     descKey: t("methodBankingAppDesc"),
                     icon: <Smartphone className="h-5 w-5 text-indigo-500" />,
                     logoSlot: <VNPayLogo />,
+                    mobilePlatformOnly: true,
                 },
             ],
         },
@@ -332,6 +342,8 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                     if (enabledMethods && !enabledMethods.includes(m.id)) return false;
                     // Apple-platform-only restriction
                     if (m.applePlatformOnly && !isAppleDevice) return false;
+                    // Mobile-platform-only restriction
+                    if (m.mobilePlatformOnly && !isMobileDevice) return false;
                     return true;
                 });
 

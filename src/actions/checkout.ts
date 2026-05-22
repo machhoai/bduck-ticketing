@@ -1657,7 +1657,7 @@ export async function createVNPayOrder(
         bankCode = "GOOGLEPAY";
         break;
       case "vnpay_app":
-        bankCode = "VNPAYQR";
+        bankCode = "VNBANK";
         break;
       case "vnpay_wallet":
         bankCode = "VNPAY";
