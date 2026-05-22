@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import {
     CreditCard,
@@ -25,6 +25,8 @@ export type PaymentMethodId =
     | "momo"             // Ví MoMo
     | "zalopay"          // Ví ZaloPay
     | "apple_pay"        // Apple Pay (iOS / macOS only)
+    | "google_pay"       // Google Pay
+    | "vnpay_app"        // Ứng dụng ngân hàng (Mobile Banking)
     | "counter"          // Thanh toán tại quầy
     | "bank_transfer"    // Chuyển khoản ngân hàng (VietQR)
     | "payos";           // PayOS — Thanh toán trực tuyến (QR / thẻ / ví)
@@ -204,6 +206,21 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
 }) => {
     const t = useTranslations("paymentSelector");
 
+    // ── Apple device detection (client-side only) ──
+    const [isAppleDevice, setIsAppleDevice] = useState(false);
+
+    useEffect(() => {
+        const ua = navigator.userAgent;
+        const platform = navigator.platform;
+        const isApple =
+            /iPhone|iPad|iPod/.test(ua) ||
+            /Macintosh/.test(ua) ||
+            /Mac/.test(platform) ||
+            // iPad with desktop UA (iPadOS 13+)
+            (navigator.maxTouchPoints > 1 && /MacIntel/.test(platform));
+        setIsAppleDevice(isApple);
+    }, []);
+
     // Build groups — icons and logos are JSX, labels come from i18n
     const groups: PaymentMethodGroup[] = [
         {
@@ -235,7 +252,6 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                             <MastercardLogo />
                         </>
                     ),
-                    badge: "3D Secure",
                 },
                 {
                     id: "vnpay_transfer",
@@ -251,6 +267,20 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                     icon: <Image src="/images/apple.png" alt="Apple Pay" fill className="object-contain" />,
                     badge: "Apple",
                     applePlatformOnly: true,
+                },
+                {
+                    id: "google_pay",
+                    labelKey: t("methodGooglePay"),
+                    descKey: t("methodGooglePayDesc"),
+                    icon: <Image src="/images/google-pay.png" alt="Google Pay" width={20} height={20} className="object-contain" />,
+                    badge: "Google",
+                },
+                {
+                    id: "vnpay_app",
+                    labelKey: t("methodBankingApp"),
+                    descKey: t("methodBankingAppDesc"),
+                    icon: <Smartphone className="h-5 w-5 text-indigo-500" />,
+                    logoSlot: <VNPayLogo />,
                 },
             ],
         },
@@ -296,10 +326,14 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
     return (
         <div className="space-y-5" role="radiogroup" aria-label={t("groupLabel")}>
             {groups.map((group) => {
-                // Filter methods based on enabledMethods (if provided)
-                const visibleMethods = enabledMethods
-                    ? group.methods.filter((m) => enabledMethods.includes(m.id))
-                    : group.methods;
+                // Filter methods based on enabledMethods + platform restrictions
+                const visibleMethods = group.methods.filter((m) => {
+                    // Admin-level toggle
+                    if (enabledMethods && !enabledMethods.includes(m.id)) return false;
+                    // Apple-platform-only restriction
+                    if (m.applePlatformOnly && !isAppleDevice) return false;
+                    return true;
+                });
 
                 // Hide entire group if no visible methods
                 if (visibleMethods.length === 0) return null;

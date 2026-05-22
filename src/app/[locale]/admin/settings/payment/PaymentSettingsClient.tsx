@@ -32,6 +32,8 @@ const METHOD_LABELS: Record<string, string> = {
   momo: "Ví MoMo",
   zalopay: "Ví ZaloPay",
   apple_pay: "Apple Pay",
+  google_pay: "Google Pay",
+  vnpay_app: "Ứng dụng ngân hàng",
 };
 
 export function PaymentSettingsClient({
@@ -116,22 +118,19 @@ export function PaymentSettingsClient({
           {methods.map((method) => (
             <div
               key={method.id}
-              className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
-                method.enabled
+              className={`flex items-center justify-between p-4 rounded-xl border transition-all ${method.enabled
                   ? "border-blue-200 bg-blue-50/50"
                   : "border-gray-100 bg-gray-50/50"
-              }`}
+                }`}
             >
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    method.enabled ? "bg-blue-100" : "bg-gray-100"
-                  }`}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${method.enabled ? "bg-blue-100" : "bg-gray-100"
+                    }`}
                 >
                   <CreditCard
-                    className={`h-5 w-5 ${
-                      method.enabled ? "text-blue-500" : "text-gray-400"
-                    }`}
+                    className={`h-5 w-5 ${method.enabled ? "text-blue-500" : "text-gray-400"
+                      }`}
                   />
                 </div>
                 <div>
@@ -170,11 +169,10 @@ export function PaymentSettingsClient({
           </Button>
           {methodsMessage && (
             <span
-              className={`text-sm flex items-center gap-1 ${
-                methodsMessage.type === "success"
+              className={`text-sm flex items-center gap-1 ${methodsMessage.type === "success"
                   ? "text-green-600"
                   : "text-red-600"
-              }`}
+                }`}
             >
               {methodsMessage.type === "success" ? (
                 <CheckCircle2 className="h-4 w-4" />
@@ -299,11 +297,10 @@ export function PaymentSettingsClient({
           </Button>
           {bankMessage && (
             <span
-              className={`text-sm flex items-center gap-1 ${
-                bankMessage.type === "success"
+              className={`text-sm flex items-center gap-1 ${bankMessage.type === "success"
                   ? "text-green-600"
                   : "text-red-600"
-              }`}
+                }`}
             >
               {bankMessage.type === "success" ? (
                 <CheckCircle2 className="h-4 w-4" />
