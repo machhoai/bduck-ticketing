@@ -86,6 +86,7 @@ export async function POST(req: Request): Promise<Response> {
         validUntil: tsToISO(pass.validUntil as never),
         timeSlotStart: pass.timeSlotStart ?? null,
         timeSlotEnd: pass.timeSlotEnd ?? null,
+        allowedDaysOfWeek: pass.allowedDaysOfWeek ?? null,
         createdAt: tsToISO(pass.createdAt as never),
         usedAt: tsToISO(pass.usedAt as never),
         usedBy: pass.usedBy ?? null,
@@ -124,6 +125,32 @@ export async function POST(req: Request): Promise<Response> {
         
         if (currentTotalMinutes < startTotalMinutes || currentTotalMinutes > endTotalMinutes) {
           return { error: "OUT_OF_TIME_SLOT", status: 422, message: `Vé chỉ có thể kích hoạt trong khung giờ ${pass.timeSlotStart} - ${pass.timeSlotEnd}`, pass: passInfo };
+        }
+      }
+
+      // Day-of-week restriction (time-slot only)
+      if (pass.validityType === "time-slot" && pass.allowedDaysOfWeek?.length) {
+        const VN_DAY_NAMES = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+        const vnDate = new Date(now.toMillis());
+        const vnDayStr = new Intl.DateTimeFormat("en-US", {
+          timeZone: "Asia/Ho_Chi_Minh",
+          weekday: "short",
+        }).format(vnDate);
+        const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+        const currentDay = dayMap[vnDayStr] ?? vnDate.getDay();
+
+        if (!pass.allowedDaysOfWeek.includes(currentDay)) {
+          const todayName = VN_DAY_NAMES[currentDay];
+          const allowedNames = pass.allowedDaysOfWeek
+            .sort((a, b) => a - b)
+            .map((d) => VN_DAY_NAMES[d])
+            .join(", ");
+          return {
+            error: "WRONG_DAY_OF_WEEK",
+            status: 422,
+            message: `Vé không áp dụng cho ${todayName}. Chỉ sử dụng vào: ${allowedNames}`,
+            pass: passInfo,
+          };
         }
       }
 
