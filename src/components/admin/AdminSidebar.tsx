@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { type Locale } from "@/i18n/routing";
@@ -177,7 +176,7 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
                      : "text-white/40 hover:bg-white/5 hover:text-white/80"
                  }`}
                >
-                 <Image src={LOCALE_FLAGS[loc].flag} alt={loc} width={16} height={16} className="rounded-sm opacity-90" />
+                 <img src={LOCALE_FLAGS[loc].flag} alt={loc} width={16} height={16} className="rounded-sm opacity-90" />
                  <span className="text-[11px] font-medium uppercase tracking-wider">{loc}</span>
                </button>
              );

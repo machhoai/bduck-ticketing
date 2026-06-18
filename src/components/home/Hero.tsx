@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { Ticket, ChevronDown, Star, Users, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 

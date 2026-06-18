@@ -1,7 +1,6 @@
 "use client";
 
 import { QRCodeCanvas } from "qrcode.react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import {
     CheckCircle2,
@@ -79,11 +78,10 @@ export function PassCard({ pass, locale }: PassCardProps) {
             {/* ── Product Banner ─────────────────────────────────────── */}
             <div className="relative h-36 bg-[#1A1A2E] overflow-hidden">
                 {pass.thumbnailUrl ? (
-                    <Image
+                    <img
                         src={pass.thumbnailUrl}
                         alt={pass.productName}
-                        fill
-                        className={`object-cover transition-all duration-300 ${isActive ? "opacity-50" : "opacity-20"}`}
+                        className={`absolute inset-0 h-full w-full object-cover transition-all duration-300 ${isActive ? "opacity-50" : "opacity-20"}`}
                     />
                 ) : null}
                 {/* Dark gradient overlay */}

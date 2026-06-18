@@ -7,7 +7,6 @@ import { updateAttractionsGallery } from "@/actions/gallery";
 import { storage } from "@/lib/firebase/client";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useState, useRef } from "react";
-import Image from "next/image";
 
 interface GalleryManagerProps {
     initialImages: string[];
@@ -215,12 +214,10 @@ export function GalleryManager({ initialImages, adminUid }: GalleryManagerProps)
                             <div className="absolute inset-0 flex items-center justify-center text-gray-300">
                                 <ImageIcon className="w-8 h-8" />
                             </div>
-                            <Image
+                            <img
                                 src={url}
                                 alt={`Gallery image ${i}`}
-                                fill
-                                className="object-cover relative z-10"
-                                unoptimized // Allows external URLs without configuring next.config.ts domains
+                                className="absolute inset-0 z-10 h-full w-full object-cover"
                             />
 
                             {/* Hover overlay with delete button */}

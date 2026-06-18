@@ -3,7 +3,6 @@
 // Cart page — READ ONLY + modify quantities (D7)
 // "Đặt mua" button navigates to /checkout — no createOrder here
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useNavbar } from "@/stores/navbar";
@@ -189,12 +188,11 @@ export default function CartPage() {
 
                                     {/* Thumbnail */}
                                     <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-border-light/50">
-                                        <Image
+                                        <img
                                             src={item.thumbnailUrl}
                                             alt={item.name}
-                                            fill
                                             className={cn(
-                                                "object-cover transition-transform duration-500",
+                                                "absolute inset-0 h-full w-full object-cover transition-transform duration-500",
                                                 itemOOS ? "opacity-40" : "group-hover:scale-105"
                                             )}
                                         />

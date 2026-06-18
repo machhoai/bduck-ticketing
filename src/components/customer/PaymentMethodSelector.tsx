@@ -12,7 +12,6 @@ import {
     CheckCircle2,
     Banknote,
 } from "lucide-react";
-import Image from "next/image";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -273,7 +272,7 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                     id: "apple_pay",
                     labelKey: t("methodApplePay"),
                     descKey: t("methodApplePayDesc"),
-                    icon: <Image src="/images/apple.png" alt="Apple Pay" fill className="object-contain" />,
+                    icon: <img src="/images/apple.png" alt="Apple Pay" className="absolute inset-0 h-full w-full object-contain" />,
                     badge: "Apple",
                     applePlatformOnly: true,
                 },
@@ -281,7 +280,7 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                     id: "google_pay",
                     labelKey: t("methodGooglePay"),
                     descKey: t("methodGooglePayDesc"),
-                    icon: <Image src="/images/google-pay.png" alt="Google Pay" width={20} height={20} className="object-contain" />,
+                    icon: <img src="/images/google-pay.png" alt="Google Pay" width={20} height={20} className="object-contain" />,
                     badge: "Google",
                 },
                 {

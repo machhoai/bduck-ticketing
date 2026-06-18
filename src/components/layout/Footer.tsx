@@ -3,7 +3,6 @@
 import { useTranslations } from "next-intl";
 import { usePathname } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
-import Image from "next/image";
 import { Mail, MapPin, Clock, Phone, Building2, ShieldCheck } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -97,7 +96,7 @@ export const Footer: React.FC = () => {
                     {/* ── Col 1: Brand ── */}
                     <div className="sm:col-span-2 lg:col-span-1 flex flex-col gap-5">
                         <div className="flex items-center gap-3">
-                            <Image
+                            <img
                                 src="/images/avt_bduck-cityfuns.png"
                                 alt="B.Duck Cityfuns Vietnam"
                                 width={44}
@@ -130,7 +129,7 @@ export const Footer: React.FC = () => {
                                     aria-label="Facebook"
                                     className="group/social w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-[#FFD100]/15 hover:border-[#FFD100]/30 transition-all duration-300"
                                 >
-                                    <Image
+                                    <img
                                         src="/images/facebook-logo.png"
                                         alt="Facebook"
                                         width={18}
@@ -147,7 +146,7 @@ export const Footer: React.FC = () => {
                                     aria-label="Zalo"
                                     className="group/social w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-[#FFD100]/15 hover:border-[#FFD100]/30 transition-all duration-300"
                                 >
-                                    <Image
+                                    <img
                                         src="/images/zalo-logo.png"
                                         alt="Zalo"
                                         width={18}
@@ -164,7 +163,7 @@ export const Footer: React.FC = () => {
                                     aria-label="TikTok"
                                     className="group/social w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center hover:bg-[#FFD100]/15 hover:border-[#FFD100]/30 transition-all duration-300"
                                 >
-                                    <Image
+                                    <img
                                         src="/images/tiktok-logo.png"
                                         alt="TikTok"
                                         width={18}
@@ -175,7 +174,7 @@ export const Footer: React.FC = () => {
                             </div>
                             <div className="relative w-full h-20 mt-2">
                                 <a href="http://online.gov.vn/Home/WebDetails/142281" target="_blank" rel="noopener noreferrer">
-                                    <Image
+                                    <img
                                         src="/20150827110756-dathongbao.png"
                                         alt="BCT Logo"
                                         width={150}

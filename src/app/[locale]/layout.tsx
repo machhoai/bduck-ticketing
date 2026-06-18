@@ -8,6 +8,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/lib/auth/provider";
 import { NavbarProvider } from "@/stores/navbar";
+import { MetaPixel } from "@/components/tracking/MetaPixel";
 import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 import "../globals.css";
 
@@ -89,6 +90,7 @@ export default async function LocaleLayout({
                 </NextIntlClientProvider>
                 <GoogleAnalytics gaId="G-1NPZNCKHD6" />
                 <GoogleTagManager gtmId="GTM-PJLFRG6W" />
+                <MetaPixel pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID ?? ""} />
             </body>
         </html>
     );
