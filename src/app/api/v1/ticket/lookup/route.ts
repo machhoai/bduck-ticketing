@@ -162,6 +162,9 @@ function serializePass(pass: PassDocument) {
     productName: pass.productName,
     productType: pass.productType,
     status: pass.status,
+    timeSlotStart: pass.timeSlotStart ?? null,
+    timeSlotEnd: pass.timeSlotEnd ?? null,
+    allowedDaysOfWeek: pass.allowedDaysOfWeek ?? null,
     usedAt: pass.usedAt ? new Date(pass.usedAt.toMillis()).toISOString() : null,
     validUntil: pass.validUntil
       ? new Date(pass.validUntil.toMillis()).toISOString()

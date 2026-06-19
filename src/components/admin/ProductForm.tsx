@@ -98,6 +98,7 @@ const formSchema = z.object({
   validUntil: z.string().optional(),
   timeSlotStart: z.string().optional(),
   timeSlotEnd: z.string().optional(),
+  allowedDaysOfWeek: z.array(z.coerce.number().int().min(0).max(6)).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -157,6 +158,7 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
       validDaysFromPurchase: initialData?.validityConfig?.validDaysFromPurchase ?? undefined,
       timeSlotStart: initialData?.validityConfig?.timeSlotStart ?? undefined,
       timeSlotEnd: initialData?.validityConfig?.timeSlotEnd ?? undefined,
+      allowedDaysOfWeek: initialData?.validityConfig?.allowedDaysOfWeek as number[] ?? undefined,
     },
   });
 
@@ -257,6 +259,9 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
       if (data.validUntil) validityConfig.overallExpiresAt = data.validUntil;
       if (data.timeSlotStart) validityConfig.timeSlotStart = data.timeSlotStart;
       if (data.timeSlotEnd) validityConfig.timeSlotEnd = data.timeSlotEnd;
+      if (data.allowedDaysOfWeek && data.allowedDaysOfWeek.length > 0) {
+        validityConfig.allowedDaysOfWeek = data.allowedDaysOfWeek;
+      }
     }
 
     // Build nameLocales: always store vi (= name), add en if provided
@@ -718,6 +723,60 @@ export function ProductForm({ groups, initialData, productId, locale }: ProductF
               <Field label="Hạn chót" hint="Ngày hết hạn (tùy chọn)" error={errors.validUntil?.message}>
                 <input {...register("validUntil")} type="date" className={inputCls(!!errors.validUntil)} />
               </Field>
+            </div>
+            {/* Day-of-week restriction */}
+            <div className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50/60">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ngày áp dụng trong tuần</p>
+                <p className="text-xs text-gray-400 mt-0.5">Chọn ngày được phép sử dụng vé. Không chọn = tất cả các ngày.</p>
+              </div>
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                {[
+                  { value: 1, label: "T2" },
+                  { value: 2, label: "T3" },
+                  { value: 3, label: "T4" },
+                  { value: 4, label: "T5" },
+                  { value: 5, label: "T6" },
+                  { value: 6, label: "T7" },
+                  { value: 0, label: "CN" },
+                ].map((day) => {
+                  const currentDays = watch("allowedDaysOfWeek") ?? [];
+                  const isChecked = currentDays.includes(day.value);
+                  return (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() => {
+                        const updated = isChecked
+                          ? currentDays.filter((d) => d !== day.value)
+                          : [...currentDays, day.value];
+                        setValue("allowedDaysOfWeek", updated.length > 0 ? updated : undefined);
+                      }}
+                      className={`px-3 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${
+                        isChecked
+                          ? "bg-[#F5C842] border-[#F5C842] text-[#1A1A2E] shadow-sm"
+                          : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                      }`}
+                    >
+                      {day.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {(watch("allowedDaysOfWeek") ?? []).length > 0 && (
+                <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+                  <span>⚠️</span>
+                  <span>
+                    Vé chỉ sử dụng được vào:{" "}
+                    <strong>
+                      {(watch("allowedDaysOfWeek") ?? [])
+                        .sort((a, b) => a - b)
+                        .map((d) => ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"][d])
+                        .join(", ")}
+                    </strong>
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}

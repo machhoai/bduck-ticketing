@@ -23,6 +23,9 @@ export interface Timestamp {
 
 export type ValidityType = "date-specific" | "date-range" | "open-dated" | "time-slot";
 
+/** 0 = Chủ nhật, 1 = Thứ 2, ..., 6 = Thứ 7 (theo JavaScript Date.getDay()) */
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
 export interface ValidityConfig {
   type: ValidityType;
   /** date-specific: exact date allowed to enter */
@@ -34,6 +37,13 @@ export interface ValidityConfig {
   /** time-slot: allowed time frames to activate, e.g. "09:00" */
   timeSlotStart?: string;
   timeSlotEnd?: string;
+  /**
+   * time-slot: restrict to specific days of the week.
+   * Uses JS Date.getDay() convention: 0 = Sunday, 1 = Monday, ..., 6 = Saturday.
+   * undefined/empty = all days allowed (backward compatible).
+   * e.g. [1,2,3,4,5] = Monday–Friday only.
+   */
+  allowedDaysOfWeek?: DayOfWeek[];
 }
 
 export interface ComboItem {
@@ -460,6 +470,8 @@ export interface PassDocument {
   validUntil?: Timestamp; // date-range & date-specific: deadline
   timeSlotStart?: string; // time-slot: start time (HH:mm)
   timeSlotEnd?: string;   // time-slot: end time (HH:mm)
+  /** time-slot: allowed days of week (0=Sun..6=Sat). undefined = all days. */
+  allowedDaysOfWeek?: number[];
 
   /**
    * QR code is rendered client-side from Document ID (raw pass.id)

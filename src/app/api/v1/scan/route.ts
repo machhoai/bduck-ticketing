@@ -212,6 +212,21 @@ function getRealTimePassStatus(pass: PassDocument): string {
       return "out_of_time_slot";
     }
   }
+
+  // Day-of-week restriction (time-slot only)
+  if (pass.validityType === "time-slot" && pass.allowedDaysOfWeek?.length) {
+    const vnDate = new Date(now.toMillis());
+    // Get day-of-week in Vietnam timezone
+    const vnDayStr = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      weekday: "short",
+    }).format(vnDate);
+    const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const currentDay = dayMap[vnDayStr] ?? vnDate.getDay();
+    if (!pass.allowedDaysOfWeek.includes(currentDay)) {
+      return "wrong_day_of_week";
+    }
+  }
   
   return "active";
 }
@@ -240,6 +255,7 @@ function serializePass(pass: PassDocument) {
     validUntil: tsToISO(pass.validUntil as never),
     timeSlotStart: pass.timeSlotStart ?? null,
     timeSlotEnd: pass.timeSlotEnd ?? null,
+    allowedDaysOfWeek: pass.allowedDaysOfWeek ?? null,
     createdAt: tsToISO(pass.createdAt as never),
     usedAt: tsToISO(pass.usedAt as never),
     usedBy: pass.usedBy ?? null,

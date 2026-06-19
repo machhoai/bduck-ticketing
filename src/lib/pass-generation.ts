@@ -129,6 +129,7 @@ export function generatePassesInTransaction(
       if (validUntil) passData.validUntil = validUntil;
       if (validity.timeSlotStart) passData.timeSlotStart = validity.timeSlotStart;
       if (validity.timeSlotEnd) passData.timeSlotEnd = validity.timeSlotEnd;
+      if (validity.allowedDaysOfWeek?.length) passData.allowedDaysOfWeek = validity.allowedDaysOfWeek;
       if (order.affiliateId) passData.affiliateId = order.affiliateId;
 
       tx.set(passRef, passData);
