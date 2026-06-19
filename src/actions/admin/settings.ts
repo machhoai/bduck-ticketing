@@ -25,10 +25,85 @@ const DEFAULT_METHODS: PaymentMethodToggle[] = [
   { id: "momo", enabled: false, order: 9 },
   { id: "zalopay", enabled: false, order: 10 },
   { id: "apple_pay", enabled: false, order: 11 },
+  { id: "google_pay", enabled: false, order: 12 },
+  { id: "vnpay_app", enabled: false, order: 13 },
 ];
 
 
 // ─── Payment Methods Settings ─────────────────────────────────────────────────
+
+export interface PaymentMethodsOverrideInfo {
+  active: boolean;
+  environment: string;
+  enabledMethodIds: string[];
+}
+
+const PAYMENT_METHODS_OVERRIDE_ENV = "PAYMENT_METHODS_OVERRIDE";
+
+function getPaymentRuntimeEnvironment() {
+  return (
+    process.env.APP_ENV ??
+    process.env.NEXT_PUBLIC_APP_ENV ??
+    process.env.VERCEL_ENV ??
+    process.env.NODE_ENV ??
+    "development"
+  ).toLowerCase();
+}
+
+function isProductionPaymentEnvironment() {
+  const explicitEnvironments = [
+    process.env.APP_ENV,
+    process.env.NEXT_PUBLIC_APP_ENV,
+    process.env.VERCEL_ENV,
+  ]
+    .filter(Boolean)
+    .map((value) => value?.toLowerCase());
+
+  if (explicitEnvironments.length > 0) {
+    return explicitEnvironments.includes("production");
+  }
+
+  return process.env.NODE_ENV === "production";
+}
+
+function parsePaymentMethodOverrideIds(methods: PaymentMethodToggle[]) {
+  if (isProductionPaymentEnvironment()) return null;
+
+  const raw = process.env[PAYMENT_METHODS_OVERRIDE_ENV]?.trim();
+  if (!raw) return null;
+
+  const knownIds = new Set(methods.map((method) => method.id));
+  const normalized = raw.toLowerCase();
+
+  if (normalized === "all") return methods.map((method) => method.id);
+  if (normalized === "none") return [];
+
+  return raw
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => knownIds.has(id));
+}
+
+function applyPaymentMethodOverride(methods: PaymentMethodToggle[]) {
+  const overrideIds = parsePaymentMethodOverrideIds(methods);
+  if (!overrideIds) return methods;
+
+  const enabledIds = new Set(overrideIds);
+  return methods.map((method) => ({
+    ...method,
+    enabled: enabledIds.has(method.id),
+  }));
+}
+
+export async function getPaymentMethodsOverrideInfo(): Promise<PaymentMethodsOverrideInfo> {
+  const overrideIds = parsePaymentMethodOverrideIds(DEFAULT_METHODS);
+
+  return {
+    active: overrideIds !== null,
+    environment: getPaymentRuntimeEnvironment(),
+    enabledMethodIds: overrideIds ?? [],
+  };
+}
 
 export async function getPaymentMethodsSettings(): Promise<PaymentMethodToggle[]> {
   const doc = await adminDb
@@ -36,7 +111,7 @@ export async function getPaymentMethodsSettings(): Promise<PaymentMethodToggle[]
     .doc("paymentMethods")
     .get();
 
-  if (!doc.exists) return DEFAULT_METHODS;
+  if (!doc.exists) return applyPaymentMethodOverride(DEFAULT_METHODS);
 
   const data = doc.data() as PaymentMethodsSettingsDocument;
   const saved = data.methods ?? [];
@@ -48,7 +123,7 @@ export async function getPaymentMethodsSettings(): Promise<PaymentMethodToggle[]
     ...DEFAULT_METHODS.filter((d) => !savedIds.has(d.id)),
   ];
 
-  return merged;
+  return applyPaymentMethodOverride(merged);
 }
 
 export async function updatePaymentMethodsSettings(
@@ -58,6 +133,14 @@ export async function updatePaymentMethodsSettings(
 
   if (!methods.length) {
     return { success: false, error: "Danh sách phương thức không được rỗng" };
+  }
+
+  const overrideInfo = await getPaymentMethodsOverrideInfo();
+  if (overrideInfo.active) {
+    return {
+      success: false,
+      error: `${PAYMENT_METHODS_OVERRIDE_ENV} is active for ${overrideInfo.environment}. Payment methods are not saved to the shared database.`,
+    };
   }
 
   await adminDb

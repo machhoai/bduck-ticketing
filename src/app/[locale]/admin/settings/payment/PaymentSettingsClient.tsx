@@ -16,6 +16,7 @@ import {
   updatePaymentMethodsSettings,
   updateBankTransferSettings,
   type BankTransferConfig,
+  type PaymentMethodsOverrideInfo,
 } from "@/actions/admin/settings";
 import type { PaymentMethodToggle } from "@/types/firestore";
 
@@ -39,9 +40,11 @@ const METHOD_LABELS: Record<string, string> = {
 export function PaymentSettingsClient({
   initialMethods,
   initialBankConfig,
+  paymentOverride,
 }: {
   initialMethods: PaymentMethodToggle[];
   initialBankConfig: BankTransferConfig | null;
+  paymentOverride: PaymentMethodsOverrideInfo;
 }) {
   // ── Payment Methods State ──
   const [methods, setMethods] = useState<PaymentMethodToggle[]>(initialMethods);
@@ -114,6 +117,22 @@ export function PaymentSettingsClient({
           Phương thức thanh toán
         </h2>
 
+        {paymentOverride.active && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <p className="font-semibold">Test payment override is active.</p>
+            <p className="mt-1">
+              Environment: <span className="font-mono">{paymentOverride.environment}</span>.
+              Enabled methods are controlled by <span className="font-mono">PAYMENT_METHODS_OVERRIDE</span>,
+              so saving here is disabled to avoid changing the shared production database.
+            </p>
+            <p className="mt-1 font-mono text-xs">
+              {paymentOverride.enabledMethodIds.length > 0
+                ? paymentOverride.enabledMethodIds.join(", ")
+                : "No payment methods enabled by override"}
+            </p>
+          </div>
+        )}
+
         <div className="space-y-3">
           {methods.map((method) => (
             <div
@@ -144,7 +163,8 @@ export function PaymentSettingsClient({
               <button
                 type="button"
                 onClick={() => toggleMethod(method.id)}
-                className="focus:outline-none"
+                disabled={paymentOverride.active}
+                className="focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {method.enabled ? (
                   <ToggleRight className="h-8 w-8 text-blue-500" />
@@ -163,6 +183,7 @@ export function PaymentSettingsClient({
             size="md"
             onClick={handleSaveMethods}
             loading={methodsSaving}
+            disabled={paymentOverride.active}
           >
             <Save className="h-4 w-4" />
             Lưu phương thức

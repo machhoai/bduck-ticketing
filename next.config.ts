@@ -3,7 +3,13 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
+const allowedDevOrigins = (process.env.NEXT_ALLOWED_DEV_ORIGINS ?? "192.168.30.61")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 const nextConfig: NextConfig = {
+    allowedDevOrigins,
     images: {
         formats: ["image/avif", "image/webp"],
         qualities: [75, 85],

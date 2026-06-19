@@ -16,7 +16,7 @@ import type { VoucherEmailInfo } from "@/lib/deal-checkout";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { orderId } = body as { orderId?: string };
+    const { orderId, locale } = body as { orderId?: string; locale?: string };
 
     if (!orderId) {
       return NextResponse.json(
@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
       discountAmount: order.discountAmount,
       passIds: order.passIds ?? [],
       vouchers: vouchers.length > 0 ? vouchers : undefined,
+      locale,
     });
 
     if (!success) {

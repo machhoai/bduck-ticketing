@@ -179,7 +179,7 @@
         "methodZalopay": "ZaloPay Wallet",
         "methodZalopayDesc": "Pay via the ZaloPay application",
         "methodApplePay": "Apple Pay",
-        "methodApplePayDesc": "Available on iPhone, iPad and MacBook with Touch ID / Face ID",
+        "methodApplePayDesc": "Pay with Apple Pay through the VNPay gateway",
         "methodGooglePay": "Google Pay",
         "methodGooglePayDesc": "Available on Android devices or browsers supporting Google Pay",
         "methodBankingApp": "Banking App",

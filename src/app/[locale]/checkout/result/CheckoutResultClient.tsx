@@ -113,6 +113,15 @@ function getValidityLabel(
     t: (key: string) => string
 ): string {
     if (!pass) return t("statusValid");
+    if (pass.validUntil) {
+        const until = formatDate(pass.validUntil, locale);
+        if (pass.validityType === "date-range" && pass.validFrom) {
+            const from = formatDate(pass.validFrom, locale);
+            return `${from} -> ${t("expiryLabel")}: ${until}`;
+        }
+        return `${t("expiryLabel")}: ${until}`;
+    }
+
     switch (pass.validityType) {
         case "date-specific":
             return pass.visitDate
@@ -177,6 +186,7 @@ export function CheckoutResultClient({
         "idle" | "sending" | "success"
     >("idle");
     const [vouchers, setVouchers] = useState<VoucherData[]>(initialVouchers ?? []);
+    const [passDetails, setPassDetails] = useState<PassValidity[]>(passes);
     
     const [tryAgainLoading, setTryAgainLoading] = useState(false);
     const [tryAgainError, setTryAgainError] = useState<string | null>(null);
@@ -248,6 +258,7 @@ export function CheckoutResultClient({
                     clearInterval(interval);
                     setStatus("paid");
                     setPassIds(data.passIds ?? []);
+                    setPassDetails(data.passes ?? []);
                     if (data.vouchers) setVouchers(data.vouchers);
                 } else if (data.status === "cancelled") {
                     clearInterval(interval);
@@ -269,7 +280,7 @@ export function CheckoutResultClient({
             const res = await fetch("/api/resend-ticket-email", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ orderId }),
+                body: JSON.stringify({ orderId, locale }),
             });
             if (res.ok) {
                 setResendStatus("success");
@@ -280,7 +291,7 @@ export function CheckoutResultClient({
             setResendStatus("idle");
         }
         setTimeout(() => setResendStatus("idle"), 4000);
-    }, [resendStatus, orderId]);
+    }, [resendStatus, orderId, locale]);
 
     // ── Resend counter order email ──────────────────────────────────────────────
     const handleResendCounterEmail = useCallback(async () => {
@@ -1023,7 +1034,7 @@ export function CheckoutResultClient({
                                                     </span>
                                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 text-gray-600 rounded-lg text-[11px] font-semibold">
                                                         <Calendar className="h-3 w-3" />
-                                                        {getValidityLabel(passes.find((p) => p.passId === passId), locale, t)}
+                                                        {getValidityLabel(passDetails.find((p) => p.passId === passId), locale, t)}
                                                     </span>
                                                     {matchedItem?.productType === "combo" && (
                                                         <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg text-[11px] font-semibold">

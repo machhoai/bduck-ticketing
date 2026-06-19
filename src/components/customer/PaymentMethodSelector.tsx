@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import {
     CreditCard,
-    Building2,
     Smartphone,
     Wallet,
     QrCode,
@@ -43,7 +42,6 @@ interface PaymentMethod {
     readonly icon: React.ReactNode;
     readonly logoSlot?: React.ReactNode;
     readonly badge?: string;
-    readonly applePlatformOnly?: boolean;
     readonly mobilePlatformOnly?: boolean;
 }
 
@@ -93,18 +91,10 @@ const VNPayLogo: React.FC = () => (
     </svg>
 );
 
-const MoMoLogo: React.FC = () => (
-    <svg viewBox="0 0 60 60" className="h-5 w-auto" aria-label="MoMo">
-        <rect width="60" height="60" rx="12" fill="#AE2070" />
-        <text x="30" y="38" textAnchor="middle" fill="white" fontSize="16" fontFamily="Arial" fontWeight="bold">Mo</text>
-    </svg>
-);
-
-const ZaloPayLogo: React.FC = () => (
-    <svg viewBox="0 0 80 40" className="h-5 w-auto" aria-label="ZaloPay">
-        <rect width="80" height="40" rx="6" fill="#0068ff" />
-        <text x="40" y="26" textAnchor="middle" fill="white" fontSize="13" fontFamily="Arial" fontWeight="bold">ZaloPay</text>
-    </svg>
+const ApplePayGatewayMark: React.FC = () => (
+    <span className="inline-flex h-5 items-center rounded-md bg-black px-2 text-[10px] font-semibold leading-none text-white">
+        Apple Pay
+    </span>
 );
 
 // ─── Radio indicator ─────────────────────────────────────────────────────────
@@ -138,6 +128,14 @@ const MethodCard: React.FC<MethodCardProps> = ({ method, selected, disabled, onS
         if (!disabled) onSelect(method.id);
     }, [disabled, method.id, onSelect]);
 
+    const cardClassName = [
+        "w-full text-left rounded-2xl border-2 px-4 py-3.5 transition-all duration-200 flex items-center gap-3 group",
+        selected
+            ? "border-[#F5C842] bg-gradient-to-r from-amber-50/80 to-yellow-50/40 shadow-sm shadow-amber-100"
+            : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm",
+        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+    ].join(" ");
+
     return (
         <button
             type="button"
@@ -146,13 +144,7 @@ const MethodCard: React.FC<MethodCardProps> = ({ method, selected, disabled, onS
             aria-label={method.id}
             disabled={disabled}
             onClick={handleClick}
-            className={[
-                "w-full text-left rounded-2xl border-2 px-4 py-3.5 transition-all duration-200 flex items-center gap-3 group",
-                selected
-                    ? "border-[#F5C842] bg-gradient-to-r from-amber-50/80 to-yellow-50/40 shadow-sm shadow-amber-100"
-                    : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm",
-                disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
-            ].join(" ")}
+            className={cardClassName}
         >
             {/* Method icon */}
             <div
@@ -198,6 +190,20 @@ const GroupHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+const subscribeToDeviceSnapshot = () => () => {};
+
+const getMobileDeviceSnapshot = () => {
+    if (typeof navigator === "undefined") return false;
+
+    const ua = navigator.userAgent;
+    const platform = navigator.platform;
+
+    return (
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/.test(ua) ||
+        (navigator.maxTouchPoints > 1 && /MacIntel/.test(platform))
+    );
+};
+
 export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
     selected,
     onChange,
@@ -205,29 +211,12 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
     enabledMethods,
 }) => {
     const t = useTranslations("paymentSelector");
-
     // ── Device detection (client-side only) ──
-    const [isAppleDevice, setIsAppleDevice] = useState(false);
-    const [isMobileDevice, setIsMobileDevice] = useState(false);
-
-    useEffect(() => {
-        const ua = navigator.userAgent;
-        const platform = navigator.platform;
-        
-        const isApple =
-            /iPhone|iPad|iPod/.test(ua) ||
-            /Macintosh/.test(ua) ||
-            /Mac/.test(platform) ||
-            // iPad with desktop UA (iPadOS 13+)
-            (navigator.maxTouchPoints > 1 && /MacIntel/.test(platform));
-            
-        const isMobile = 
-            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/.test(ua) ||
-            (navigator.maxTouchPoints > 1 && /MacIntel/.test(platform));
-            
-        setIsAppleDevice(isApple);
-        setIsMobileDevice(isMobile);
-    }, []);
+    const isMobileDevice = useSyncExternalStore(
+        subscribeToDeviceSnapshot,
+        getMobileDeviceSnapshot,
+        () => false
+    );
 
     // Build groups — icons and logos are JSX, labels come from i18n
     const groups: PaymentMethodGroup[] = [
@@ -272,9 +261,13 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                     id: "apple_pay",
                     labelKey: t("methodApplePay"),
                     descKey: t("methodApplePayDesc"),
-                    icon: <img src="/images/apple.png" alt="Apple Pay" className="absolute inset-0 h-full w-full object-contain" />,
-                    badge: "Apple",
-                    applePlatformOnly: true,
+                    icon: <Wallet className="h-5 w-5 text-gray-900" />,
+                    logoSlot: (
+                        <>
+                            <ApplePayGatewayMark />
+                            <VNPayLogo />
+                        </>
+                    ),
                 },
                 {
                     id: "google_pay",
@@ -332,19 +325,29 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
         },
     ];
 
+    const isMethodVisible = useCallback((method: PaymentMethod) => {
+        // Admin-level toggle
+        if (enabledMethods && !enabledMethods.includes(method.id)) return false;
+        // Mobile-platform-only restriction
+        if (method.mobilePlatformOnly && !isMobileDevice) return false;
+        return true;
+    }, [enabledMethods, isMobileDevice]);
+
+    const visiblePaymentIds = groups
+        .flatMap((group) => group.methods)
+        .filter(isMethodVisible)
+        .map((method) => method.id);
+
+    useEffect(() => {
+        if (visiblePaymentIds.length === 0 || visiblePaymentIds.includes(selected)) return;
+        onChange(visiblePaymentIds[0]);
+    }, [onChange, selected, visiblePaymentIds]);
+
     return (
         <div className="space-y-5" role="radiogroup" aria-label={t("groupLabel")}>
             {groups.map((group) => {
                 // Filter methods based on enabledMethods + platform restrictions
-                const visibleMethods = group.methods.filter((m) => {
-                    // Admin-level toggle
-                    if (enabledMethods && !enabledMethods.includes(m.id)) return false;
-                    // Apple-platform-only restriction
-                    if (m.applePlatformOnly && !isAppleDevice) return false;
-                    // Mobile-platform-only restriction
-                    if (m.mobilePlatformOnly && !isMobileDevice) return false;
-                    return true;
-                });
+                const visibleMethods = group.methods.filter(isMethodVisible);
 
                 // Hide entire group if no visible methods
                 if (visibleMethods.length === 0) return null;

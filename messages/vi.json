@@ -179,7 +179,7 @@
         "methodZalopay": "Ví ZaloPay",
         "methodZalopayDesc": "Thanh toán qua ứng dụng ZaloPay",
         "methodApplePay": "Apple Pay",
-        "methodApplePayDesc": "Chỉ khả dụng trên iPhone, iPad và MacBook hỗ trợ Touch ID / Face ID",
+        "methodApplePayDesc": "Thanh toán Apple Pay qua cổng VNPay",
         "methodGooglePay": "Google Pay",
         "methodGooglePayDesc": "Chỉ khả dụng trên thiết bị Android hoặc trình duyệt có hỗ trợ Google Pay",
         "methodBankingApp": "Ứng dụng ngân hàng",

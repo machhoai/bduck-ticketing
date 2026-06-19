@@ -295,7 +295,7 @@ export const Footer: React.FC = () => {
                 <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
                     <p className="text-[11px] text-white/25">{t("copyright")}</p>
                     <p className="text-[11px] text-white/18">
-                        {t("taxIdLabel")}: 0318958531 &nbsp;|&nbsp; {t("address")}
+                        {t("taxIdLabel")}: 0318958531{" | "}{t("address")}
                     </p>
                 </div>
             </div>
