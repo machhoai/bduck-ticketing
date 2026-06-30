@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 interface MarqueeGalleryProps {
@@ -60,9 +61,11 @@ function ImageRow({ images, rowKey, heightClass }: ImageRowProps) {
                         className="relative flex-shrink-0 rounded-2xl overflow-hidden bg-gray-100 border border-gray-100"
                         style={{ width: w }}
                     >
-                        <img
+                        <Image
                             src={url}
                             alt="B.Duck Funland attraction"
+                            fill
+                            sizes={`${w}px`}
                             className="absolute inset-0 h-full w-full object-cover"
                             loading="lazy"
                         />

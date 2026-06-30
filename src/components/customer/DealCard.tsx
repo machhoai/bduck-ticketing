@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useTransition, useMemo } from "react";
+import Image from "next/image";
 import { ShoppingCart, Clock, Gift, Crown, Check, Loader2, Tag, Flame, Zap, AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { DealItemDocument } from "@/types/firestore";
@@ -264,9 +265,11 @@ export const DealCard = React.memo(function DealCard({
         >
             {/* ── Image ──────────────────────────────────── */}
             <div className="relative w-full aspect-[4/3] overflow-hidden flex-shrink-0 rounded-t-[24px] bg-gray-100">
-                <img
+                <Image
                     src={item.thumbnailUrl}
                     alt={item.name}
+                    fill
+                    sizes="(max-width: 640px) calc(100vw - 40px), (max-width: 1024px) calc(50vw - 40px), 400px"
                     className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04] ${isDisabled ? "opacity-50 grayscale" : ""}`}
                 />
 
@@ -315,7 +318,14 @@ export const DealCard = React.memo(function DealCard({
                     className="pointer-events-none absolute -bottom-5 -right-2 w-20 h-20 transition-all duration-500 opacity-0 group-hover:opacity-100 group-hover:-translate-y-2"
                     style={{ filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.2))" }}
                 >
-                    <img src={sticker} alt="" className="absolute inset-0 h-full w-full object-contain" aria-hidden />
+                    <Image
+                        src={sticker}
+                        alt=""
+                        fill
+                        sizes="80px"
+                        className="absolute inset-0 h-full w-full object-contain"
+                        aria-hidden
+                    />
                 </div>
             </div>
 

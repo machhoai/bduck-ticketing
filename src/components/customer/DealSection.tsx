@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import Image from "next/image";
 import { Zap, Package } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getActiveDealSections } from "@/actions/dealSections";
@@ -56,7 +57,13 @@ function SectionBanner({ section, isOpen, opensAt, sIdx, productsCountLabel, max
                         className="relative w-14 h-14 flex-shrink-0"
                         style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.12))" }}
                     >
-                        <img src={sticker} alt={section.title} className="absolute inset-0 h-full w-full object-contain" />
+                        <Image
+                            src={sticker}
+                            alt={section.title}
+                            fill
+                            sizes="56px"
+                            className="absolute inset-0 h-full w-full object-contain"
+                        />
                     </div>
 
                     <div className="space-y-1">

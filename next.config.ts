@@ -44,6 +44,12 @@ const nextConfig: NextConfig = {
                 hostname: "res.cloudinary.com",
                 pathname: "/**",
             },
+            // Unsplash fallback images for the homepage attractions gallery
+            {
+                protocol: "https",
+                hostname: "images.unsplash.com",
+                pathname: "/**",
+            },
         ],
     },
     // firebase-admin uses native Node.js modules that cannot be bundled by
