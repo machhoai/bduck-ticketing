@@ -13,6 +13,7 @@
  */
 
 import { verifyApiKey, unauthorizedResponse } from "@/lib/api/verify-api-key";
+import { validateCode } from "@/lib/api/request-guards";
 import { adminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/client";
 import { Timestamp } from "firebase-admin/firestore";
@@ -26,12 +27,8 @@ export async function GET(req: Request): Promise<Response> {
   const { searchParams } = new URL(req.url);
   const rawCode = searchParams.get("code")?.trim() ?? "";
 
-  if (!rawCode) {
-    return Response.json(
-      { success: false, error: "MISSING_CODE", message: "Missing required query param: code" },
-      { status: 400 }
-    );
-  }
+  const invalidCodeResponse = validateCode(rawCode);
+  if (invalidCodeResponse) return invalidCodeResponse;
 
   const upper = rawCode.toUpperCase();
 

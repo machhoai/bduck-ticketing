@@ -10,6 +10,7 @@
  */
 
 import { verifyApiKey, unauthorizedResponse } from "@/lib/api/verify-api-key";
+import { validateCode, validateJsonBodySize } from "@/lib/api/request-guards";
 import { adminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/client";
 import { Timestamp } from "firebase-admin/firestore";
@@ -20,6 +21,8 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request): Promise<Response> {
   if (!verifyApiKey(req)) return unauthorizedResponse();
+  const invalidBodySizeResponse = validateJsonBodySize(req);
+  if (invalidBodySizeResponse) return invalidBodySizeResponse;
 
   // ── Parse body ────────────────────────────────────────────────────────────
   let orderId: string;
@@ -42,6 +45,8 @@ export async function POST(req: Request): Promise<Response> {
       { status: 400 }
     );
   }
+  const invalidOrderIdResponse = validateCode(orderId, "orderId");
+  if (invalidOrderIdResponse) return invalidOrderIdResponse;
 
   const orderRef = adminDb.collection(COLLECTIONS.ORDERS).doc(orderId);
 
