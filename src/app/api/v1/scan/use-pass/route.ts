@@ -12,6 +12,7 @@
  */
 
 import { verifyApiKey, unauthorizedResponse } from "@/lib/api/verify-api-key";
+import { serverErrorResponse, validateCode, validateJsonBodySize } from "@/lib/api/request-guards";
 import { adminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/client";
 import { Timestamp, FieldValue } from "firebase-admin/firestore";
@@ -21,6 +22,8 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request): Promise<Response> {
   if (!verifyApiKey(req)) return unauthorizedResponse();
+  const invalidBodySizeResponse = validateJsonBodySize(req);
+  if (invalidBodySizeResponse) return invalidBodySizeResponse;
 
   // ── Parse body ────────────────────────────────────────────────────────────
   let passId: string;
@@ -40,9 +43,16 @@ export async function POST(req: Request): Promise<Response> {
       { status: 400 }
     );
   }
+  const invalidPassIdResponse = validateCode(passId, "passId");
+  if (invalidPassIdResponse) return invalidPassIdResponse;
 
   // ── Resolve short code → full ID if needed ────────────────────────────────
-  const resolvedId = await resolvePassId(passId);
+  let resolvedId: string | null;
+  try {
+    resolvedId = await resolvePassId(passId);
+  } catch (err) {
+    return serverErrorResponse("[API use-pass resolve]", err);
+  }
   if (!resolvedId) {
     return Response.json(
       { success: false, error: "PASS_NOT_FOUND", message: `Vé không tồn tại: ${passId}` },
