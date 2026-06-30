@@ -59,6 +59,21 @@ export default async function CheckoutResultPage({
     }
   }
 
+  // VNPay cancel/sync handling
+  if (isCancelled && orderId && orderData?.status === "pending" && orderData?.paymentProvider === "vnpay") {
+    const { cancelVNPayOrder } = await import("@/actions/checkout");
+    cancelVNPayOrder(orderId).catch((err: unknown) =>
+      console.error("[checkout/result] Failed to cancel VNPay order:", err)
+    );
+  } else if (!isCancelled && status === "success" && orderId && orderData?.status === "pending" && orderData?.paymentProvider === "vnpay") {
+    // Active fallback sync: if VNPay returns success but IPN was missed (e.g. localhost)
+    const { syncVNPayPayment } = await import("@/actions/checkout");
+    const fulfilled = await syncVNPayPayment(orderId);
+    if (fulfilled) {
+      orderData = await getOrderStatus(orderId); // Refresh state
+    }
+  }
+
   const resolvedStatus = isCancelled
     ? "failed"
     : orderData?.status ?? null;

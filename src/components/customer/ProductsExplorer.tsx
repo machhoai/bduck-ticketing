@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Search, X, Zap, Package, Tag, Sparkles } from "lucide-react";
@@ -46,12 +45,10 @@ function ProductGridCard({ product, locale, t }: { product: ClientProduct; local
                 {/* Image with Ripple Effect */}
                 <RippleWrapper className="relative block w-full aspect-[4/3] rounded-[22px] overflow-hidden bg-gray-50 flex-shrink-0">
                     <Link href={`/${locale}/tickets/${product.id}`} className="absolute inset-0 z-10 outline-none" aria-label={product.name} />
-                    <Image
+                    <img
                         src={product.thumbnailUrl || "/images/placeholder-product.png"}
                         alt={product.name}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover transition-transform duration-600 ease-out group-hover:scale-[1.06]"
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-600 ease-out group-hover:scale-[1.06]"
                     />
 
                     {/* Gradient overlay on hover */}
@@ -190,7 +187,11 @@ export const ProductsExplorer: React.FC<Props> = ({ allProducts, groups, locale 
             {/* ── Minimalist Premium Hero Banner ────────────────────────────────────── */}
             <div className="relative pt-20 pb-10 w-full px-4 md:py-10 md:pt-32 overflow-hidden">
                 <div>
-                    <Image src="/images/bduck_summer_backdrop.png" alt="B.Duck Cityfuns" fill className="rounded-2xl object-cover" />
+                    <img
+                        src="/images/bduck_summer_backdrop.png"
+                        alt="B.Duck Cityfuns"
+                        className="absolute inset-0 h-full w-full rounded-2xl object-cover"
+                    />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/80" />
                 <div className="relative w-full mx-auto text-center z-10 flex flex-col items-center">

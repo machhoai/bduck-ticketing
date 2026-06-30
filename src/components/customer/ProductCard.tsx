@@ -1,6 +1,5 @@
 // Server Component (RSC) — renders product info for SEO
 // AddToCartButton is extracted as a separate Client Component (D6: Composition Pattern)
-import Image from "next/image";
 import Link from "next/link";
 import { Tag, Sparkles, Zap } from "lucide-react";
 import { AddToCartButton } from "@/components/customer/AddToCartButton";
@@ -47,12 +46,10 @@ export function ProductCard({ product, locale }: ProductCardProps) {
                 {/* Image container — Blob-shaped mask */}
                 <RippleWrapper className="relative block w-full aspect-[4/3] rounded-[22px] overflow-hidden bg-gray-50 flex-shrink-0">
                     <Link href={`/${locale}/tickets/${product.id}`} className="absolute inset-0 z-10 outline-none" aria-label={displayName} />
-                    <Image
+                    <img
                         src={product.thumbnailUrl}
                         alt={displayName}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover transition-transform duration-600 ease-out group-hover:scale-[1.06]"
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-600 ease-out group-hover:scale-[1.06]"
                     />
 
                     {/* Blob-shaped decorative overlay on hover */}

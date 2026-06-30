@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -803,13 +802,10 @@ function LoginContent() {
             <div className="auth-hero">
                 {/* Full-bleed mascot backdrop */}
                 <div className="auth-hero-image">
-                    <Image
+                    <img
                         src="/images/hero-duck.png"
                         alt="B.Duck Cityfuns Adventure"
-                        fill
-                        priority
-                        sizes="52vw"
-                        quality={85}
+                        className="absolute inset-0 h-full w-full"
                     />
                 </div>
 
@@ -827,13 +823,10 @@ function LoginContent() {
                 <div className="auth-hero-content">
                     <div className="auth-hero-logo">
                         <div className="auth-hero-logo-mark relative overflow-hidden">
-                            <Image
+                            <img
                                 src="/images/avt_bduck-cityfuns.png"
                                 alt="B.Duck Cityfuns"
-                                fill
-                                priority
-                                sizes="52vw"
-                                quality={85}
+                                className="absolute inset-0 h-full w-full object-cover"
                             />
                         </div>
                         <div>
@@ -880,7 +873,7 @@ function LoginContent() {
                 <div className="auth-form-container">
                     {/* Mobile brand */}
                     <div className={`auth-mobile-brand ${mounted ? "auth-enter auth-enter--d1" : ""}`}>
-                        <Image
+                        <img
                             src="/images/logo-bduck-cityfuns.png"
                             alt="B.Duck Cityfuns"
                             width={160}

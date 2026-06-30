@@ -54,6 +54,7 @@ export interface CreateOrderInput {
   customerId?: string; // Firebase Auth UID — empty = guest order
   promoCode?: string;
   affiliateCode?: string;
+  vnpayMethod?: string; // e.g. "vnpay_card", "vnpay_intl", etc.
 }
 
 // ─── Validate Promo Code ──────────────────────────────────────────────────────
@@ -1397,7 +1398,405 @@ export async function cancelPayOSOrder(orderId: string): Promise<void> {
     updatedAt: Timestamp.now(),
   });
 }
-// ─── Retry Failed Order Validation ──────────────────────────────────────────────
+// ─── Create VNPay Order ───────────────────────────────────────────────────────
+/**
+ * Tạo đơn hàng với phương thức thanh toán qua VNPay.
+ *
+ * Flow:
+ *   1. Validate deal items, re-fetch prices, promo, affiliate — giống createOrder.
+ *   2. Sinh vnpTxnRef (unique) dùng để IPN lookup.
+ *   3. Gọi createPaymentUrl() để build VNPay redirect URL.
+ *   4. Client redirect đến VNPay gateway.
+ *   5. VNPay gọi IPN /api/vnpay/ipn khi thanh toán thành công → xử lý giống PayOS webhook.
+ *
+ * @returns orderId + paymentUrl để client redirect đến VNPay
+ */
+export async function createVNPayOrder(
+  input: CreateOrderInput
+): Promise<ActionResult<{ orderId: string; paymentUrl: string }>> {
+  const {
+    items,
+    customerName,
+    customerEmail,
+    customerPhone,
+    customerId: clientCustomerId = "",
+    promoCode,
+    affiliateCode,
+    vnpayMethod,
+  } = input;
+
+  // Link to session user if available
+  let customerId = clientCustomerId;
+  if (!customerId) {
+    const session = await verifySession();
+    if (session?.uid) customerId = session.uid;
+  }
+
+  if (!items.length) {
+    return { success: false, errorKey: "order.empty_cart" };
+  }
+
+  // ── Step 0.5: Validate deal items ──
+  const dealResult = await runDealValidation(items);
+  if (!dealResult.valid) {
+    return { success: false, errorKey: dealResult.errorKey, message: dealResult.message };
+  }
+  const resolvedDeals = dealResult.resolved;
+
+  // ── Step 1: Re-fetch all product prices server-side (D5) ──
+  const orderItems: OrderItem[] = [];
+  let subtotal = 0;
+
+  for (const cartItem of items) {
+    const productDoc = await adminDb
+      .collection(COLLECTIONS.PRODUCTS)
+      .doc(cartItem.productId)
+      .get();
+
+    if (!productDoc.exists) {
+      return {
+        success: false,
+        errorKey: "order.product_not_found",
+        message: cartItem.productId,
+      };
+    }
+
+    const product = {
+      id: productDoc.id,
+      ...productDoc.data(),
+    } as ProductDocument;
+
+    if (product.status !== "active") {
+      return {
+        success: false,
+        errorKey: "order.product_unavailable",
+        message: product.name,
+      };
+    }
+
+    if (
+      product.totalStock !== undefined &&
+      product.soldCount + cartItem.quantity > product.totalStock
+    ) {
+      return {
+        success: false,
+        errorKey: "order.stock_exhausted",
+        message: product.name,
+      };
+    }
+
+    const deal = resolvedDeals.get(cartItem.productId);
+    const unitPrice = deal ? deal.item.effectivePrice : getEffectivePrice(product);
+    const itemSubtotal = unitPrice * cartItem.quantity;
+    subtotal += itemSubtotal;
+
+    const orderItem: OrderItem = {
+      productId: product.id,
+      productName: product.name,
+      productType: product.type,
+      thumbnailUrl: product.thumbnailUrl,
+      quantity: cartItem.quantity,
+      unitPrice,
+      subtotal: itemSubtotal,
+      validityConfig: product.validityConfig,
+    };
+    if (product.comboItems !== undefined) {
+      orderItem.comboItems = product.comboItems;
+    }
+
+    // Enrich with deal context
+    if (deal) {
+      orderItem.isDealItem = true;
+      orderItem.dealSectionId = deal.sectionId;
+      orderItem.dealItemId = deal.item.id;
+      if (deal.item.membershipConfig) {
+        const mc = deal.item.membershipConfig;
+        let bonusPoints = mc.bonusPoints ?? 0;
+        if (deal.item.membershipBonusOverride) {
+          const ov = deal.item.membershipBonusOverride;
+          if (ov.applyTo === "bonusOnly") bonusPoints = bonusPoints * ov.multiplier;
+          else bonusPoints = ((mc.basePoints ?? 0) + bonusPoints) * ov.multiplier - (mc.basePoints ?? 0);
+        }
+        orderItem.membershipPoints = mc.basePoints ?? 0;
+        orderItem.bonusPoints = Math.round(bonusPoints);
+        orderItem.totalPoints = (mc.basePoints ?? 0) + Math.round(bonusPoints);
+        orderItem.merch = mc.merch;
+      }
+    }
+
+    orderItems.push(orderItem);
+  }
+
+  // ── Step 2: Validate promo if provided ──
+  let discountAmount = 0;
+  let promotionId: string | undefined;
+  let promotionCode: string | undefined;
+
+  if (promoCode) {
+    const promoResult = await validatePromoCode(promoCode, items, customerEmail);
+    if (!promoResult.valid) {
+      return { success: false, errorKey: promoResult.errorKey ?? "promo.invalid" };
+    }
+    discountAmount = promoResult.discountAmount;
+    promotionId = promoResult.promotionId;
+    promotionCode = promoResult.promotionCode;
+  }
+
+  const finalAmount = subtotal - discountAmount;
+
+  // ── Step 3: Generate order number + vnpTxnRef ──
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const randomSuffix = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const orderNumber = `BDUCK-${dateStr}-${randomSuffix}`;
+
+  // vnpTxnRef must be unique within the day (VNPay requirement)
+  const txnTimestamp = Date.now().toString(36).toUpperCase();
+  const txnRandom = Math.random().toString(36).slice(2, 6).toUpperCase();
+  const vnpTxnRef = `${txnTimestamp}${txnRandom}`;
+
+  // ── Step 4: Resolve affiliate ──
+  let affiliateId: string | undefined;
+  let affiliateCommissionAmount: number | undefined;
+
+  if (affiliateCode) {
+    const affSnap = await adminDb
+      .collection(COLLECTIONS.AFFILIATE_PROFILES)
+      .where("referralCode", "==", affiliateCode)
+      .where("applicationStatus", "==", "approved")
+      .limit(1)
+      .get();
+
+    if (!affSnap.empty) {
+      const affDoc = affSnap.docs[0];
+      affiliateId = affDoc.id;
+      const affData = affDoc.data();
+      let commissionRate = affData.defaultCommissionRate ?? 0;
+      for (const item of orderItems) {
+        const productDoc = await adminDb
+          .collection(COLLECTIONS.PRODUCTS)
+          .doc(item.productId)
+          .get();
+        const product = productDoc.data() as ProductDocument;
+        if (product.commissionRate !== undefined) {
+          commissionRate = product.commissionRate;
+          break;
+        }
+      }
+      affiliateCommissionAmount = Math.round(finalAmount * commissionRate);
+    }
+  }
+
+  // ── Step 5: Write pending order ──
+  const now = Timestamp.now();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const orderData: Record<string, any> = {
+    orderNumber,
+    vnpTxnRef,
+    customerId,
+    isGuestOrder: !customerId,
+    customerEmail,
+    customerName,
+    customerPhone,
+    items: orderItems,
+    subtotal,
+    discountAmount,
+    finalAmount,
+    promotionId,
+    promotionCode,
+    affiliateId,
+    affiliateCode,
+    affiliateCommissionAmount,
+    status: "pending",
+    paymentDetails: {
+      provider: "vnpay",
+      providerData: {
+        vnpTxnRef,
+      },
+    },
+    passIds: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  // Remove undefined fields
+  Object.keys(orderData).forEach((key) => {
+    if (orderData[key] === undefined) delete orderData[key];
+  });
+
+  const orderRef = await adminDb.collection(COLLECTIONS.ORDERS).add(orderData);
+
+  // ── Step 5.5: Update deal item stock ──
+  if (resolvedDeals.size > 0) {
+    const qtyMap = new Map<string, number>();
+    for (const item of items) qtyMap.set(item.productId, item.quantity);
+    updateDealStock(resolvedDeals, qtyMap).catch((err) =>
+      console.error("[createVNPayOrder] Deal stock update failed (non-fatal):", err)
+    );
+  }
+
+  // ── Step 6: Build VNPay payment URL ──
+  try {
+    const { createPaymentUrl } = await import("@/lib/vnpay");
+
+    // Map UI selected method to VNPay bankCode
+    let bankCode: string | undefined;
+    switch (vnpayMethod) {
+      case "vnpay_card":
+        bankCode = "VNBANK";
+        break;
+      case "vnpay_intl":
+        bankCode = "INTCARD";
+        break;
+      case "vnpay_qr":
+        bankCode = "VNPAYQR";
+        break;
+      case "apple_pay":
+        bankCode = "APPLEPAY";
+        break;
+      case "google_pay":
+        bankCode = "GOOGLEPAY";
+        break;
+      case "vnpay_app":
+        bankCode = "VNBANK";
+        break;
+      case "vnpay_wallet":
+        bankCode = "VNPAY";
+        break;
+      // vnpay_transfer can be left undefined to let VNPay handle it
+      default:
+        bankCode = undefined;
+    }
+
+    // Remove Vietnamese diacritics for VNPay orderInfo
+    const orderInfo = `Thanh toan don hang ${orderNumber}`;
+
+    const paymentUrl = createPaymentUrl({
+      vnpTxnRef,
+      amount: finalAmount,
+      orderInfo,
+      ipAddr: "127.0.0.1", // In production, extract from request headers
+      locale: "vn",
+      bankCode,
+    });
+
+    return {
+      success: true,
+      data: { orderId: orderRef.id, paymentUrl },
+    };
+  } catch (err) {
+    console.error("[createVNPayOrder] VNPay URL creation error:", err);
+    // Mark order as failed
+    await orderRef.update({
+      status: "cancelled",
+      cancelReason: "vnpay_url_creation_failed",
+      cancelledAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+    return { success: false, errorKey: "order.payment_link_failed" };
+  }
+}
+
+// ─── Cancel VNPay Order ───────────────────────────────────────────────────────
+/**
+ * Marks a pending VNPay order as cancelled.
+ * Called when VNPay returns with a non-success response code.
+ * Idempotent: no-op if order is already paid/cancelled.
+ */
+export async function cancelVNPayOrder(orderId: string): Promise<void> {
+  const orderRef = adminDb.collection(COLLECTIONS.ORDERS).doc(orderId);
+  const snap = await orderRef.get();
+  if (!snap.exists) return;
+
+  const data = snap.data();
+  if (!data || data.status !== "pending") return;
+
+  await orderRef.update({
+    status: "cancelled",
+    cancelReason: "user_cancelled_vnpay",
+    cancelledAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+}
+
+// ─── Active VNPay Sync (Fallback for delayed IPN) ────────────────────────────
+/**
+ * Active fallback: check VNPay return data and fulfill order if IPN was missed.
+ * Called from the result page when VNPay returns success but order is still pending.
+ *
+ * Unlike PayOS (which has a query API), VNPay IPN is the primary confirmation.
+ * This sync simply checks if the order is still pending and the return URL
+ * indicated success — if so, fulfill it. This handles the localhost dev scenario
+ * where IPN callbacks can't reach the server.
+ */
+export async function syncVNPayPayment(orderId: string): Promise<boolean> {
+  try {
+    const orderDoc = await adminDb
+      .collection(COLLECTIONS.ORDERS)
+      .doc(orderId)
+      .get();
+
+    if (!orderDoc.exists) return false;
+
+    const order = { id: orderDoc.id, ...orderDoc.data() } as OrderDocument;
+
+    // Only process pending VNPay orders
+    if (order.status !== "pending") return true;
+    if (order.paymentDetails?.provider !== "vnpay" || !order.vnpTxnRef) return false;
+
+    // Fulfill the order
+    const orderRef = adminDb.collection(COLLECTIONS.ORDERS).doc(orderId);
+    const passIds: string[] = [];
+
+    await adminDb.runTransaction(async (tx) => {
+      const freshOrderSnap = await tx.get(orderRef);
+      const freshOrder = { id: orderId, ...freshOrderSnap.data() } as OrderDocument;
+
+      if (freshOrder.status !== "pending") return;
+
+      const generatedIds = generatePassesInTransaction(tx, orderRef, freshOrder, {
+        orderUpdateExtras: {
+          paymentDetails: {
+            provider: "vnpay",
+            providerData: {
+              vnpTxnRef: order.vnpTxnRef,
+              syncMethod: "active_fallback",
+            },
+          },
+        },
+      });
+      passIds.push(...generatedIds);
+    });
+
+    // Post-transaction side-effects
+    try {
+      const { vouchers } = await issueVouchersFromOrderItems(order);
+      await sendTicketEmail({
+        to: order.customerEmail,
+        customerName: order.customerName,
+        orderId,
+        orderNumber: order.orderNumber,
+        items: order.items.map((item) => ({
+          productName: item.productName,
+          productType: item.productType,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          subtotal: item.subtotal,
+        })),
+        finalAmount: order.finalAmount,
+        discountAmount: order.discountAmount,
+        passIds,
+        vouchers: vouchers.length > 0 ? vouchers : undefined,
+      });
+    } catch (err) {
+      console.error("[syncVNPayPayment] Error in post-transaction side effects:", err);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[syncVNPayPayment] Failed to sync payment:", error);
+    return false;
+  }
+}
 export async function validateOrderItemsForRetry(
   items: CartItemInput[]
 ): Promise<ActionResult<void>> {

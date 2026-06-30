@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
@@ -128,22 +127,20 @@ export function Navbar() {
                     <Link
                         href={`/${locale}`}
                         className="flex items-center gap-3 shrink-0 cursor-pointer">
-                        <Image
+                        <img
                             src="/images/logo-bduck-cityfuns.png"
                             alt="B.Duck Funland"
                             width={120}
                             height={60}
                             className="h-8 sm:h-[50px] lg:h-[60px] w-auto object-contain"
-                            priority
                         />
                         <div className="hidden sm:block w-px h-6 bg-border-light" />
-                        <Image
+                        <img
                             src="/images/logo-bduck-official.png"
                             alt="B.Duck™"
                             width={90}
                             height={30}
                             className="hidden sm:block h-[32px] lg:h-[40px] w-auto object-contain"
-                            priority
                         />
                     </Link>
 
@@ -287,7 +284,7 @@ export function Navbar() {
                                     className={cn(!showDarkText && "hover:bg-white/10")}
                                 >
                                     <span className="text-base leading-none">
-                                        <Image
+                                        <img
                                             src={LOCALE_FLAGS[locale].flag}
                                             alt={LOCALE_FLAGS[locale].label}
                                             width={20}
@@ -310,7 +307,7 @@ export function Navbar() {
                                                         : "text-text-secondary hover:bg-surface-100"
                                                 )}
                                             >
-                                                <Image
+                                                <img
                                                     src={LOCALE_FLAGS[loc as Locale].flag}
                                                     alt={LOCALE_FLAGS[loc as Locale].label}
                                                     width={20}

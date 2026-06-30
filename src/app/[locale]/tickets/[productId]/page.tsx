@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
@@ -169,13 +168,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
               <div className="flex flex-col gap-4">
                 {/* Hero Image */}
                 <div className="relative aspect-[4/3] rounded-[32px] overflow-hidden bg-white shadow-xl shadow-gray-200/50 border border-white/60 group">
-                  <Image
+                  <img
                     src={product.thumbnailUrl}
                     alt={product.name}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 60vw"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                   {/* Subtle gradient overlay at bottom for depth */}
                   <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/40 via-black/10 to-transparent opacity-80" />
@@ -208,12 +204,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
                         key={i}
                         className="relative aspect-square rounded-[20px] overflow-hidden bg-white shadow-sm border border-white/60 cursor-pointer group/thumb hover:shadow-md hover:border-gray-200 transition-all duration-300"
                       >
-                        <Image
+                        <img
                           src={url}
                           alt={`${product.name} #${i + 2}`}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover/thumb:scale-110"
-                          sizes="(max-width: 1024px) 25vw, 15vw"
+                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover/thumb:scale-110"
                         />
                         <div className="absolute inset-0 bg-black/0 group-hover/thumb:bg-black/10 transition-colors duration-300" />
                       </div>

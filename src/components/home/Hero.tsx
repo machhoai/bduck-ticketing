@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { Ticket, ChevronDown, Star, Users, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -99,7 +98,7 @@ export function Hero() {
                             {t("title1")}{" "}
                             <span
                                 style={{
-                                    background: "linear-gradient(135deg, #FFD100 0%, #FFB300 50%, #FF7900 100%)",
+                                    background: "linear-gradient(135deg, #FF7900 0%, #FF7900 50%, #FF7900 100%)",
                                     WebkitBackgroundClip: "text",
                                     WebkitTextFillColor: "transparent",
                                     backgroundClip: "text",
@@ -114,7 +113,7 @@ export function Hero() {
                             {t("title2")}{" "}
                             <span
                                 style={{
-                                    background: "linear-gradient(135deg, #FF7900 0%, #FF5252 100%)",
+                                    background: "linear-gradient(135deg, #FF7900 0%, #FF7900 100%)",
                                     WebkitBackgroundClip: "text",
                                     WebkitTextFillColor: "transparent",
                                     backgroundClip: "text",

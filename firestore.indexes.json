@@ -113,6 +113,14 @@
       ]
     },
     {
+      "collectionGroup": "bduck_orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "bduck_voucherTemplates",
       "queryScope": "COLLECTION",
       "fields": [

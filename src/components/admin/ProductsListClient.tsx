@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Plus, Edit2, Power, Search, X } from "lucide-react";
 import { toggleProductStatus } from "@/actions/admin/products";
 import type { ClientProduct } from "@/lib/serializeProduct";
@@ -132,7 +131,7 @@ export function ProductsListClient({ products, locale }: ProductsListClientProps
                       <div className="flex items-center gap-3">
                         {product.thumbnailUrl ? (
                           <div className="relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
-                            <Image src={product.thumbnailUrl} alt={product.name} fill className="object-cover" sizes="40px" />
+                            <img src={product.thumbnailUrl} alt={product.name} className="absolute inset-0 h-full w-full object-cover" />
                           </div>
                         ) : (
                           <div className="w-10 h-10 rounded-xl bg-gray-100 flex-shrink-0" />

@@ -1,7 +1,6 @@
 "use client";
 
 import { QRCodeCanvas } from "qrcode.react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import {
     CheckCircle2,
@@ -35,6 +34,8 @@ export interface SerializedPass {
     visitDate?: string;
     validFrom?: string;
     validUntil?: string;
+    timeSlotStart?: string;
+    timeSlotEnd?: string;
     createdAt?: string;
     usedAt?: string;
 }
@@ -79,11 +80,10 @@ export function PassCard({ pass, locale }: PassCardProps) {
             {/* ── Product Banner ─────────────────────────────────────── */}
             <div className="relative h-36 bg-[#1A1A2E] overflow-hidden">
                 {pass.thumbnailUrl ? (
-                    <Image
+                    <img
                         src={pass.thumbnailUrl}
                         alt={pass.productName}
-                        fill
-                        className={`object-cover transition-all duration-300 ${isActive ? "opacity-50" : "opacity-20"}`}
+                        className={`absolute inset-0 h-full w-full object-cover transition-all duration-300 ${isActive ? "opacity-50" : "opacity-20"}`}
                     />
                 ) : null}
                 {/* Dark gradient overlay */}
@@ -131,6 +131,29 @@ export function PassCard({ pass, locale }: PassCardProps) {
                             <span className="text-blue-800">
                                 <span className="text-xs text-blue-500 block leading-none">{t("validFrom")} → {t("validUntil")}</span>
                                 <strong>{formatDate(pass.validFrom, locale)} — {formatDate(pass.validUntil, locale)}</strong>
+                            </span>
+                        </div>
+                    )}
+                    {pass.validityType === "date-specific" && pass.validUntil && (
+                        <div className="flex items-center gap-1.5 bg-orange-50 border border-orange-100 rounded-xl px-3 py-2 text-sm">
+                            <Clock className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                            <span className="text-orange-800">
+                                <span className="text-xs text-orange-500 block leading-none">{t("validUntil")}</span>
+                                <strong>{formatDate(pass.validUntil, locale)}</strong>
+                            </span>
+                        </div>
+                    )}
+                    {pass.validityType === "time-slot" && pass.validUntil && (
+                        <div className="flex items-center gap-1.5 bg-cyan-50 border border-cyan-100 rounded-xl px-3 py-2 text-sm">
+                            <Clock className="h-4 w-4 text-cyan-500 flex-shrink-0" />
+                            <span className="text-cyan-800">
+                                <span className="text-xs text-cyan-500 block leading-none">{t("validUntil")}</span>
+                                <strong>{formatDate(pass.validUntil, locale)}</strong>
+                                {pass.timeSlotStart && pass.timeSlotEnd && (
+                                    <span className="block text-xs text-cyan-600 font-medium">
+                                        {pass.timeSlotStart} - {pass.timeSlotEnd}
+                                    </span>
+                                )}
                             </span>
                         </div>
                     )}

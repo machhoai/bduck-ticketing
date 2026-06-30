@@ -357,6 +357,12 @@ export interface OrderDocument {
   payosOrderCode?: number; // indexed — payos orders only
 
   /**
+   * Mã tham chiếu giao dịch VNPay — dùng cho IPN callback lookup.
+   * Format: "BDUCK-{timestamp}-{random}"
+   */
+  vnpTxnRef?: string; // indexed — vnpay orders only
+
+  /**
    * Thời điểm đơn counter tự động bị huỷ nếu chưa thanh toán.
    * = createdAt + 24 giờ. Chỉ set khi provider = "counter".
    *

@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { X, ShoppingCart, Trash2, Plus, Minus, Gift, AlertTriangle } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCartStore, rehydrateCart } from "@/stores/cart";
 import { useCartStockCheck } from "@/hooks/useCartStockCheck";
@@ -148,11 +147,10 @@ export function CartDrawer({ isOpen, onClose, locale }: CartDrawerProps) {
                   )}
 
                   <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                    <Image
+                    <img
                       src={item.thumbnailUrl}
                       alt={item.name}
-                      fill
-                      className={`object-cover ${itemOOS ? "opacity-40" : ""}`}
+                      className={`absolute inset-0 h-full w-full object-cover ${itemOOS ? "opacity-40" : ""}`}
                     />
                   </div>
                   <div className="flex-1 min-w-0">

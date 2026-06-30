@@ -16,6 +16,10 @@
 import QRCode from "qrcode";
 import transporter, { FROM_ADDRESS } from "./transporter";
 import type { VoucherEmailInfo } from "@/lib/deal-checkout";
+import { adminDb } from "@/lib/firebase/admin";
+import { COLLECTIONS } from "@/lib/firebase/client";
+import viMessages from "../../../messages/vi.json";
+import enMessages from "../../../messages/en.json";
 
 interface TicketItem {
     productName: string;
@@ -34,8 +38,134 @@ interface TicketEmailParams {
     finalAmount: number;
     discountAmount: number;
     passIds: string[];
+    passes?: TicketPassInfo[];
     vouchers?: VoucherEmailInfo[];
     locale?: string;
+}
+
+interface TicketPassInfo {
+    passId: string;
+    validityType?: string;
+    visitDate?: string;
+    validFrom?: string;
+    validUntil?: string;
+    timeSlotStart?: string;
+    timeSlotEnd?: string;
+}
+
+function normalizeLocale(locale?: string): "vi" | "en" {
+    return locale?.startsWith("en") ? "en" : "vi";
+}
+
+function getMessageCopy(locale?: string) {
+    const messages = normalizeLocale(locale) === "en" ? enMessages : viMessages;
+    return {
+        checkout: messages.checkout as Record<string, string>,
+        ticketWallet: messages.ticketWallet as Record<string, string>,
+    };
+}
+
+function formatEmailDate(iso: string | undefined, locale?: string): string {
+    if (!iso) return "";
+    return new Date(iso).toLocaleDateString(
+        normalizeLocale(locale) === "vi" ? "vi-VN" : "en-US",
+        { day: "2-digit", month: "short", year: "numeric" }
+    );
+}
+
+function toEmailISO(ts: { toDate?: () => Date } | undefined): string | undefined {
+    return ts?.toDate ? ts.toDate().toISOString() : undefined;
+}
+
+async function resolveTicketPasses(
+    passIds: string[],
+    providedPasses?: TicketPassInfo[]
+): Promise<TicketPassInfo[]> {
+    if (providedPasses?.length) {
+        const byId = new Map(providedPasses.map((pass) => [pass.passId, pass]));
+        return passIds.map((passId) => byId.get(passId) ?? { passId });
+    }
+
+    if (passIds.length === 0) return [];
+
+    const refs = passIds.map((passId) =>
+        adminDb.collection(COLLECTIONS.PASSES).doc(passId)
+    );
+    const docs = await adminDb.getAll(...refs);
+    const byId = new Map<string, TicketPassInfo>();
+
+    docs.forEach((doc) => {
+        if (!doc.exists) return;
+        const data = doc.data()!;
+        byId.set(doc.id, {
+            passId: doc.id,
+            validityType: data.validityType,
+            visitDate: toEmailISO(data.visitDate),
+            validFrom: toEmailISO(data.validFrom),
+            validUntil: toEmailISO(data.validUntil),
+            timeSlotStart: data.timeSlotStart,
+            timeSlotEnd: data.timeSlotEnd,
+        });
+    });
+
+    return passIds.map((passId) => byId.get(passId) ?? { passId });
+}
+
+function buildPassValidityHTML(
+    pass: TicketPassInfo,
+    locale: string | undefined,
+    copy: ReturnType<typeof getMessageCopy>
+): string {
+    const rows: { label: string; value: string; emphasis?: boolean }[] = [];
+
+    if (pass.visitDate) {
+        rows.push({
+            label: copy.ticketWallet.visitDate,
+            value: formatEmailDate(pass.visitDate, locale),
+        });
+    }
+
+    if (pass.validFrom && pass.validityType === "date-range") {
+        rows.push({
+            label: copy.ticketWallet.validFrom,
+            value: formatEmailDate(pass.validFrom, locale),
+        });
+    }
+
+    if (pass.validUntil) {
+        rows.push({
+            label: copy.ticketWallet.validUntil,
+            value: formatEmailDate(pass.validUntil, locale),
+            emphasis: true,
+        });
+    } else if (pass.validityType === "open-dated") {
+        rows.push({
+            label: copy.checkout.expiryLabel,
+            value: copy.checkout.noExpiry,
+        });
+    }
+
+    if (pass.timeSlotStart && pass.timeSlotEnd) {
+        rows.push({
+            label: copy.checkout.statusValid,
+            value: `${pass.timeSlotStart} - ${pass.timeSlotEnd}`,
+        });
+    }
+
+    if (rows.length === 0) return "";
+
+    return `
+            <tr>
+              <td colspan="2" style="padding:0 16px 12px;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border:1px solid #F1E2A7;border-radius:10px;">
+                  ${rows.map((row) => `
+                  <tr>
+                    <td style="padding:8px 10px;font-size:12px;color:#888;border-bottom:1px solid #F7F1D6;">${row.label}</td>
+                    <td style="padding:8px 10px;font-size:12px;color:${row.emphasis ? "#B45309" : "#1A1A2E"};font-weight:700;text-align:right;border-bottom:1px solid #F7F1D6;">${row.value}</td>
+                  </tr>`).join("")}
+                </table>
+              </td>
+            </tr>`;
 }
 
 function formatVND(amount: number): string {
@@ -75,7 +205,7 @@ async function buildVoucherQrBuffer(code: string): Promise<Buffer> {
     });
 }
 
-function buildTicketHTML(params: TicketEmailParams): string {
+function buildTicketHTML(params: TicketEmailParams & { ticketPasses: TicketPassInfo[] }): string {
     const {
         customerName,
         orderNumber,
@@ -83,11 +213,13 @@ function buildTicketHTML(params: TicketEmailParams): string {
         finalAmount,
         discountAmount,
         passIds,
+        ticketPasses,
         vouchers,
         orderId,
         locale = "vi",
     } = params;
 
+    const copy = getMessageCopy(locale);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.citfuns.joyworld.vn";
     const resultLink = `${appUrl}/${locale}/checkout/result?orderId=${orderId}&status=success`;
 
@@ -107,8 +239,9 @@ function buildTicketHTML(params: TicketEmailParams): string {
         .join("");
 
     const ticketCards = passIds
-        .map(
-            (passId, index) => `
+        .map((passId, index) => {
+            const pass = ticketPasses[index] ?? { passId };
+            return `
       <tr>
         <td style="padding:10px 0;">
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFB;border:1px solid #E8ECF0;border-radius:12px;overflow:hidden;">
@@ -134,6 +267,7 @@ function buildTicketHTML(params: TicketEmailParams): string {
                 </table>
               </td>
             </tr>
+            ${buildPassValidityHTML(pass, locale, copy)}
             <!-- QR Code (CID inline image) -->
             <tr>
               <td colspan="2" style="padding:16px;text-align:center;border-top:1px dashed #E0E0E0;">
@@ -160,8 +294,8 @@ function buildTicketHTML(params: TicketEmailParams): string {
             </tr>
           </table>
         </td>
-      </tr>`
-        )
+      </tr>`;
+        })
         .join("");
 
     return `
@@ -300,6 +434,8 @@ export async function sendTicketEmail(
     params: TicketEmailParams
 ): Promise<boolean> {
     try {
+        const ticketPasses = await resolveTicketPasses(params.passIds, params.passes);
+
         // Generate QR PNG buffers for all passes in parallel
         const qrBuffers = await Promise.all(
             params.passIds.map((id) => buildQrBuffer(id))
@@ -342,7 +478,7 @@ export async function sendTicketEmail(
             from: FROM_ADDRESS,
             to: params.to,
             subject: `✅ Vé B.Duck Cityfuns — Đơn hàng ${params.orderNumber}`,
-            html: buildTicketHTML(params),
+            html: buildTicketHTML({ ...params, ticketPasses }),
             attachments,
         });
 

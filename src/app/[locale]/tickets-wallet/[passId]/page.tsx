@@ -48,6 +48,8 @@ function serializePass(doc: FirebaseFirestore.DocumentSnapshot): SerializedPass 
         visitDate: toISO(raw.visitDate),
         validFrom: toISO(raw.validFrom),
         validUntil: toISO(raw.validUntil),
+        timeSlotStart: raw.timeSlotStart,
+        timeSlotEnd: raw.timeSlotEnd,
         createdAt: toISO(raw.createdAt),
         usedAt: toISO(raw.usedAt),
     };
