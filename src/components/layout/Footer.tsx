@@ -71,8 +71,8 @@ export const Footer: React.FC = () => {
         {
             icon: <Mail className="w-3.5 h-3.5 flex-shrink-0 text-[#FFD100]/70" />,
             label: t("emailLabel"),
-            value: "ask@bduckcityfuns.com.vn",
-            href: "mailto:ask@bduckcityfuns.com.vn",
+            value: "help@bduckcityfuns.com.vn",
+            href: "mailto:help@bduckcityfuns.com.vn",
         },
         {
             icon: <Clock className="w-3.5 h-3.5 flex-shrink-0 text-[#FFD100]/70" />,
@@ -174,10 +174,10 @@ export const Footer: React.FC = () => {
                                 </a>
                             </div>
                             <div className="relative w-full h-20 mt-2">
-                                <a href="http://online.gov.vn/Home/WebDetails/142281" target="_blank" rel="noopener noreferrer">
+                                <a href="http://online.gov.vn/nen-tang/69bfb051-5159-447c-8aa7-cbe7752d5690" target="_blank" rel="noopener noreferrer">
                                     <Image
                                         src="/20150827110756-dathongbao.png"
-                                        alt="BCT Logo"
+                                        alt="Đã thông báo BCT"
                                         width={150}
                                         height={100}
                                         className="object-contain"
